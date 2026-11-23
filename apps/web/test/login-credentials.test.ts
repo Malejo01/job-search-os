@@ -169,7 +169,7 @@ describe("intentos por IP", () => {
   });
 });
 
-describe("loginSecretMissingInProduction (aviso de /settings/salud)", () => {
+describe("loginSecretMissingInProduction (aviso de /admin/salud)", () => {
   it("avisa solo en producción y solo si falta el secreto (vacío cuenta como falta)", () => {
     expect(loginSecretMissingInProduction({ VERCEL_ENV: "production" })).toBe(true);
     expect(

@@ -3,7 +3,7 @@ import { axeSummary } from "./axe-helpers";
 import { login } from "./helpers";
 
 /**
- * Flujo 114 (C9-3): /settings/marca/componentes, el catálogo de primitivas del rediseño, solo para
+ * Flujo 114 (C9-3): /admin/marca/componentes, el catálogo de primitivas del rediseño, solo para
  * quien administra la beta. Claro y oscuro van lado a lado: un pase de axe revisa los dos. También
  * verifica la forma P1: el botón principal lleva un borde inferior de 6 px y se hunde al tocarlo
  * sin mover lo que tiene alrededor.
@@ -17,7 +17,7 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await login(page);
-      await page.goto("/settings/marca");
+      await page.goto("/admin/marca");
       await page
         .getByRole("link", { name: "Ver los componentes del rediseño en todos sus estados" })
         .click();
@@ -42,7 +42,7 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await login(page);
-    await page.goto("/settings/marca/componentes");
+    await page.goto("/admin/marca/componentes");
     const button = page
       .getByRole("region", { name: "En claro" })
       .getByRole("button", { name: "Ver mis ofertas" });
@@ -66,7 +66,7 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     page,
   }) => {
     await login(page);
-    await page.goto("/settings/marca/componentes");
+    await page.goto("/admin/marca/componentes");
     const seals = page.getByTestId("sellos-light");
     const top = seals.getByRole("img", { name: "puntaje 9.2" });
     await expect(top).toContainText("Muy afín");

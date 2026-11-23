@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Aviso de anomalía de gasto de IA (`/settings/salud`). Puro: valida lo que devuelve
+ * Aviso de anomalía de gasto de IA (`/admin/salud`). Puro: valida lo que devuelve
  * `admin_llm_spend_anomalies()` (rls/0056) y aplica la regla. Una tarea está en anomalía si su gasto de
  * las últimas 24 h pasa 3 veces su promedio diario de los 7 días anteriores y llega al gasto mínimo de USD 0,10
  * (por debajo del piso no se avisa, aunque multiplique el promedio).

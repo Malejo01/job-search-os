@@ -109,6 +109,18 @@ export const USER_TABLES_EXEMPT: readonly { table: string; column: string; reaso
     reason:
       "historial del plan (R22-02, rls/0054) sin acceso de la app: solo lo leen y escriben las funciones admin_plan_event_* (SECURITY DEFINER); las filas caen por ON DELETE CASCADE desde users",
   },
+  {
+    table: "user_roles",
+    column: "user_id",
+    reason:
+      "roles del panel /admin (ADM-1, rls/0064) sin acceso de la app: se leen con my_roles() y se cambian con admin_person_role (SECURITY DEFINER); las filas caen por ON DELETE CASCADE desde users",
+  },
+  {
+    table: "admin_events",
+    column: "user_id",
+    reason:
+      "registro del panel /admin (ADM-1, rls/0064) sin acceso de la app: solo lo leen y escriben las funciones admin_person_* (SECURITY DEFINER); las filas caen por ON DELETE CASCADE desde users",
+  },
 ];
 
 /** `users` se borra siempre al final: el resto de las tablas la referencian lógicamente. */

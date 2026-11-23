@@ -168,7 +168,7 @@ export async function runBudgetAlerts(deps: {
         threshold: plan.top,
         spentUsd: spent,
         capUsd: cap,
-        adminUrl: `${urlBase.url}/settings/salud`,
+        adminUrl: `${urlBase.url}/admin/salud`,
       });
       try {
         await send(

@@ -4,7 +4,7 @@ import { login } from "./helpers";
 
 /**
  * Flujo 77 (T5): accesibilidad (axe, WCAG 2.0/2.1 A y AA) de dos pantallas que no tenían:
- * `/settings/metricas` (tablero de la beta, solo admin) y `/precios` encendida. Mismo patrón que
+ * `/admin/metricas` (tablero de la beta, solo admin) y `/precios` encendida. Mismo patrón que
  * `70-axe-sesion.spec.ts`, pero falla solo con violaciones `serious` o `critical`; las `minor` y
  * `moderate` quedan como anotación. Sin datos sembrados: ambas pantallas solo se leen.
  *
@@ -41,22 +41,22 @@ async function auditar(page: Page, label: string, viewport: string) {
   expect(scrollWidth, `Desborde horizontal en ${label} a ${viewport}`).toBeLessThanOrEqual(ancho);
 }
 
-test.describe("Flujo 77: axe en /settings/metricas (admin) y /precios", () => {
+test.describe("Flujo 77: axe en /admin/metricas (admin) y /precios", () => {
   for (const viewport of VIEWPORTS) {
     test.describe(`viewport ${viewport.name}`, () => {
       test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
-      test(`/settings/metricas: sin violaciones graves`, async ({ page }) => {
+      test(`/admin/metricas: sin violaciones graves`, async ({ page }) => {
         await login(page);
-        const response = await page.goto("/settings/metricas");
+        const response = await page.goto("/admin/metricas");
         test.skip(
           response?.status() === 404,
-          "El usuario e2e no es admin en este entorno (ADMIN_EMAILS sin E2E_EMAIL): /settings/metricas da 404",
+          "El usuario e2e no es admin en este entorno (ADMIN_EMAILS sin E2E_EMAIL): /admin/metricas da 404",
         );
         await expect(
           page.getByRole("heading", { level: 1, name: "Métricas de la beta" }),
         ).toBeVisible();
-        await auditar(page, "/settings/metricas", viewport.name);
+        await auditar(page, "/admin/metricas", viewport.name);
       });
 
       test(`/precios encendida: sin violaciones graves`, async ({ page }) => {

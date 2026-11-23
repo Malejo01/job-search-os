@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { E2E_EMAIL, E2E_USER_ID, login, ownerDb } from "./helpers";
 
 /**
- * Flujo 46 (ronda 70): el admin ve la lista de espera en /settings/invitations, crea la invitación con
+ * Flujo 46 (ronda 70): el admin ve la lista de espera en /admin/invitations, crea la invitación con
  * un clic (el link sale una vez, atado al email) y borra a la persona. Depende de que el usuario de e2e
  * esté en ADMIN_EMAILS; si no, se saltea. Persona inventada con Date.now(); se limpia al final.
  */
@@ -48,7 +48,7 @@ test.describe("Flujo 46: lista de espera (admin)", () => {
   test("verla, invitarla con un clic y borrarla", async ({ page }) => {
     test.skip(!e2eIsAdmin, "ADMIN_EMAILS no incluye al usuario de e2e en este entorno");
     await login(page);
-    await page.goto("/settings/invitations");
+    await page.goto("/admin/invitations");
     await expect(
       page.getByRole("heading", { name: /Lista de espera \(\d+ sin invitar\)/ }),
     ).toBeVisible();

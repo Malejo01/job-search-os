@@ -45,7 +45,7 @@ export type AccesoFunnelResult =
   | { ok: true; rows: AccesoFunnelRow[] }
   | { ok: false; reason: "no_admin" | "no_habilitado" | "apagado" | "sin_datos" };
 
-/** Filas de los últimos `days` días para /settings/metricas. Mismas dos barreras que las métricas. */
+/** Filas de los últimos `days` días para /admin/metricas. Mismas dos barreras que las métricas. */
 export async function getAccesoFunnel(userId: string, days = 30): Promise<AccesoFunnelResult> {
   if (!(await canCreateInvitations(userId))) return { ok: false, reason: "no_admin" };
   if (!accesoFunnelEnabled()) return { ok: false, reason: "apagado" };

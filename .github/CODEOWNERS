@@ -61,7 +61,7 @@
 /apps/web/lib/profile-agent/access.ts @Malejo01
 /apps/web/lib/academy-access.ts @Malejo01
 /apps/web/app/(app)/interview/server.ts @Malejo01
-/apps/web/app/(app)/settings/metricas/pool-coverage-panel.tsx @Malejo01
+/apps/web/app/(app)/admin/metricas/pool-coverage-panel.tsx @Malejo01
 /apps/web/lib/cv-tailor/actions.ts @Malejo01
 /apps/web/lib/cv-tailor/server.ts @Malejo01
 /packages/pipeline/src/cv-tailor/flag.ts @Malejo01
@@ -107,6 +107,11 @@
 /apps/web/lib/llm-spend-board.ts @Malejo01
 /apps/web/lib/market-recompute.ts @Malejo01
 /apps/web/lib/plan-admin.ts @Malejo01
+# Panel /admin (ADM-1): personas, roles, bloqueo
+/apps/web/app/(app)/admin/personas/** @Malejo01
+/apps/web/lib/people-admin.ts @Malejo01
+/apps/web/lib/user-roles.ts @Malejo01
+/packages/pipeline/src/admin-people.ts @Malejo01
 /apps/web/lib/pool-coverage.ts @Malejo01
 /apps/web/lib/profile-agent/gaps-server.ts @Malejo01
 /apps/web/lib/skill-levels.ts @Malejo01

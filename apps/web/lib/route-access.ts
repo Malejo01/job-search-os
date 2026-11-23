@@ -63,6 +63,8 @@ export const PRIVATE_PREFIXES: readonly string[] = [
   "/interview",
   "/academy",
   "/settings",
+  // Panel de administración (ADM-1): privado; además, 404 para quien no es admin
+  "/admin",
   "/ui",
   "/onboarding",
   "/terminos-actualizados",

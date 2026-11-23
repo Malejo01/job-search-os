@@ -35,7 +35,7 @@ export function loginEmailHash(
 
 /**
  * ¿Falta `LOGIN_ATTEMPTS_HMAC_SECRET` en producción? Solo mira variables de entorno (sin consultar la base): lo usa
- * `/settings/salud` para avisar. Fuera de producción no es un problema.
+ * `/admin/salud` para avisar. Fuera de producción no es un problema.
  */
 export function loginSecretMissingInProduction(
   env: Record<string, string | undefined> = process.env,

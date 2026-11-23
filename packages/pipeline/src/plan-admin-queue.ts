@@ -1,5 +1,5 @@
 /**
- * Cola de altas de `/settings/planes` (R22-02). Puro: valida el motivo de un rechazo y filtra la lista de
+ * Cola de altas de `/admin/planes` (R22-02). Puro: valida el motivo de un rechazo y filtra la lista de
  * planes por búsqueda de email y por estado. La fecha viene de afuera (`now`). Nada de esto llama a un
  * modelo ni toca la base: la decisión de activar o rechazar la toma la persona admin.
  */

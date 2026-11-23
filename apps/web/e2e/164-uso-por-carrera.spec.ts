@@ -4,7 +4,7 @@ import { inArray } from "drizzle-orm";
 import { E2E_USER_ID, login, ownerDb } from "./helpers";
 
 /**
- * Flujo 164 (R22-04): «Uso por carrera y por semana» en `/settings/metricas` (solo admin). El spec crea sus
+ * Flujo 164 (R22-04): «Uso por carrera y por semana» en `/admin/metricas` (solo admin). El spec crea sus
  * propias personas ficticias: 3 con una carrera (se ven) y 2 con otra (quedan en «menos de 3» y la carrera
  * ni aparece). Comprueba la regla de k = 3, que no se filtra ningún email ni nombre y que no hay fila de total.
  * Que una cuenta común no la ve lo cubre el 140; axe y el desborde horizontal, el 77 y el 102.
@@ -70,7 +70,7 @@ test.describe("Flujo 164: uso por carrera", () => {
     page,
   }) => {
     await login(page);
-    const response = await page.goto("/settings/metricas");
+    const response = await page.goto("/admin/metricas");
     test.skip(response?.status() === 404, "El usuario e2e no es admin en este entorno");
     const panel = page.getByTestId("uso-por-carrera");
     await expect(panel).toBeVisible();

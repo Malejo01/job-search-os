@@ -88,13 +88,20 @@ describe("acceso a rutas sin sesión (R9-4)", () => {
   });
 
   it("una ruta inventada no pide login (Next da el 404), también con barras raras", () => {
-    for (const p of ["/no-existe", "/foo/bar", "/jobsx", "/hoyy", "/admin", "/en", "/.env"]) {
+    for (const p of ["/no-existe", "/foo/bar", "/jobsx", "/hoyy", "/adminx", "/en", "/.env"]) {
       expect(requiresLogin(p), p).toBe(false);
     }
   });
 
   it("los detalles dinámicos de rutas privadas piden login aunque el id sea inventado", () => {
-    for (const p of ["/hoy", "/jobs/id-inventado", "/inbox/zzz", "/settings/inventada", "/api/x"]) {
+    for (const p of [
+      "/hoy",
+      "/jobs/id-inventado",
+      "/inbox/zzz",
+      "/settings/inventada",
+      "/admin/personas",
+      "/api/x",
+    ]) {
       expect(requiresLogin(p), p).toBe(true);
     }
   });

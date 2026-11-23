@@ -12,7 +12,7 @@ import { unstable_cache } from "next/cache";
 import { canReadAdminData } from "./invitations";
 
 /**
- * Medición del asistente por día (R9-2), solo servidor y solo admins: lo mismo que `/settings/salud`.
+ * Medición del asistente por día (R9-2), solo servidor y solo admins: lo mismo que `/admin/salud`.
  * Agrega entre personas, así que va por la conexión de servicio, con `statement_timeout` de 3 s y
  * caché de 5 minutos. Agrupa `llm_calls` por charla (`label = conv:<id>`) y devuelve solo números:
  * ni el id de la charla, ni ids de personas, ni contenido (las charlas no se guardan).

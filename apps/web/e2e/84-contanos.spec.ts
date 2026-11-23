@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 
 /**
  * Flujo 84 (C-23, V4 / R1-9): «¿Algo no anduvo?» (chip de soporte). Abrir el modal desde el chip flotante,
- * elegir categoría, escribir y enviar; mensaje de gracias; la fila aparece en `/settings/metricas`
+ * elegir categoría, escribir y enviar; mensaje de gracias; la fila aparece en `/admin/metricas`
  * para el admin (test aparte, se saltea si el usuario e2e no es admin en este entorno); axe en claro y
  * oscuro con el modal abierto; Esc cierra; y todo a 390 px. Verifica que se persista el contexto.
  */
@@ -122,7 +122,7 @@ test.describe("Flujo 84: Chip de soporte «¿Algo no anduvo?»", () => {
     ).toBe(true);
   });
 
-  test("el admin ve el comentario en /settings/metricas, sin email", async ({ page }) => {
+  test("el admin ve el comentario en /admin/metricas, sin email", async ({ page }) => {
     test.skip(
       !e2eIsAdmin,
       "El usuario e2e no es admin en este entorno (ADMIN_EMAILS sin E2E_EMAIL)",
@@ -143,7 +143,7 @@ test.describe("Flujo 84: Chip de soporte «¿Algo no anduvo?»", () => {
     });
     await close();
     await login(page);
-    await page.goto("/settings/metricas");
+    await page.goto("/admin/metricas");
     const section = page.getByRole("heading", { name: "Lo que nos contaron" }).locator("..");
     await expect(section.getByText(mensaje)).toBeVisible();
     await expect(section.getByText("Algo no anduvo").first()).toBeVisible();

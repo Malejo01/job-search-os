@@ -16,7 +16,7 @@ import {
  *
  * - Una carrera de la beta (`PUBLIC_THRESHOLD_ROLE_KEYS`) se muestra cuando llega al umbral de ADR-022
  *   (`CAREER_REVEAL_THRESHOLD` ofertas): el mismo conteo y el mismo umbral de la tabla «lista para
- *   mostrarse» de `/settings/metricas` (`buildCareerRevealRows`).
+ *   mostrarse» de `/admin/metricas` (`buildCareerRevealRows`).
  * - Las demás carreras se muestran siempre, como hasta ahora.
  * - Dos listas de override a mano, en código: siempre oculta y siempre visible. Si una carrera está en
  *   las dos, gana oculta (la opción conservadora).

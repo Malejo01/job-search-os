@@ -62,7 +62,7 @@ apps/web/lib/cv-coach/access.ts
 apps/web/lib/profile-agent/access.ts
 apps/web/lib/academy-access.ts
 apps/web/app/(app)/interview/server.ts
-apps/web/app/(app)/settings/metricas/pool-coverage-panel.tsx
+apps/web/app/(app)/admin/metricas/pool-coverage-panel.tsx
 apps/web/lib/cv-tailor/actions.ts
 apps/web/lib/cv-tailor/server.ts
 packages/pipeline/src/cv-tailor/flag.ts
@@ -110,6 +110,11 @@ apps/web/lib/feedback-triage.ts
 apps/web/lib/llm-spend-board.ts
 apps/web/lib/market-recompute.ts
 apps/web/lib/plan-admin.ts
+# Panel /admin (ADM-1): personas, roles, bloqueo
+apps/web/app/(app)/admin/personas/**
+apps/web/lib/people-admin.ts
+apps/web/lib/user-roles.ts
+packages/pipeline/src/admin-people.ts
 apps/web/lib/pool-coverage.ts
 apps/web/lib/profile-agent/gaps-server.ts
 apps/web/lib/skill-levels.ts

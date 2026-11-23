@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { axeSummary } from "./axe-helpers";
 import { ensureSecondUser, login, loginAsSecondUser, removeSecondUser } from "./helpers";
 
-/** Flujo 112 (C8-18): /settings/textos, los textos para Ani en un lugar. Solo admin. */
+/** Flujo 112 (C8-18): /admin/textos, los textos para Ani en un lugar. Solo admin. */
 test.describe("Flujo 112: textos para Ani (C8-18)", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
 
@@ -32,7 +32,7 @@ test.describe("Flujo 112: textos para Ani (C8-18)", () => {
   test("quien no administra la beta recibe un 404", async ({ page }) => {
     await ensureSecondUser();
     await loginAsSecondUser(page);
-    const res = await page.goto("/settings/textos");
+    const res = await page.goto("/admin/textos");
     expect(res?.status()).toBe(404);
   });
 });

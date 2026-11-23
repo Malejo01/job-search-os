@@ -169,38 +169,45 @@ export default async function SettingsPage({
 
       {canInvite ? (
         <section className={SECTION}>
-          <h2 className={H2}>Invitar a alguien</h2>
+          <h2 className={H2}>Administración</h2>
+          {/* ADM-1: el panel junta personas, accesos, planes y los tableros */}
+          <Link
+            href="/admin"
+            className={buttonClasses({ variant: "dark", className: "self-start" })}
+          >
+            Abrir el panel de administración
+          </Link>
           <p className="text-sm text-fg-muted">Mandale un link a quien quieras sumar a la beta.</p>
-          <Link href="/settings/invitations" className={buttonClasses({ className: "self-start" })}>
+          <Link href="/admin/invitations" className={buttonClasses({ className: "self-start" })}>
             Crear invitación
           </Link>
           {/* R-1 (C7): la marca en un solo lugar, para revisarla */}
-          <Link href="/settings/marca" className={LINK}>
+          <Link href="/admin/marca" className={LINK}>
             Marca: logo, colores y componentes
           </Link>
           {/* C8-18: los textos públicos clave para revisar */}
-          <Link href="/settings/textos" className={LINK}>
+          <Link href="/admin/textos" className={LINK}>
             Textos para revisar
           </Link>
           {/* C8-11: el semáforo de la mañana */}
-          <Link href="/settings/salud" className={LINK}>
+          <Link href="/admin/salud" className={LINK}>
             Salud de la beta
           </Link>
           {/* R21-01: gasto de IA por día, tarea y modelo */}
-          <Link href="/settings/costos" className={LINK}>
+          <Link href="/admin/costos" className={LINK}>
             Costos de IA
           </Link>
           {/* C-14: el tablero de la beta es para las mismas cuentas que invitan */}
-          <Link href="/settings/metricas" className={LINK}>
+          <Link href="/admin/metricas" className={LINK}>
             Métricas de la beta
           </Link>
           {/* R22-05: checklist de apertura */}
-          <Link href="/settings/apertura" className={LINK}>
+          <Link href="/admin/apertura" className={LINK}>
             Checklist de apertura
           </Link>
           {/* C3-1: activar planes (solo con los precios encendidos) */}
           {pricing ? (
-            <Link href="/settings/planes" className={LINK}>
+            <Link href="/admin/planes" className={LINK}>
               Planes de la beta
             </Link>
           ) : null}

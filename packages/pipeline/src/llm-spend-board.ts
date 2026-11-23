@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Tablero de gasto de IA (`/settings/costos`). Puro: valida lo que devuelve `admin_llm_spend_board()`
+ * Tablero de gasto de IA (`/admin/costos`). Puro: valida lo que devuelve `admin_llm_spend_board()`
  * (rls/0055), completa los días sin llamadas, arma las filas con su participación y proyecta el mes
  * contra el tope diario. Solo agregados: la base no devuelve ids, emails ni textos de nadie.
  */

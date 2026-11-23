@@ -33,7 +33,7 @@ const BADGE_TONES: BadgeTone[] = ["neutral", "success", "warning", "danger", "in
  * para que el e2e 87 los pase por axe en claro y en oscuro. Sin datos de nadie y fuera del menú.
  */
 export default async function UiPage() {
-  // Catálogo interno: solo admin, como /settings/marca (404 para el resto)
+  // Catálogo interno: solo admin, como /admin/marca (404 para el resto)
   const userId = await requireUserId();
   await requireAdminOr404(userId);
   return (

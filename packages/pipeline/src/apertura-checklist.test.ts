@@ -49,7 +49,7 @@ describe("buildAperturaChecklist", () => {
     expect(pendientes.length).toBeGreaterThanOrEqual(7);
     for (const p of pendientes) {
       expect(p.todo).toMatch(/\S/);
-      expect(p.doc).toMatch(/^(docs\/|\/settings\/|apps\/|packages\/)/);
+      expect(p.doc).toMatch(/^(docs\/|\/settings\/|\/admin\/|apps\/|packages\/)/);
     }
     expect(r.pending).toBe(pendientes.length);
   });

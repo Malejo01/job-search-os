@@ -4,7 +4,7 @@ import { eq, inArray } from "drizzle-orm";
 import { E2E_USER_ID, login, ownerDb } from "./helpers";
 
 /**
- * Flujo 165 (R22-02): cola de altas en `/settings/planes` (solo admin). El spec crea dos personas ficticias,
+ * Flujo 165 (R22-02): cola de altas en `/admin/planes` (solo admin). El spec crea dos personas ficticias,
  * cada una con un aviso «Ya pagué» pendiente: activa uno (queda con el plan de la beta y el aviso sale de
  * la cola) y rechaza el otro con un motivo. Comprueba además la búsqueda por email y el historial. Una
  * cuenta común no entra: lo cubre el 123 (404 de las pantallas de admin).
@@ -76,7 +76,7 @@ test.describe("Flujo 165: cola de altas", () => {
 
   test("activa un aviso, rechaza otro con motivo y quedan en el historial", async ({ page }) => {
     await login(page);
-    const response = await page.goto("/settings/planes");
+    const response = await page.goto("/admin/planes");
     test.skip(response?.status() === 404, "El usuario e2e no es admin en este entorno");
 
     const queue = page.getByTestId("cola-avisos");
@@ -109,11 +109,11 @@ test.describe("Flujo 165: cola de altas", () => {
     await expect(historial).toContainText("Activado");
     await expect(historial).toContainText("Aviso rechazado");
 
-    await page.goto(`/settings/planes?q=${encodeURIComponent("cola-altas-1")}`);
+    await page.goto(`/admin/planes?q=${encodeURIComponent("cola-altas-1")}`);
     const lista = page.getByTestId("planes-lista");
     await expect(lista).toContainText(EMAIL(PAYER));
     await expect(lista.getByRole("button", { name: /Renovar \+\d+ días/ })).toHaveCount(1);
-    await page.goto("/settings/planes?q=no-existe-nadie-asi");
+    await page.goto("/admin/planes?q=no-existe-nadie-asi");
     await expect(page.getByTestId("planes-sin-resultados")).toBeVisible();
   });
 });

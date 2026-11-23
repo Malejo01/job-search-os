@@ -1,5 +1,6 @@
 import { voiceServerAllowed, voiceServerMode } from "@job-search-os/pipeline";
 import { getSessionEmail } from "@/lib/profile-agent/access";
+import { testerEnvFor } from "../user-roles";
 
 /**
  * Parte de servidor de la voz (R25-03). Solo de servidor: lee `VOICE_SERVER_TRANSCRIBE`, `ADMIN_EMAILS` y la
@@ -16,7 +17,8 @@ export async function voiceServerAllowedFor(userId: string): Promise<boolean> {
   if (mode === "off") return false;
   if (mode === "all") return true;
   try {
-    return voiceServerAllowed(process.env, await getSessionEmail(userId));
+    const email = await getSessionEmail(userId);
+    return voiceServerAllowed(await testerEnvFor(userId, email), email);
   } catch {
     return false;
   }

@@ -13,26 +13,31 @@
 /** Solo admins (`ADMIN_EMAILS`): 404 a cualquier otra cuenta, comprobado en el servidor. */
 export const ADMIN_ONLY_FILES: readonly string[] = [
   // Pantallas
-  "(app)/settings/invitations/page.tsx",
-  "(app)/settings/planes/page.tsx",
-  "(app)/settings/marca/page.tsx",
-  "(app)/settings/marca/componentes/page.tsx",
-  "(app)/settings/textos/page.tsx",
-  "(app)/settings/metricas/page.tsx",
-  "(app)/settings/salud/page.tsx",
-  "(app)/settings/costos/page.tsx",
-  "(app)/settings/apertura/page.tsx",
-  "(app)/settings/feedback/page.tsx",
+  // Panel /admin (ADM-1): portada y personas; el layout de /admin también corta con 404
+  "(app)/admin/page.tsx",
+  "(app)/admin/personas/page.tsx",
+  "(app)/admin/personas/[id]/page.tsx",
+  "(app)/admin/invitations/page.tsx",
+  "(app)/admin/planes/page.tsx",
+  "(app)/admin/marca/page.tsx",
+  "(app)/admin/marca/componentes/page.tsx",
+  "(app)/admin/textos/page.tsx",
+  "(app)/admin/metricas/page.tsx",
+  "(app)/admin/salud/page.tsx",
+  "(app)/admin/costos/page.tsx",
+  "(app)/admin/apertura/page.tsx",
+  "(app)/admin/feedback/page.tsx",
   "(app)/ui/page.tsx",
   // Rutas de descarga y de vista previa
-  "(app)/settings/invitations/export/route.ts",
-  "(app)/settings/feedback/export/route.ts",
-  "(app)/settings/metricas/filtros-pool/route.ts",
-  "(app)/settings/marca/email-bienvenida/route.ts",
+  "(app)/admin/invitations/export/route.ts",
+  "(app)/admin/feedback/export/route.ts",
+  "(app)/admin/metricas/filtros-pool/route.ts",
+  "(app)/admin/marca/email-bienvenida/route.ts",
   // Server Actions
-  "(app)/settings/invitations/actions.ts",
-  "(app)/settings/planes/actions.ts",
-  "(app)/settings/feedback/actions.ts",
+  "(app)/admin/personas/[id]/actions.ts",
+  "(app)/admin/invitations/actions.ts",
+  "(app)/admin/planes/actions.ts",
+  "(app)/admin/feedback/actions.ts",
 ];
 
 /** Para cualquier cuenta con sesión (cada una opera solo sobre lo suyo, por RLS). */

@@ -5,6 +5,7 @@ import {
   type ProfileAgentAccess,
 } from "@job-search-os/pipeline";
 import { getSessionEmail } from "@/lib/profile-agent/access";
+import { testerEnvFor } from "@/lib/user-roles";
 
 /**
  * La puerta del coach de CV en la app (ADR-038 §10). La usan las páginas `/cv/coach/**`, el botón de entrada
@@ -17,7 +18,8 @@ import { getSessionEmail } from "@/lib/profile-agent/access";
 export async function cvCoachAllowedFor(userId: string): Promise<boolean> {
   if (cvCoachMode(process.env) === "off") return false;
   try {
-    return cvCoachAllowed(process.env, await getSessionEmail(userId));
+    const email = await getSessionEmail(userId);
+    return cvCoachAllowed(await testerEnvFor(userId, email), email);
   } catch {
     return false;
   }

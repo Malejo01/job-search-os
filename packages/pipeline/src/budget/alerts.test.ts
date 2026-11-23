@@ -178,14 +178,14 @@ describe("buildBudgetAlertEmail", () => {
     threshold: 85,
     spentUsd: 1.7,
     capUsd: 2,
-    adminUrl: "https://app.example.test/settings/salud",
+    adminUrl: "https://app.example.test/admin/salud",
   });
 
   it("es corto, en español, con montos agregados y el link", () => {
     expect(email.subject).toContain("85");
     expect(email.text).toContain("1,70");
     expect(email.text).toContain("2,00");
-    expect(email.text).toContain("https://app.example.test/settings/salud");
+    expect(email.text).toContain("https://app.example.test/admin/salud");
     expect(email.text.split("\n").length).toBeLessThan(12);
   });
 
@@ -194,7 +194,7 @@ describe("buildBudgetAlertEmail", () => {
       threshold: 95,
       spentUsd: 1.9,
       capUsd: 2,
-      adminUrl: "https://app.example.test/settings/salud",
+      adminUrl: "https://app.example.test/admin/salud",
     });
     expect(e.text.toLowerCase()).toContain("frena");
   });

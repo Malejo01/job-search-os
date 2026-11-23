@@ -11,7 +11,7 @@ import {
 } from "./helpers";
 
 /**
- * Flujo 170 (R21-01): /settings/costos, el gasto de IA de los últimos 30 días por día, tarea y modelo,
+ * Flujo 170 (R21-01): /admin/costos, el gasto de IA de los últimos 30 días por día, tarea y modelo,
  * con fallas, respaldos y la proyección del mes contra el tope. Solo para admins; solo totales. Sin
  * ADMIN_EMAILS la cuenta del e2e no es admin: se saltea limpio y queda para el CI.
  */
@@ -66,7 +66,7 @@ test.describe("Flujo 170: costos de IA (R21-01)", () => {
     test(`sin violaciones de axe ni scroll horizontal (${tema})`, async ({ page }) => {
       await login(page);
       await page.evaluate((t) => localStorage.setItem("jso-tema", t), tema);
-      await page.goto("/settings/costos");
+      await page.goto("/admin/costos");
       await expect(page.getByTestId("costos-resumen")).toBeVisible();
       const { violations, unmeasured } = await axeSummary(page);
       expect(violations).toEqual([]);
@@ -82,7 +82,7 @@ test.describe("Flujo 170: costos de IA (R21-01)", () => {
   test("quien no administra la beta recibe un 404", async ({ page }) => {
     await ensureSecondUser();
     await loginAsSecondUser(page);
-    const res = await page.goto("/settings/costos");
+    const res = await page.goto("/admin/costos");
     expect(res?.status()).toBe(404);
   });
 });

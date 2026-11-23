@@ -1,5 +1,5 @@
 /**
- * Textos públicos clave para que Ani los lea en un solo lugar (C8-18, `/settings/textos`). Cada entrada
+ * Textos públicos clave para que Ani los lea en un solo lugar (C8-18, `/admin/textos`). Cada entrada
  * dice qué es, un extracto **literal** del texto, en qué archivo vive (para pedir el cambio con un PR
  * chico), dónde verlo en la app y, si hace falta, qué tiene que decidir. Un test verifica que cada
  * extracto siga existiendo en su archivo: si alguien cambia el texto, el test avisa.
@@ -130,7 +130,7 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
     nombre: "Las 5 explicaciones de «¿Qué es esto?»",
     extracto: "Es un número del 0 al 10 que dice qué tan cerca está la oferta de tu perfil.",
     archivo: "packages/pipeline/src/help/ayuda-en-contexto.ts",
-    verEn: "/settings/textos",
+    verEn: "/admin/textos",
     decidir: "La del puntaje da umbrales («un 8 o más suele valer la pena»): ¿los dejamos?",
   },
   {
@@ -138,7 +138,7 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
     nombre: "Bienvenida al activar el plan (C8-7)",
     extracto: "Ya tenés tu lugar en la Beta de",
     archivo: "packages/pipeline/src/welcome-email.ts",
-    verEn: "/settings/marca",
+    verEn: "/admin/marca",
   },
   {
     area: "Emails",
@@ -151,8 +151,8 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
     area: "Invitación",
     nombre: "Mensaje con el precio y el link de pago",
     extracto: null,
-    archivo: "apps/web/app/(app)/settings/invitations/actions.ts",
-    verEn: "/settings/invitations",
+    archivo: "apps/web/app/(app)/admin/invitations/actions.ts",
+    verEn: "/admin/invitations",
     decidir: "Texto del pago y de becados (C7-12): lo armó la nube, falta el OK de Ani.",
   },
 ];

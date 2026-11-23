@@ -1,7 +1,7 @@
 import { buildWelcomeEmail, cvChatMode } from "@job-search-os/pipeline";
 import { siteUrl } from "./site-url";
 
-/** Email de bienvenida (C8-7) con datos de ejemplo, para la vista previa de /settings/marca. */
+/** Email de bienvenida (C8-7) con datos de ejemplo, para la vista previa de /admin/marca. */
 export function welcomeEmailSample() {
   return buildWelcomeEmail({
     displayName: "Lucía",

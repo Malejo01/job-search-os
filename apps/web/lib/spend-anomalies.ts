@@ -9,7 +9,7 @@ import { withUser } from "./db";
 import { canCreateInvitations } from "./invitations";
 
 /**
- * Anomalías de gasto de IA para `/settings/salud`, solo servidor y solo admins: una consulta agregada
+ * Anomalías de gasto de IA para `/admin/salud`, solo servidor y solo admins: una consulta agregada
  * (`admin_llm_spend_anomalies()`, rls/0056) con las dos barreras de siempre (ADMIN_EMAILS y
  * `app_admins`). La regla vive en pipeline. Si no se puede leer, devuelve `sin_datos`: el bloque lo dice
  * en vez de mostrar «sin anomalías».
