@@ -14,6 +14,7 @@ import { PrintButton } from "@/components/print-button";
 import { canCreateInvitations } from "@/lib/invitations";
 import { buildUserCv, cvChatMode, parseCvOptions } from "@/lib/cv-source";
 import { requireUserId } from "@/lib/session";
+import { loadKeywordMarket } from "./cv-keywords-market";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 export const metadata = { title: "CV" };
@@ -111,7 +112,7 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
     }
   };
   // R7-6: el CV y el permiso del chat no dependen uno del otro
-  const [doc, chatVisible, agentVisible, coachVisible] = await Promise.all([
+  const [doc, chatVisible, agentVisible, coachVisible, keywordMarket] = await Promise.all([
     buildUserCv(userId, opts),
     mode === "all"
       ? Promise.resolve(true)
@@ -122,6 +123,8 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
     profileAgentFlagFor(process.env, sessionEmail),
     // el coach exige además el agente de perfil: mismo email, una sola consulta
     coachFlagFor(sessionEmail),
+    // R20-01: mercado del puesto principal para las palabras clave (una lectura, en caché)
+    loadKeywordMarket(userId),
   ]);
   const download = new URLSearchParams({
     lang: opts.lang,
@@ -202,7 +205,7 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
             </section>
           ) : null}
 
-          <CvItemsDiagnosis doc={doc} coach={coachVisible} />
+          <CvItemsDiagnosis doc={doc} coach={coachVisible} keywordMarket={keywordMarket} />
 
           <form
             method="get"
