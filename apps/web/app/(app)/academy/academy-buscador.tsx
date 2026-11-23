@@ -1,14 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState } from "react";
-import { cardClasses, inputClasses, labelClasses } from "@/components/ui";
+import { useId, useState, type ReactNode } from "react";
+import { buttonClasses, cardClasses, inputClasses, labelClasses } from "@/components/ui";
 import { searchFichas } from "@/lib/academy-lectura";
 
 export type AcademyItem = { slug: string; titulo: string; bajada: string; minutos: number };
 
 /** Lista de fichas con buscador sobre títulos y bajadas. Todo en el cliente: las fichas ya vienen cargadas. */
-export function AcademyBuscador({ items }: { items: AcademyItem[] }) {
+export function AcademyBuscador({
+  items,
+  sinResultados,
+  accionLimpiar,
+}: {
+  items: AcademyItem[];
+  /** Estado vacío de la marca, armado en el servidor (R23-07): no se importa acá para no sumar JS. */
+  sinResultados: ReactNode;
+  accionLimpiar: string;
+}) {
   const [query, setQuery] = useState("");
   const id = useId();
   const visibles = searchFichas(items, query);
@@ -33,9 +42,16 @@ export function AcademyBuscador({ items }: { items: AcademyItem[] }) {
         {visibles.length === 1 ? "1 ficha" : `${visibles.length} fichas`}
       </p>
       {visibles.length === 0 ? (
-        <p className={cardClasses()} data-testid="academy-sin-resultados">
-          No encontramos fichas con esa búsqueda. Probá con otra palabra.
-        </p>
+        <div className="flex flex-col items-center gap-3" data-testid="academy-sin-resultados">
+          {sinResultados}
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className={buttonClasses({ variant: "secondary" })}
+          >
+            {accionLimpiar}
+          </button>
+        </div>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2 p-0" data-testid="academy-lista">
           {visibles.map((f) => (

@@ -17,10 +17,10 @@ import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
-import { Illustration } from "@/components/brand/illustration";
+import { EstadoMarca } from "@/components/estado-marca";
+import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import {
   Alert,
-  EmptyState,
   Icon,
   buttonClasses,
   filterChipClasses,
@@ -362,7 +362,9 @@ const EMPTY_STEPS: ReadonlyArray<{ href: string; label: string; icon: IconName }
 function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewedAll: boolean }) {
   if (reviewedAll) {
     return (
-      <EmptyState
+      <EstadoMarca
+        tipo="sin-resultados"
+        title={ESTADOS_TEXTOS.matchRevisado.title}
         action={
           <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
             Ver todas las ofertas
@@ -370,7 +372,7 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
         }
       >
         No quedan ofertas sin revisar en este período.
-      </EmptyState>
+      </EstadoMarca>
     );
   }
   const porEvaluar = counts?.porEvaluar ?? 0;
@@ -378,7 +380,12 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
   if (porEvaluar > 0 || sinDescripcion > 0) {
     // Las acciones van dentro de cada bloque: son dos caminos distintos, no uno solo
     return (
-      <EmptyState data-testid="jobs-empty-unevaluated" action={null}>
+      <EstadoMarca
+        tipo="sin-resultados"
+        data-testid="jobs-empty-unevaluated"
+        title={ESTADOS_TEXTOS.matchSinResultados.title}
+        action={null}
+      >
         <p>
           Ninguna oferta coincide con estos filtros.{" "}
           <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
@@ -409,16 +416,16 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
             </Link>
           </div>
         ) : null}
-      </EmptyState>
+      </EstadoMarca>
     );
   }
   if (counts !== null && counts.total === 0) {
     return (
-      // V3 (C9-13): ilustración chica, qué hacer mientras como checklist y una sola acción principal
-      <EmptyState
+      // V3 (C9-13): figura de la marca, qué hacer mientras como checklist y una sola acción principal
+      <EstadoMarca
+        tipo="lista-vacia"
         data-testid="jobs-empty-none"
         title="Todavía no tenés ofertas"
-        illustration={<Illustration escena="vacio" className="w-40 sm:w-52" />}
         action={
           <Link href="/settings#puesto" className={buttonClasses()}>
             Elegir mis áreas
@@ -444,11 +451,13 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
             </li>
           ))}
         </ul>
-      </EmptyState>
+      </EstadoMarca>
     );
   }
   return (
-    <EmptyState
+    <EstadoMarca
+      tipo="sin-resultados"
+      title={ESTADOS_TEXTOS.matchSinResultados.title}
       action={
         <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
           Ver todas las ofertas
@@ -456,7 +465,7 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
       }
     >
       Ninguna oferta coincide con estos filtros.
-    </EmptyState>
+    </EstadoMarca>
   );
 }
 

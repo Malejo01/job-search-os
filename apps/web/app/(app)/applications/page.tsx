@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Illustration } from "@/components/brand/illustration";
+import { EstadoMarca } from "@/components/estado-marca";
+import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import { ApplicationRow } from "@/components/applications/application-row";
 import { CollapsibleGroup } from "@/components/applications/collapsible-group";
 import { ConfirmAction } from "@/components/applications/confirm-action";
 import { FollowUpRow } from "@/components/applications/follow-up-row";
-import { Alert, buttonClasses, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
+import { Alert, buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
 import {
   groupApplication,
   type ApplicationGroup,
@@ -121,8 +122,9 @@ export default async function ApplicationsPage({
       ) : null}
 
       {apps.length === 0 ? (
-        <EmptyState
-          illustration={<Illustration escena="postulaciones" className="w-40 sm:w-52" />}
+        <EstadoMarca
+          tipo="postulaciones"
+          title={ESTADOS_TEXTOS.trackerVacio.title}
           action={
             <Link href="/jobs" className={textLinkClasses({ block: true })}>
               Ver mis ofertas
@@ -130,7 +132,7 @@ export default async function ApplicationsPage({
           }
         >
           Sin postulaciones. Se crean al marcar &quot;Aplicar&quot; en el detalle de una oferta.
-        </EmptyState>
+        </EstadoMarca>
       ) : null}
 
       {apps.length > 0 && nothingPending ? (

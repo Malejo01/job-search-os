@@ -79,6 +79,31 @@ export const PRIMER_USO = {
 /** Texto para una condición laboral que el aviso no dice. */
 export const NOT_INFORMED_LABEL = "No lo informa";
 
+/** Estados vacíos y errores con la marca (R23-07): título, y la acción cuando no la trae la pantalla. */
+export const ESTADOS_TEXTOS = {
+  matchRevisado: { title: "Revisaste todo lo de este período" },
+  matchSinResultados: { title: "Nada coincide con esos filtros" },
+  trackerVacio: { title: "Todavía no marcaste postulaciones", action: "Ver mis ofertas" },
+  cvSinPerfil: {
+    title: "Falta tu perfil para armar el CV",
+    text: "Completá tu perfil para armar el CV.",
+    action: "Completar mi perfil",
+  },
+  academyVacia: { title: "Todavía estamos preparando las fichas", action: "Volver a Hoy" },
+  academySinResultados: {
+    title: "No encontramos esa ficha",
+    text: "No encontramos fichas con esa búsqueda. Probá con otra palabra.",
+    action: "Ver todas las fichas",
+  },
+  errorPantalla: {
+    title: "Algo falló de nuestro lado",
+    text: "No es algo que hiciste vos. Probá de nuevo; si sigue pasando, avisanos.",
+    retry: "Probar de nuevo",
+    home: "Ir a Hoy",
+  },
+  postularSinCv: { action: "Ir a mi CV" },
+} as const;
+
 /** Ayudas «?» (R23-04): cada término técnico y la ficha de Academy que lo explica. */
 export const AYUDAS_ACADEMY = {
   afinidad: { slug: "afinidad", term: "afinidad" },

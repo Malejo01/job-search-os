@@ -1,4 +1,7 @@
-import { cardClasses } from "@/components/ui";
+import Link from "next/link";
+import { EstadoMarca } from "@/components/estado-marca";
+import { buttonClasses } from "@/components/ui";
+import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import { fichaBajada, fichaWordCount, loadApprovedFichas } from "@/lib/academy";
 import { readingMinutes } from "@/lib/academy-lectura";
 import { AcademyBuscador } from "./academy-buscador";
@@ -25,14 +28,33 @@ export default function AcademyPage() {
       <h1 className="text-title font-bold">Academy</h1>
       <p className="text-fg-muted">Fichas cortas para entender mejor cada paso de tu búsqueda.</p>
       {items.length === 0 ? (
-        <section className={cardClasses()} data-testid="academy-vacia">
-          <p className="font-bold text-fg">Todavía estamos preparando las fichas</p>
-          <p className="text-fg-muted">
-            Las estamos revisando para que sean claras y útiles. Pronto vas a encontrarlas acá.
-          </p>
-        </section>
+        <EstadoMarca
+          tipo="lista-vacia"
+          data-testid="academy-vacia"
+          title={ESTADOS_TEXTOS.academyVacia.title}
+          action={
+            <Link href="/hoy" className={buttonClasses({ variant: "secondary" })}>
+              {ESTADOS_TEXTOS.academyVacia.action}
+            </Link>
+          }
+        >
+          Las estamos revisando para que sean claras y útiles. Pronto vas a encontrarlas acá.
+        </EstadoMarca>
       ) : (
-        <AcademyBuscador items={items} />
+        <AcademyBuscador
+          items={items}
+          accionLimpiar={ESTADOS_TEXTOS.academySinResultados.action}
+          sinResultados={
+            <EstadoMarca
+              tipo="sin-resultados"
+              title={ESTADOS_TEXTOS.academySinResultados.title}
+              action={null}
+              className="w-full"
+            >
+              {ESTADOS_TEXTOS.academySinResultados.text}
+            </EstadoMarca>
+          }
+        />
       )}
     </div>
   );

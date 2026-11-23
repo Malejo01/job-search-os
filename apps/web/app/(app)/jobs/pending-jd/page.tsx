@@ -1,17 +1,9 @@
 import { MAX_JD_INPUT_CHARS } from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
-import { Illustration } from "@/components/brand/illustration";
+import { EstadoMarca } from "@/components/estado-marca";
 import { TextareaWithCounter } from "@/components/char-counter";
-import {
-  Alert,
-  Badge,
-  buttonClasses,
-  EmptyState,
-  Icon,
-  inputClasses,
-  textLinkClasses,
-} from "@/components/ui";
+import { Alert, Badge, buttonClasses, Icon, inputClasses, textLinkClasses } from "@/components/ui";
 import { CAP_MESSAGES } from "@/lib/evaluate-now";
 import { formatDate, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
 import { JdDraft, JdDraftsReset } from "./jd-draft";
@@ -145,8 +137,9 @@ export default async function PendingJdPage({
         ) : null}
 
         {rows.length === 0 ? (
-          <EmptyState
-            illustration={<Illustration escena="sin-descripcion" className="w-40 sm:w-52" />}
+          <EstadoMarca
+            tipo="sin-descripcion"
+            title="Ninguna oferta espera descripción"
             action={
               <Link href="/jobs" className={textLinkClasses({ block: true })}>
                 Ver mis ofertas
@@ -155,7 +148,7 @@ export default async function PendingJdPage({
           >
             No hay ofertas esperando descripción. Cuando llegue una por email sin el texto del
             aviso, aparece acá.
-          </EmptyState>
+          </EstadoMarca>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-3 p-0">
             {rows.map((job) => {
