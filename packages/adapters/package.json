@@ -27,6 +27,7 @@
     "pool:explain": "tsx src/pool/explain-cli.ts",
     "pool:backfill-language": "tsx src/pool/backfill-language-cli.ts",
     "pool:rehint": "tsx src/pool/rehint-cli.ts",
+    "pool:reprocess": "tsx src/pool/reprocess-cli.ts",
     "admin:invite": "tsx src/admin/invite-cli.ts",
     "admin:test-users": "tsx src/admin/test-users-cli.ts",
     "inbound:replay": "tsx src/admin/replay-cli.ts",

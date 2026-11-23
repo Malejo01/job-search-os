@@ -54,6 +54,7 @@ export {
 } from "./pool/fetch";
 export { languageColumnsEnabled, upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
 export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
+export { reprocessPoolQueue, type ReprocessReport } from "./pool/reprocess";
 export {
   countPoolMailboxExpiring,
   POOL_MAILBOX_WARNING_DAYS,
