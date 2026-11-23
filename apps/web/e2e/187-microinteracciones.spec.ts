@@ -11,11 +11,18 @@ import {
 
 /**
  * Flujo 187 (R23-06): microinteracciones. El detalle del sello crece al abrirse y sus barras se
- * llenan; con «reducir movimiento» queda todo en su estado final sin pasar por altura 0. «Dictar»
+ * llenan; con «reducir movimiento» queda todo en su estado final sin pasar por altura 0. La voz
  * muestra «Escuchando…» con la voz simulada, en la pregunta de una simulación de Interview. Con la persona B
  * (ficticia, con una oferta evaluada de 8): corre en local y en el CI. Datos inventados; se borran al final.
  */
 test.describe("Flujo 187: microinteracciones", () => {
+  // R25-05: `VoiceInput` pide el micrófono antes de dictar; Chromium lo da falso y sin cartel
+  test.use({
+    launchOptions: {
+      args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+    },
+    permissions: ["microphone"],
+  });
   const tag = `187-${Date.now()}`;
   let jobId = "";
   let sessionId = "";
@@ -121,11 +128,11 @@ test.describe("Flujo 187: microinteracciones", () => {
     });
     await loginAsSecondUser(page);
     await page.goto(`/interview/${sessionId}`);
-    const boton = page.getByTestId("dictar-boton");
+    const boton = page.getByTestId("voice-boton");
     await expect(boton).toBeVisible();
     await boton.click();
-    await expect(page.getByTestId("dictar-escuchando")).toContainText("Escuchando");
-    await boton.click();
-    await expect(page.getByTestId("dictar-escuchando")).not.toContainText("Escuchando");
+    await expect(page.getByTestId("voice-escuchando")).toContainText("Escuchando");
+    await page.getByTestId("voice-listo").click();
+    await expect(page.getByTestId("voice-escuchando")).toHaveCount(0);
   });
 });

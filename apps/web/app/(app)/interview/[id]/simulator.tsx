@@ -8,7 +8,8 @@ import {
   interviewScoreLevel,
   type InterviewScoreLevel,
 } from "@job-search-os/pipeline";
-import { Dictar } from "@/components/dictar";
+import { joinDictated } from "@/components/dictar-engine";
+import { VoiceInput } from "@/components/voice-input";
 import { PrintButton } from "@/components/print-button";
 import { Alert, Button, buttonClasses, Card, inputClasses, labelClasses } from "@/components/ui";
 import { answerInterviewAction } from "../actions";
@@ -102,7 +103,10 @@ export function Simulator({
   initialAnswers,
   source,
   starHelp,
+  serverTranscribe,
 }: {
+  /** R25-05: la persona puede transcribir en el servidor (viene de `voiceServerAllowedFor`). */
+  serverTranscribe: boolean;
   sessionId: string;
   title: string;
   questions: string[];
@@ -301,11 +305,12 @@ export function Simulator({
               className={inputClasses({ multiline: true })}
               data-testid="interview-answer"
             />
-            <Dictar
-              value={text}
-              onChange={setText}
+            <VoiceInput
+              serverTranscribe={serverTranscribe}
+              onText={(spoken) =>
+                setText((prev) => joinDictated(prev, spoken).slice(0, INTERVIEW_ANSWER_MAX_CHARS))
+              }
               disabled={pending}
-              maxLength={INTERVIEW_ANSWER_MAX_CHARS}
             />
             <p id={`${uid}-ayuda`} className="text-xs text-fg-subtle">
               Hasta {INTERVIEW_ANSWER_MAX_CHARS} caracteres. No hace falta que incluyas datos

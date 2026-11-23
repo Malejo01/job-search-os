@@ -36,6 +36,13 @@ const GOOD_ANSWER =
   "Cuando el cierre mensual tardaba dos días en mi proyecto, armé un tablero con SQL y logré bajarlo a una hora, un 80% menos.";
 
 test.describe.configure({ mode: "serial" });
+// R25-05: `VoiceInput` pide el micrófono antes de dictar; Chromium lo da falso y sin cartel
+test.use({
+  launchOptions: {
+    args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+  },
+  permissions: ["microphone"],
+});
 test.setTimeout(120_000);
 
 type Gallery = { base: SecondUserData; top: string; mid: string; far: string };
@@ -511,13 +518,13 @@ test.describe("con datos inventados", () => {
         await visit(page, "21", "interview-pregunta", `/interview/${sessionId}`, width, theme);
 
         // El dictado: la barra de «Escuchando…» con la voz simulada
-        const boton = page.getByTestId("dictar-boton");
-        if ((await boton.count()) > 0) {
-          await boton.click();
-          await expect(page.getByTestId("dictar-escuchando")).toContainText("Escuchando");
-          await shot(page, "22", "interview-dictado", width, theme);
-          await boton.click();
-        }
+        // R25-05: sin `if`; si el botón no está, la galería tiene que fallar y no saltearse la captura
+        const boton = page.getByTestId("voice-boton");
+        await expect(boton).toBeVisible();
+        await boton.click();
+        await expect(page.getByTestId("voice-escuchando")).toContainText("Escuchando");
+        await shot(page, "22", "interview-dictado", width, theme);
+        await page.getByTestId("voice-cancelar").click();
 
         // Una devolución (modelo simulado)
         await page.getByTestId("interview-answer").fill(GOOD_ANSWER);

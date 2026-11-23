@@ -12,7 +12,8 @@ import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Dictar } from "@/components/dictar";
+import { joinDictated } from "@/components/dictar-engine";
+import { VoiceInput } from "@/components/voice-input";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import {
   parseCoachSnapshot,
@@ -77,7 +78,7 @@ function cardText(card: CvCoachCard, anchor: string | null): string {
  * tarjetas: nada entra al CV sin su clic. El avance (`jso:coach:state`) queda en la pestaña; la charla no se
  * guarda en ningún lado. «Ya está, armalo» lleva al cierre con lo confirmado.
  */
-export function CvCoachChat() {
+export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean }) {
   const reduce = useReducedMotion();
   const router = useRouter();
   const stored = parseCoachSnapshot(useCoachSnapshot());
@@ -385,7 +386,11 @@ export function CvCoachChat() {
             disabled={busy}
             data-testid="coach-answer"
           />
-          <Dictar value={draft} onChange={setDraft} disabled={busy} maxLength={2000} />
+          <VoiceInput
+            serverTranscribe={serverTranscribe}
+            onText={(spoken) => setDraft((prev) => joinDictated(prev, spoken).slice(0, 2000))}
+            disabled={busy}
+          />
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"

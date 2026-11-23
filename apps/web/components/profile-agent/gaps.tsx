@@ -14,7 +14,9 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { joinDictated } from "@/components/dictar-engine";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { VoiceInput } from "@/components/voice-input";
 
 /**
  * Charla de huecos del agente de perfil (ADR-034, R10-3). Una pregunta por vez, tomada de las plantillas
@@ -121,7 +123,13 @@ function describeCard(card: ProfileGapCard): { title: string; lines: string[] } 
 
 type Phase = "loading" | "question" | "card" | "done";
 
-export function ProfileGaps({ base }: { base: ProfileAgentBase }) {
+export function ProfileGaps({
+  base,
+  serverTranscribe,
+}: {
+  base: ProfileAgentBase;
+  serverTranscribe: boolean;
+}) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -420,6 +428,11 @@ export function ProfileGaps({ base }: { base: ProfileAgentBase }) {
               maxLength={1000}
               disabled={busy}
               className={TEXTAREA}
+            />
+            <VoiceInput
+              serverTranscribe={serverTranscribe}
+              onText={(spoken) => setDraft((prev) => joinDictated(prev, spoken).slice(0, 1000))}
+              disabled={busy}
             />
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={busy} className={PRIMARY}>
