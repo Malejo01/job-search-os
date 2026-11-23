@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { buttonClasses } from "@/components/ui";
 import { isUuid } from "@/lib/ids";
 import { requireUserId } from "@/lib/session";
+import { cvForOffer } from "@job-search-os/pipeline";
+import { cvCoachAllowedFor } from "@/lib/cv-coach/access";
+import { loadCvSource } from "@/lib/cv-source";
 import { getPostularData } from "./data";
 import { httpsUrl, postularChecklist } from "./postular-view";
 
@@ -19,8 +22,19 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
   const userId = await requireUserId();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const data = await getPostularData(userId, id);
+  const [data, cvSource] = await Promise.all([
+    getPostularData(userId, id),
+    loadCvSource(userId, { lang: "es", includeEmail: false, includeBasics: true }),
+  ]);
   if (!data) notFound();
+  const forOffer = cvSource
+    ? cvForOffer({
+        offerSkills: data.offerSkills,
+        cvSkills: cvSource.skills.map((k) => k.name),
+        history: cvSource.history,
+      })
+    : null;
+  const coachOn = await cvCoachAllowedFor(userId);
 
   const url = httpsUrl(data.url);
   const checklist = postularChecklist({
@@ -106,6 +120,80 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
         >
           Abrir mi CV
         </Link>
+      </section>
+
+      <section
+        aria-labelledby="postular-cv-oferta"
+        data-testid="postular-cv-oferta"
+        className="rounded-card border border-line p-3 text-sm"
+      >
+        <h2 id="postular-cv-oferta" className="font-semibold">
+          Tu CV frente a esta oferta
+        </h2>
+        {forOffer === null || !forOffer.ok ? (
+          <p data-testid="cv-oferta-vacio" className="mt-1 text-fg-muted">
+            {forOffer && forOffer.error === "sin_requisitos"
+              ? "No pudimos leer qué skills pide este aviso, así que no hay nada para cruzar con tu CV."
+              : "Todavía no tenés un CV confirmado para cruzar con esta oferta. Armalo en la sección CV y volvé."}
+          </p>
+        ) : (
+          <div className="mt-2 flex flex-col gap-3">
+            <div>
+              <h3 className="font-medium text-fg">Lo que pide el aviso</h3>
+              <ul className="mt-1 flex flex-wrap gap-1.5" data-testid="cv-oferta-pedidas">
+                {forOffer.value.asked.map((k) => (
+                  <li key={k.name} className="rounded-card border border-line px-2 py-0.5 text-fg">
+                    {k.name}
+                    {k.isMust ? "" : " (deseable)"} ·{" "}
+                    <span className="text-fg-muted">
+                      {k.inCv ? "ya está en tu CV" : "no figura"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {forOffer.value.missing.length ? (
+              <p data-testid="cv-oferta-faltan" className="text-fg-muted">
+                No figuran en tu CV: {forOffer.value.missing.map((m) => m.name).join(", ")}. Sumalas
+                solo si de verdad las usaste.
+              </p>
+            ) : null}
+            {forOffer.value.bullets.some((b) => b.matched.length > 0) ? (
+              <div>
+                <h3 className="font-medium text-fg">Viñetas para poner primero</h3>
+                <ol
+                  className="mt-1 list-decimal pl-5 text-fg-muted"
+                  data-testid="cv-oferta-vinietas"
+                >
+                  {forOffer.value.bullets
+                    .filter((b) => b.matched.length > 0)
+                    .slice(0, 8)
+                    .map((b, i) => (
+                      <li key={i} className="py-0.5">
+                        {b.text}{" "}
+                        <span className="text-xs text-fg-subtle">
+                          ({b.title || b.organization} · menciona {b.matched.join(", ")})
+                        </span>
+                      </li>
+                    ))}
+                </ol>
+              </div>
+            ) : (
+              <p className="text-fg-muted">
+                Ninguna viñeta de tu CV menciona las skills de este aviso.
+              </p>
+            )}
+          </div>
+        )}
+        {coachOn ? (
+          <Link
+            href={`/cv/coach?oferta=${data.id}`}
+            data-testid="afinar-cv"
+            className={`${buttonClasses({ size: "sm", variant: "secondary" })} mt-3 w-fit`}
+          >
+            Afinar mi CV para esta oferta
+          </Link>
+        ) : null}
       </section>
 
       <section
