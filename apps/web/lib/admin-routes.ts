@@ -20,6 +20,7 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   "(app)/settings/textos/page.tsx",
   "(app)/settings/metricas/page.tsx",
   "(app)/settings/salud/page.tsx",
+  "(app)/settings/apertura/page.tsx",
   "(app)/settings/feedback/page.tsx",
   "(app)/ui/page.tsx",
   // Rutas de descarga y de vista previa

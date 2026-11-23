@@ -190,6 +190,10 @@ export default async function SettingsPage({
           <Link href="/settings/metricas" className={LINK}>
             Métricas de la beta
           </Link>
+          {/* R22-05: checklist de apertura */}
+          <Link href="/settings/apertura" className={LINK}>
+            Checklist de apertura
+          </Link>
           {/* C3-1: activar planes (solo con los precios encendidos) */}
           {pricing ? (
             <Link href="/settings/planes" className={LINK}>

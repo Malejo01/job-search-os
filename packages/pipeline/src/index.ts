@@ -73,6 +73,7 @@ export * from "./today/visit";
 export * from "./plan-access";
 export * from "./plan-expiry-notice";
 export * from "./plan-expired-copy";
+export * from "./apertura-checklist";
 export * from "./welcome-email";
 export * from "./plans";
 export * from "./pricing-v2";
