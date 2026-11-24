@@ -55,6 +55,10 @@ export const MEMBER_FILES: readonly string[] = [
   "(app)/settings/historial/actions.ts",
   // Revisión de Academy: admins y testers (no solo admins), con `canReviewAcademy` y 404 para el resto
   "(app)/settings/academy/page.tsx",
+  "(app)/settings/academy/actions.ts",
+  // Revisión de los textos del rediseño (R26-02): admins y testers, con `canReviewAcademy` y 404 para el resto
+  "(app)/settings/textos/page.tsx",
+  "(app)/settings/textos/actions.ts",
   "(app)/settings/perfil/page.tsx",
   "(app)/settings/perfil/actions.ts",
   "(app)/settings/senders/page.tsx",

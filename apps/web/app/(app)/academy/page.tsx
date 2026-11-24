@@ -2,8 +2,10 @@ import Link from "next/link";
 import { EstadoMarca } from "@/components/estado-marca";
 import { buttonClasses } from "@/components/ui";
 import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
-import { fichaBajada, fichaWordCount, loadApprovedFichas } from "@/lib/academy";
+import { fichaBajada, fichaWordCount } from "@/lib/academy";
 import { readingMinutes } from "@/lib/academy-lectura";
+import { loadApprovedFichasFor } from "@/lib/academy-revisiones";
+import { requireUserId } from "@/lib/session";
 import { AcademyBuscador } from "./academy-buscador";
 
 export const metadata = { title: "Academy" };
@@ -12,11 +14,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * Academy: las fichas aprobadas, en una lista con buscador. Las que siguen en borrador no se ven acá
- * (las revisa quien corresponde en `/settings/academy`). Las fichas se leen del disco en el servidor;
- * solo el buscador es un client component.
+ * (las revisa quien corresponde en `/settings/academy`, donde también se aprueban: R26-01). Las fichas se
+ * leen del disco en el servidor; solo el buscador es un client component.
  */
-export default function AcademyPage() {
-  const fichas = loadApprovedFichas();
+export default async function AcademyPage() {
+  const fichas = await loadApprovedFichasFor(await requireUserId());
   const items = fichas.map((f) => ({
     slug: f.slug,
     titulo: f.titulo,

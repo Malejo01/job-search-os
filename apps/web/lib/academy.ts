@@ -1,6 +1,13 @@
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { parseLegalMarkdown, type BlockNode, type InlineNode } from "@job-search-os/pipeline";
+import { isAbsolute, join, resolve } from "node:path";
+import {
+  canonicalAcademyContent,
+  decidirPublicacion,
+  parseLegalMarkdown,
+  type BlockNode,
+  type InlineNode,
+} from "@job-search-os/pipeline";
 import { isPrivilegedEmail } from "./invitations-core";
 
 /**
@@ -17,10 +24,18 @@ export type AcademyEstado = "borrador" | "aprobada";
 export type AcademyFicha = {
   slug: string;
   titulo: string;
+  /** Lo que dice el archivo. Las fichas aprobadas desde la app (R26-01) se publican con `publishedFichas`. */
   estado: AcademyEstado;
   orden: number;
   blocks: BlockNode[];
+  /** sha256 del contenido sin la línea `estado` (R26-01): la aprobación en la base vale solo con esta huella. */
+  huella: string;
 };
+
+/** sha256 en hexadecimal minúscula. */
+export function sha256Hex(text: string): string {
+  return createHash("sha256").update(text, "utf8").digest("hex");
+}
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -37,7 +52,28 @@ export function parseFicha(slug: string, raw: string): AcademyFicha | null {
     estado: doc.meta.estado?.trim() === "aprobada" ? "aprobada" : "borrador",
     orden: Number.isFinite(orden) ? orden : 999,
     blocks: doc.blocks,
+    huella: sha256Hex(canonicalAcademyContent(raw)),
   };
+}
+
+/**
+ * Las fichas tal como se publican (R26-01): una ficha cuyo archivo dice `aprobada`, o que tiene en la base una
+ * aprobación con la misma huella que su contenido de hoy, sale con `estado: "aprobada"`; el resto, en borrador.
+ * Si el contenido cambió, la aprobación vieja no vale. `aprobadas`: slug → huella de la aprobación vigente.
+ */
+export function publishedFichas(
+  fichas: readonly AcademyFicha[],
+  aprobadas: ReadonlyMap<string, string>,
+): AcademyFicha[] {
+  return fichas.map((f) => {
+    const huella = aprobadas.get(f.slug);
+    const { publicada } = decidirPublicacion({
+      archivoEstado: f.estado,
+      huellaActual: f.huella,
+      revision: huella === undefined ? null : { estado: "aprobada", huella },
+    });
+    return { ...f, estado: publicada ? "aprobada" : "borrador" };
+  });
 }
 
 /** Solo lo publicable: las aprobadas. */
@@ -91,6 +127,13 @@ export function mayReviewAcademy(
 // Rutas con `join(process.cwd(), "<literal>")` para que el trazado de Next/Vercel incluya los .md
 // (ver `outputFileTracingIncludes`). En el monorepo cwd puede ser la raíz o apps/web.
 function dir(): string | null {
+  // Solo para los e2e (R26-01): una carpeta de fichas de prueba. Se ignora salvo con la base local
+  // (`DB_TARGET=local`), así que en Vercel no tiene ningún efecto aunque la variable existiera.
+  const override = process.env.ACADEMY_DIR?.trim();
+  if (override && process.env.DB_TARGET === "local") {
+    const p = isAbsolute(override) ? override : resolve(process.cwd(), override);
+    return existsSync(p) ? p : null;
+  }
   return (
     [
       join(process.cwd(), "content", "academy"),

@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { loadApprovedFicha, type AcademyFicha } from "../lib/academy";
+import type { AcademyFicha } from "../lib/academy";
 import type { AcademyOrigen } from "../lib/academy-lectura";
+import { loadApprovedFichaFor } from "../lib/academy-revisiones";
 import { renderLegalBlocks } from "../lib/legal";
+import { requireUserId } from "../lib/session";
 
 /**
  * Panel del «?» (R17-11): el ícono y la ficha de Academy que abre. `<details>` nativo: se abre con
@@ -49,8 +51,11 @@ export function ContextHelpPanel({
   );
 }
 
-/** «?» junto a un término: abre la ficha de Academy `slug`. Sin ficha aprobada, no aparece. */
-export function ContextHelp({
+/**
+ * «?» junto a un término: abre la ficha de Academy `slug`. Sin ficha aprobada, no aparece. «Aprobada» es lo que
+ * dice el archivo o una aprobación hecha desde la app con la misma huella (R26-01). Server Component asíncrono.
+ */
+export async function ContextHelp({
   slug,
   term,
   desde,
@@ -59,7 +64,7 @@ export function ContextHelp({
   term: string;
   desde?: AcademyOrigen;
 }) {
-  const ficha = loadApprovedFicha(slug);
+  const ficha = await loadApprovedFichaFor(await requireUserId(), slug);
   if (!ficha) return null;
   return <ContextHelpPanel ficha={ficha} term={term} desde={desde} />;
 }

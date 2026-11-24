@@ -554,6 +554,20 @@
       "when": 1795476365051,
       "tag": "0078_admin_panel",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1795488535880,
+      "tag": "0079_academy_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1795489021492,
+      "tag": "0080_text_reviews",
+      "breakpoints": true
     }
   ]
 }

@@ -1057,3 +1057,47 @@ export const invitations = pgTable("invitations", {
   uniqueIndex("invitations_code_hash").on(t.codeHash),
   index("invitations_created_by").on(t.createdByUserId),
 ]);
+
+// Revisiones de las fichas de Academy (R26-01, rls/0065): quien revisa (admins y testers) aprueba o pide
+// cambios desde la app. Solo se agrega, nunca se edita ni se borra: el estado vigente de una ficha es su fila
+// más nueva. `content_hash` es el sha256 del contenido que se miró; si la ficha cambia, la aprobación vieja ya
+// no vale (publicacion.ts, en pipeline). Sin acceso directo de la app: se escribe con academy_review_add y se
+// lee con academy_approved_list (cualquier sesión, solo slug y huella) y academy_review_latest / _history (solo
+// quien revisa). `user_id` es quien revisó; cae con su cuenta (cascade).
+export const academyReviews = pgTable("academy_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  slug: text("slug").notNull(),
+  contentHash: text("content_hash").notNull(),               // sha256 hex minúscula
+  status: text("status").notNull(),                          // aprobada | cambios
+  comment: text("comment"),                                  // obligatorio con «cambios»; hasta 500 caracteres
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("academy_reviews_slug_created").on(t.slug, t.createdAt.desc()),
+  check("academy_reviews_slug", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(${t.slug}) <= 80`),
+  check("academy_reviews_hash", sql`${t.contentHash} ~ '^[0-9a-f]{64}$'`),
+  check("academy_reviews_status", sql`${t.status} in ('aprobada', 'cambios')`),
+  check("academy_reviews_comment", sql`${t.comment} is null or char_length(${t.comment}) <= 500`),
+]);
+
+// Revisión de los textos del rediseño (R26-02, rls/0066, `apps/web/lib/textos-rediseno.ts`): quien revisa
+// (admins y testers) aprueba un texto o propone otro. Igual que academy_reviews: solo se agrega y el estado
+// vigente de un texto es su fila más nueva. `default_hash` es el sha256 del texto por defecto que se miró: si el
+// código cambia ese texto, la aprobación vieja no vale. Una propuesta NUNCA cambia la app: queda para que quien administra la
+// pase al código. Sin acceso directo de la app: se escribe con text_review_add y se lee con text_review_latest /
+// text_review_history (solo quien revisa). `user_id` es quien revisó; cae con su cuenta (cascade).
+export const textReviews = pgTable("text_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  textKey: text("text_key").notNull(),                       // ruta dentro de textos-rediseno.ts, p. ej. `AFFINITY_WORDS.high`
+  defaultHash: text("default_hash").notNull(),               // sha256 hex minúscula del texto por defecto
+  status: text("status").notNull(),                          // aprobada | propuesta
+  proposal: text("proposal"),                                // obligatoria con «propuesta»; hasta 1000 caracteres
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("text_reviews_key_created").on(t.textKey, t.createdAt.desc()),
+  check("text_reviews_key", sql`${t.textKey} ~ '^[A-Za-z0-9_.-]+$' and char_length(${t.textKey}) <= 120`),
+  check("text_reviews_hash", sql`${t.defaultHash} ~ '^[0-9a-f]{64}$'`),
+  check("text_reviews_status", sql`${t.status} in ('aprobada', 'propuesta')`),
+  check("text_reviews_proposal", sql`${t.proposal} is null or char_length(${t.proposal}) <= 1000`),
+]);

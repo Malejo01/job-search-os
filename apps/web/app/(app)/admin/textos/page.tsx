@@ -1,13 +1,31 @@
-import { AYUDA_EN_CONTEXTO, TEXTOS_ANI, type TextoAni } from "@job-search-os/pipeline";
+import {
+  AYUDA_EN_CONTEXTO,
+  contarTextosAprobados,
+  estadoDeTexto,
+  TEXTOS_ANI,
+  type TextoAni,
+} from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminOr404 } from "@/lib/admin-guard";
 import { requireUserId } from "@/lib/session";
 import { alertClasses } from "@/components/ui";
+import { CopyButton } from "@/components/copy-button";
+import { TextosAprobacionPanel } from "@/components/textos-aprobacion-panel";
+import { textosRediseno } from "@/lib/textos-aprobacion";
+import { TEXTOS_APROBACION } from "@/lib/textos-revision";
+import { textReviewLatest } from "@/lib/textos-revisiones";
 import { welcomeEmailSample } from "@/lib/welcome-email-sample";
+import { reviewTextoAction } from "../../settings/textos/actions";
 
 export const metadata: Metadata = { title: "Textos para revisar", robots: { index: false } };
 export const dynamic = "force-dynamic";
+
+const DATE = new Intl.DateTimeFormat("es-AR", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "America/Argentina/Buenos_Aires",
+});
 
 /**
  * Textos para Ani (C8-18): los textos públicos clave en una sola página, cada uno con su archivo de
@@ -20,6 +38,18 @@ export default async function TextosPage() {
   await requireAdminOr404(userId);
   const areas = [...new Set(TEXTOS_ANI.map((t) => t.area))];
   const email = welcomeEmailSample();
+  // R26-02: los textos del rediseño. Si la lectura falla (migración sin aplicar), se ven sin botones
+  const textos = textosRediseno();
+  const latest = await textReviewLatest(userId).catch(() => null);
+  const resumen = latest ? contarTextosAprobados(textos, latest) : null;
+  const propuestas = latest
+    ? [...latest.values()].flatMap((r) => {
+        const texto = textos.find((t) => t.clave === r.clave);
+        return r.estado === "propuesta" && r.proposal && texto
+          ? [{ review: r, texto, vieja: estadoDeTexto(texto.huella, r) === "propuesta_vieja" }]
+          : [];
+      })
+    : [];
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
@@ -30,6 +60,62 @@ export default async function TextosPage() {
           <code>docs/beta/textos-para-ani.md</code>.
         </p>
       </div>
+
+      <section aria-labelledby="textos-propuestas" className="flex flex-col gap-3">
+        <h2 id="textos-propuestas" className="text-heading font-bold">
+          {TEXTOS_APROBACION.propuestasTitulo}
+        </h2>
+        <p className="text-sm text-fg-muted">{TEXTOS_APROBACION.propuestasAyuda}</p>
+        {propuestas.length === 0 ? (
+          <p className="text-sm text-fg-muted" data-testid="propuestas-vacia">
+            {TEXTOS_APROBACION.propuestasVacia}
+          </p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col gap-3 p-0" data-testid="propuestas">
+            {propuestas.map(({ review, texto, vieja }) => (
+              <li
+                key={texto.clave}
+                className="flex flex-col gap-2 rounded-card bg-surface p-4 text-sm"
+                data-testid={`propuesta-${texto.clave}`}
+              >
+                <code className="text-xs text-fg-subtle">{texto.clave}</code>
+                <p className="m-0 text-fg-muted">
+                  {TEXTOS_APROBACION.actual}: «{texto.valor}»
+                </p>
+                <blockquote
+                  className="m-0 border-l-4 border-line-strong pl-3 text-fg"
+                  data-testid="propuesta-texto"
+                >
+                  {review.proposal}
+                </blockquote>
+                <p className="m-0 text-xs text-fg-subtle">
+                  {review.reviewerEmail ?? "Cuenta borrada"} · {DATE.format(review.createdAt)}
+                  {vieja ? ` · ${TEXTOS_APROBACION.propuestaVieja}` : ""}
+                </p>
+                <CopyButton
+                  text={review.proposal ?? ""}
+                  label={TEXTOS_APROBACION.copiar}
+                  copiedLabel={TEXTOS_APROBACION.copiado}
+                  testId="propuesta-copiar"
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="textos-rediseno" className="flex flex-col gap-3">
+        <h2 id="textos-rediseno" className="text-heading font-bold">
+          {TEXTOS_APROBACION.titulo}
+        </h2>
+        <p className="text-sm text-fg-muted">{TEXTOS_APROBACION.introAdmin}</p>
+        {resumen ? (
+          <p className="text-sm font-semibold" data-testid="textos-resumen">
+            {TEXTOS_APROBACION.resumen(resumen.aprobados, resumen.total)}
+          </p>
+        ) : null}
+        <TextosAprobacionPanel textos={textos} latest={latest} action={reviewTextoAction} />
+      </section>
 
       {areas.map((area) => (
         <section
