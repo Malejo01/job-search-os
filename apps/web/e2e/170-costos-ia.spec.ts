@@ -1,14 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { axeSummary } from "./axe-helpers";
-import * as s from "@job-search-os/db/schema";
-import {
-  E2E_USER_ID,
-  ensureSecondUser,
-  login,
-  loginAsSecondUser,
-  ownerDb,
-  removeSecondUser,
-} from "./helpers";
+import { ensureSecondUser, login, loginAsSecondUser, removeSecondUser } from "./helpers";
+import { ensureSeedPerson } from "./persona-qa";
 
 /**
  * Flujo 170 (R21-01): /admin/costos, el gasto de IA de los últimos 30 días por día, tarea y modelo,
@@ -19,13 +12,9 @@ test.describe("Flujo 170: costos de IA (R21-01)", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
 
   test.beforeAll(async () => {
-    // La función de la base exige app_admins, además de ADMIN_EMAILS (como 109)
-    const { db, close } = ownerDb();
-    try {
-      await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
-    } finally {
-      await close();
-    }
+    // La función de la base exige app_admins, además de ADMIN_EMAILS (como 109); la persona de prueba la
+    // crea el helper si la base local no trae al usuario del seed (R26-07)
+    await ensureSeedPerson();
   });
 
   test.afterAll(async () => {

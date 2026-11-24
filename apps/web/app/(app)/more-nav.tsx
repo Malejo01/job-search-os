@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui";
+import { canViewRecorrido } from "@/lib/recorrido-access";
+import { requireUserId } from "@/lib/session";
+import { RECORRIDO_TEXTOS } from "@/lib/textos-recorrido";
 import { logout } from "./logout-action";
+
+// R26-03: solo admins y testers; se decide en el servidor y el resto ni ve el link
+const RECORRIDO_ITEM = {
+  href: "/recorrido",
+  label: RECORRIDO_TEXTOS.menuLink,
+  icon: "check",
+  hint: RECORRIDO_TEXTOS.menuHint,
+} as const satisfies { href: string; label: string; icon: IconName; hint: string };
 
 const MORE: ReadonlyArray<{ href: string; label: string; icon: IconName; hint: string }> = [
   { href: "/academy", label: "Academy", icon: "academia", hint: "Fichas para entender el proceso" },
@@ -29,9 +40,11 @@ const ITEM =
 /**
  * «Más» (C9-7; C10-3): las secciones son cinco, en las pestañas del celular y en las píldoras de
  * la computadora; lo que no entra vive acá, dentro de Perfil, en los dos anchos. También «Salir».
- * Server Component.
+ * Server Component. Para admins y testers suma «Recorrido para revisar» (R26-03).
  */
-export function MoreNav() {
+export async function MoreNav() {
+  const userId = await requireUserId();
+  const items = (await canViewRecorrido(userId)) ? [...MORE, RECORRIDO_ITEM] : MORE;
   return (
     <nav
       aria-labelledby="mas-titulo"
@@ -42,7 +55,7 @@ export function MoreNav() {
         Más
       </h2>
       <ul className="flex flex-col">
-        {MORE.map((m) => (
+        {items.map((m) => (
           <li key={m.href}>
             <Link href={m.href} className={ITEM}>
               <Icon name={m.icon} size={20} className="text-brand-text" />

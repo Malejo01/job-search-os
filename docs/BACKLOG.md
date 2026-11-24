@@ -2146,3 +2146,27 @@ Pedido de Mauro (23/11): gestionar quién tiene acceso sin entrar a la base, con
 - Dar y sacar admins desde el panel (hoy siguen en `ADMIN_EMAILS` + `app_admins`, a propósito).
 - Las exenciones de cupo de los testers (`profileAgentQuotaExempt`) siguen mirando solo `ASSISTANT_TESTER_EMAILS`.
 - Mensaje propio en el login para una cuenta bloqueada (hoy ve el error genérico de credenciales).
+
+## Bloque 44 · Tanda R26 «Revisión de Ani y pulido para la beta» (24/11)
+
+Informe de la tanda: [`docs/beta/informe-r26.md`](beta/informe-r26.md). Pasos manuales: [`docs/beta/pasos-manuales-r26.md`](beta/pasos-manuales-r26.md). Cadena sobre `ronda/admin-panel` (Bloque 43); ningún PR mergeado por agentes. Migraciones 0079, 0080 y 0081; RLS 0065 y 0066, sin aplicar en Neon. USD 0.
+
+### Revisión desde la app
+- **R26-01** · Academy: aprobar o pedir cambios en `/settings/academy`; una ficha se publica por su archivo o por una aprobación con la misma huella del contenido · `estado:` en rama (24/11) · `ronda/r26-01-aprobacion`
+- **R26-02** · Textos del rediseño: aprobar o proponer otro en `/admin/textos` y `/settings/textos`; «Propuestas» con «Copiar»; la checklist de apertura cuenta desde la base · `estado:` en rama (24/11) · `ronda/r26-01-aprobacion`
+- **R26-03** · `/recorrido` para quien revisa: 18 pantallas con qué mirar, «Abrir» y «Comentar esta pantalla» · `estado:` en rama (24/11) · `ronda/r26-03-recorrido`
+- **R26-04** · Feedback por pantalla: ruta normalizada, «¿Qué te gustaría que cambie?» y `/admin/feedback` agrupado por pantalla · `estado:` en rama (24/11) · `ronda/r26-03-recorrido`
+
+### Pulido
+- **R26-05** · Celular: el asistente no tapa contenido, banner de vencimiento con margen, primer uso guardado en la cuenta · `estado:` en rama (24/11) · `ronda/r26-05-celular`
+- **R26-06** · First Load: `/cv/coach*` de 174–177 a 145–149 kB; `/onboarding` de 160 a 153 kB (segunda pasada sin medir) · `estado:` en rama (24/11) · `ronda/r26-06-rendimiento`
+- **R26-07** · QA: persona de prueba sin seed para los e2e viejos, axe del panel y Academy con una ficha aprobada · `estado:` en rama, e2e a medio correr (24/11) · `ronda/r26-07-qa`
+
+### Pendientes que salen de la tanda
+- Correr los e2e que quedaron sin correr (la corrida se cortó por falta de memoria): 109, 115, 116, 161, 164, 165, 170, 183–187, 230–236, 239, 240, 242, 244, y 157 y 160 con `PRICING_ENABLED=1`.
+- Capturas de `/recorrido`, `/settings/academy` y `/admin/textos`, y el antes y después del celular (`ops/capturas/r26/`).
+- `/onboarding/cv` (154 kB) sigue con zod en el cliente por el flujo del agente de perfil.
+- La sugerencia del feedback va al final del mensaje; pasarla a `context` exige cambiar `admin_beta_feedback_triage`.
+
+### R26 · Cierre de la tanda
+`estado:` en rama (24/11) · `ronda/r26-cierre`

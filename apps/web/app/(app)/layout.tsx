@@ -13,7 +13,7 @@ import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireActiveUserId, requireUserId } from "@/lib/session";
 import { getUserPlan } from "@/lib/user-plan";
-import { getDisplayName } from "@/lib/display-name";
+import { getHeaderProfile } from "@/lib/primer-uso-cuenta";
 import { Avatar } from "./avatar";
 import { AppBar } from "./app-bar";
 import { DesktopNav } from "./main-nav";
@@ -44,7 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // R7-6: las consultas del layout no dependen unas de otras, así que salen juntas (antes iban en
   // serie, una transacción tras otra, en cada navegación). Los gates se siguen aplicando en el mismo
   // orden: primero términos, después onboarding.
-  const [, canInvite, canAssist, followUps, planAccess, displayName] = await Promise.all([
+  const [, canInvite, canAssist, followUps, planAccess, headerProfile] = await Promise.all([
     // Gates de términos (ronda 83) y de onboarding (B2): sin la versión vigente aceptada y sin
     // perfil completo no se ve nada. Las pantallas están fuera de este grupo; si estuvieran
     // adentro, estos redirects entrarían en loop. `requireActiveUserId` tiene `cache`: la página
@@ -67,8 +67,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           .then((p) => p.access)
           .catch(() => null)
       : Promise.resolve(null),
-    // Avatar del header (C7-5): si la consulta falla, el ícono de perfil
-    getDisplayName(userId).catch(() => null),
+    // Avatar del header (C7-5) y recorrido de primer uso ya visto en la cuenta (R26-05), en una sola
+    // consulta; si falla, el ícono de perfil y el recorrido se muestra de nuevo
+    getHeaderProfile(userId),
   ]);
   return (
     // Pestañas abajo en el celular (C9-7): el pie y el último contenido quedan por encima de ellas,
@@ -96,7 +97,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             ) : null}
             {/* Claro u oscuro, a mano en todas las pantallas (C10) */}
             <ThemeToggle />
-            <Avatar name={displayName} />
+            <Avatar name={headerProfile.name} />
           </div>
         </div>
       </AppBar>
@@ -106,7 +107,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <main
         id="contenido"
         tabIndex={-1}
-        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 sm:pb-10 has-[[data-ancho=completo]]:max-w-none! has-[[data-ancho=completo]]:p-0!"
+        className="group/main mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 sm:pb-10 has-[[data-ancho=completo]]:max-w-none! has-[[data-ancho=completo]]:p-0!"
       >
         {planAccess ? <PlanNotice access={planAccess} /> : null}
         {children}
@@ -114,10 +115,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {/* R19-06: con el asistente, el botón flotante (2,75 rem + 1 rem de margen) no tapa el final
           del contenido en el celular. Va fuera de <main> porque las pantallas de ancho completo
           anulan su padding (`p-0!`). Las pestañas ya están sumadas en el padding de este contenedor. */}
-      {canAssist ? <div aria-hidden="true" className="h-[3.75rem] shrink-0 sm:hidden" /> : null}
+      {canAssist ? <div aria-hidden="true" className="h-[4.75rem] shrink-0 sm:hidden" /> : null}
       <ActionTracker />
       {/* R23-05: recorrido de lo nuevo, una sola vez por persona */}
-      <PrimerUso userId={userId} />
+      <PrimerUso userId={userId} seenInAccount={headerProfile.primerUsoVisto} />
       {/* Dos botones separados: el chip de soporte abajo a la izquierda y la mascota del asistente
           abajo a la derecha (R4-15); los dos por encima de las pestañas del celular */}
       <FeedbackButton />

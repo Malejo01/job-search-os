@@ -441,3 +441,24 @@
     color: #18181b !important;
   }
 }
+
+/*
+ * Entrada suave de un renglón o una tarjeta (R26-06): reemplaza a Framer Motion en listas chicas.
+ * Solo con movimiento permitido; el retraso escalonado sale de --aparecer-delay.
+ */
+@keyframes aparecer-subiendo {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .aparecer-subiendo {
+    animation: aparecer-subiendo 200ms ease-out both;
+    animation-delay: var(--aparecer-delay, 0ms);
+  }
+}

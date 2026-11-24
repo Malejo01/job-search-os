@@ -62,6 +62,8 @@ export const PRIVATE_PREFIXES: readonly string[] = [
   "/encaje",
   "/interview",
   "/academy",
+  // Recorrido para revisar (R26-03): privado; además, 404 para quien no es admin ni tester
+  "/recorrido",
   "/settings",
   // Panel de administración (ADM-1): privado; además, 404 para quien no es admin
   "/admin",

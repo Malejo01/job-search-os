@@ -121,6 +121,8 @@ export async function sendFeedbackAction(formData: FormData): Promise<FeedbackRe
   const checked = validateFeedback({
     category: formData.get("category"),
     message: formData.get("message"),
+    // R26-04: opcional; se guarda al final del mensaje (sin migración) y el admin lo ve aparte
+    suggestion: formData.get("suggestion"),
     path: formData.get("path"),
     context: formData.get("context"),
   });

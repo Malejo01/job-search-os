@@ -52,6 +52,10 @@ const CATALOG_TABLES = [
   // Panel /admin (ADM-1): roles e historial con user_id pero sin acceso de la app; solo por funciones (rls/0064).
   "user_roles",
   "admin_events",
+  // Revisión de Academy (R26-01): user_id es quien revisó; sin acceso de la app, solo por funciones (rls/0065).
+  "academy_reviews",
+  // Revisión de los textos del rediseño (R26-02): igual que academy_reviews (rls/0066).
+  "text_reviews",
 ];
 
 /**
@@ -981,6 +985,60 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       expect(await fingerprint({ table: "users", column: "id" }, B)).toBe(before);
     },
+    // R26-01 (rls/0065): quien no es admin ni tester no revisa, no escribe y no lee el historial.
+    can_review_content: async () => {
+      const [r] = await asUser(A, (tx) => tx<{ ok: boolean }[]>`select can_review_content() as ok`);
+      expect(r!.ok).toBe(false);
+    },
+    // Cualquier sesión lee solo (slug, huella): ni quién ni comentario
+    academy_approved_list: async () => {
+      const rows = await asUser(
+        A,
+        (tx) => tx<Record<string, unknown>[]>`select * from academy_approved_list()`,
+      );
+      for (const r of rows) expect(Object.keys(r).sort()).toEqual(["content_hash", "slug"]);
+    },
+    academy_review_add: async () => {
+      await expect(
+        asUser(
+          A,
+          (tx) => tx`select academy_review_add('ficha-ajena', ${"a".repeat(64)}, 'aprobada', null)`,
+        ),
+      ).rejects.toThrow(/academy_review: no autorizado/);
+      expect(await owner`select 1 from academy_reviews where slug = 'ficha-ajena'`).toHaveLength(0);
+    },
+    academy_review_latest: async () => {
+      await expect(asUser(A, (tx) => tx`select * from academy_review_latest()`)).rejects.toThrow(
+        /academy_review: no autorizado/,
+      );
+    },
+    academy_review_history: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select * from academy_review_history(null)`),
+      ).rejects.toThrow(/academy_review: no autorizado/);
+    },
+    // R26-02 (rls/0066): lo mismo para los textos del rediseño, sin lectura abierta.
+    text_review_add: async () => {
+      await expect(
+        asUser(
+          A,
+          (tx) => tx`select text_review_add('TEXTO.ajeno', ${"a".repeat(64)}, 'aprobada', null)`,
+        ),
+      ).rejects.toThrow(/text_review: no autorizado/);
+      expect(await owner`select 1 from text_reviews where text_key = 'TEXTO.ajeno'`).toHaveLength(
+        0,
+      );
+    },
+    text_review_latest: async () => {
+      await expect(asUser(A, (tx) => tx`select * from text_review_latest()`)).rejects.toThrow(
+        /text_review: no autorizado/,
+      );
+    },
+    text_review_history: async () => {
+      await expect(asUser(A, (tx) => tx`select * from text_review_history(null)`)).rejects.toThrow(
+        /text_review: no autorizado/,
+      );
+    },
     // Sin parámetros: solo responde por la sesión (A no tiene roles).
     my_roles: async () => {
       const [r] = await asUser(A, (tx) => tx<{ r: string[] }[]>`select my_roles() as r`);
@@ -1194,6 +1252,266 @@ describe("sentencias de la app con el id de una fila de B y contexto de A", () =
       }
     } finally {
       await owner.unsafe("DROP OWNED BY jso_servicio_test; DROP ROLE jso_servicio_test;");
+    }
+  });
+});
+
+describe("revisión de Academy (R26-01, rls/0065)", () => {
+  const H1 = "a".repeat(64);
+  const H2 = "b".repeat(64);
+  const SLUG = "ficha-de-prueba";
+  const DENIED = /academy_review: no autorizado/;
+  type Approved = { slug: string; content_hash: string };
+
+  const approved = (who: string | null) =>
+    asUser(who, (tx) => tx<Approved[]>`select * from academy_approved_list() where slug = ${SLUG}`);
+  const add = async (who: string, hash: string, status: string, comment: string | null = null) =>
+    (
+      await asUser(
+        who,
+        (tx) =>
+          tx<
+            { r: string }[]
+          >`select academy_review_add(${SLUG}, ${hash}, ${status}, ${comment}) as r`,
+      )
+    )[0]!.r;
+
+  beforeAll(async () => {
+    await owner`insert into user_roles (user_id, role) values (${C}, 'tester') on conflict do nothing`;
+  });
+  afterAll(async () => {
+    await owner`delete from academy_reviews where slug = ${SLUG}`;
+    await owner`delete from user_roles where user_id = ${C}`;
+  });
+
+  it("una persona común no escribe ni lee el historial, y la tabla es inaccesible para la app", async () => {
+    await expect(add(A, H1, "aprobada")).rejects.toThrow(DENIED);
+    await expect(
+      asUser(A, (tx) => tx`select * from academy_review_history(${SLUG})`),
+    ).rejects.toThrow(DENIED);
+    await expect(asUser(A, (tx) => tx`select * from academy_review_latest()`)).rejects.toThrow(
+      DENIED,
+    );
+    await expect(asUser(A, (tx) => tx`select * from academy_reviews`)).rejects.toThrow(
+      /permission denied/,
+    );
+    await expect(
+      asUser(
+        A,
+        (tx) => tx`insert into academy_reviews (user_id, slug, content_hash, status)
+                   values (${A}, ${SLUG}, ${H1}, 'aprobada')`,
+      ),
+    ).rejects.toThrow(/permission denied/);
+    expect(await owner`select 1 from academy_reviews where slug = ${SLUG}`).toHaveLength(0);
+  });
+
+  it("una tester aprueba, y cualquier sesión ve solo (slug, huella) de lo aprobado", async () => {
+    expect(await add(C, H1, "aprobada")).toBe("ok");
+    expect(await add(C, H1, "aprobada")).toBe("sin_cambio");
+    for (const who of [A, B, C])
+      expect(await approved(who), who).toEqual([{ slug: SLUG, content_hash: H1 }]);
+    // Sin sesión (sin app.user_id) no se lee nada
+    expect(await approved(null)).toEqual([]);
+  });
+
+  it("si cambia el contenido y se aprueba de nuevo, vale la huella nueva; la vieja ya no", async () => {
+    expect(await add(C, H2, "aprobada")).toBe("ok");
+    expect(await approved(A)).toEqual([{ slug: SLUG, content_hash: H2 }]);
+  });
+
+  it("«cambios» necesita comentario y saca la ficha de las aprobadas; aprobar de nuevo la devuelve", async () => {
+    expect(await add(C, H2, "cambios")).toBe("invalido");
+    expect(await add(C, H2, "cambios", "   ")).toBe("invalido");
+    expect(await add(C, H2, "cambios", "Falta un ejemplo")).toBe("ok");
+    expect(await approved(A)).toEqual([]);
+    expect(await add(C, H2, "aprobada")).toBe("ok");
+    expect(await approved(A)).toEqual([{ slug: SLUG, content_hash: H2 }]);
+  });
+
+  it("rechaza slug, huella y estado fuera de lo permitido, y comentarios de más de 500 caracteres", async () => {
+    const bad = async (slug: string, hash: string, status: string, comment: string | null = null) =>
+      (
+        await asUser(
+          C,
+          (tx) =>
+            tx<
+              { r: string }[]
+            >`select academy_review_add(${slug}, ${hash}, ${status}, ${comment}) as r`,
+        )
+      )[0]!.r;
+    expect(await bad("Con Mayúsculas", H1, "aprobada")).toBe("invalido");
+    expect(await bad("../etc", H1, "aprobada")).toBe("invalido");
+    expect(await bad(SLUG, "A".repeat(64), "aprobada")).toBe("invalido");
+    expect(await bad(SLUG, "abc", "aprobada")).toBe("invalido");
+    expect(await bad(SLUG, H1, "publicada")).toBe("invalido");
+    expect(await bad(SLUG, H1, "cambios", "x".repeat(501))).toBe("invalido");
+  });
+
+  it("la tester lee el último estado y el historial, con quién; el historial no se edita", async () => {
+    const latest = await asUser(
+      C,
+      (tx) =>
+        tx<
+          { slug: string; status: string }[]
+        >`select * from academy_review_latest() where slug = ${SLUG}`,
+    );
+    expect(latest).toHaveLength(1);
+    expect(latest[0]!.status).toBe("aprobada");
+    const history = await asUser(
+      C,
+      (tx) =>
+        tx<
+          { status: string; reviewer_email: string | null }[]
+        >`select * from academy_review_history(${SLUG}, 50)`,
+    );
+    expect(history.map((h) => h.status)).toEqual(["aprobada", "cambios", "aprobada", "aprobada"]);
+    expect(history[0]!.reviewer_email).toBe("c@dos.test");
+    // La app no puede cambiar ni borrar una fila (ni siquiera con el rol de la tester)
+    await expect(
+      asUser(C, (tx) => tx`update academy_reviews set status = 'cambios'`),
+    ).rejects.toThrow(/permission denied/);
+    await expect(asUser(C, (tx) => tx`delete from academy_reviews`)).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it("una admin (app_admins) también revisa", async () => {
+    const D = "d8000000-0000-4000-8000-0000000000d4";
+    await owner`insert into users (id, email, password_hash) values (${D}, 'd@dos.test', 'x')`;
+    await owner`insert into app_admins (user_id) values (${D})`;
+    try {
+      expect(await add(D, H1, "aprobada")).toBe("ok");
+      expect(await approved(A)).toEqual([{ slug: SLUG, content_hash: H1 }]);
+    } finally {
+      await owner`delete from users where id = ${D}`;
+    }
+  });
+
+  it("al borrar la cuenta de quien revisó, sus revisiones caen y la ficha vuelve a borrador (falla cerrado)", async () => {
+    const E = "d8000000-0000-4000-8000-0000000000e5";
+    await owner`insert into users (id, email, password_hash) values (${E}, 'e@dos.test', 'x')`;
+    await owner`insert into user_roles (user_id, role) values (${E}, 'tester')`;
+    await owner`delete from academy_reviews where slug = ${SLUG}`;
+    expect(await add(E, H1, "aprobada")).toBe("ok");
+    expect(await approved(A)).toEqual([{ slug: SLUG, content_hash: H1 }]);
+    await owner`delete from users where id = ${E}`;
+    expect(await approved(A)).toEqual([]);
+  });
+});
+
+describe("revisión de los textos del rediseño (R26-02, rls/0066)", () => {
+  const H1 = "a".repeat(64);
+  const H2 = "b".repeat(64);
+  const KEY = "TEXTO_DE_PRUEBA.uno";
+  const DENIED = /text_review: no autorizado/;
+  type Latest = { text_key: string; status: string; proposal: string | null; default_hash: string };
+
+  const add = async (who: string, hash: string, status: string, proposal: string | null = null) =>
+    (
+      await asUser(
+        who,
+        (tx) =>
+          tx<
+            { r: string }[]
+          >`select text_review_add(${KEY}::text, ${hash}::text, ${status}::text, ${proposal}::text) as r`,
+      )
+    )[0]!.r;
+  const latest = (who: string) =>
+    asUser(who, (tx) => tx<Latest[]>`select * from text_review_latest() where text_key = ${KEY}`);
+
+  beforeAll(async () => {
+    await owner`insert into user_roles (user_id, role) values (${C}, 'tester') on conflict do nothing`;
+  });
+  afterAll(async () => {
+    await owner`delete from text_reviews where text_key = ${KEY}`;
+    await owner`delete from user_roles where user_id = ${C}`;
+  });
+
+  it("una persona común no escribe, no lee nada y la tabla es inaccesible para la app", async () => {
+    await expect(add(A, H1, "aprobada")).rejects.toThrow(DENIED);
+    await expect(asUser(A, (tx) => tx`select * from text_review_latest()`)).rejects.toThrow(DENIED);
+    await expect(asUser(A, (tx) => tx`select * from text_review_history(${KEY})`)).rejects.toThrow(
+      DENIED,
+    );
+    await expect(asUser(A, (tx) => tx`select * from text_reviews`)).rejects.toThrow(
+      /permission denied/,
+    );
+    await expect(
+      asUser(
+        A,
+        (tx) => tx`insert into text_reviews (user_id, text_key, default_hash, status)
+                   values (${A}, ${KEY}, ${H1}, 'aprobada')`,
+      ),
+    ).rejects.toThrow(/permission denied/);
+    expect(await owner`select 1 from text_reviews where text_key = ${KEY}`).toHaveLength(0);
+  });
+
+  it("una tester aprueba un texto, con la huella del texto por defecto", async () => {
+    expect(await add(C, H1, "aprobada")).toBe("ok");
+    expect(await add(C, H1, "aprobada")).toBe("sin_cambio");
+    expect(await latest(C)).toMatchObject([
+      { text_key: KEY, status: "aprobada", default_hash: H1, proposal: null },
+    ]);
+  });
+
+  it("proponer otro necesita texto, no aprueba y queda como lo último dicho", async () => {
+    expect(await add(C, H1, "propuesta")).toBe("invalido");
+    expect(await add(C, H1, "propuesta", "   ")).toBe("invalido");
+    expect(await add(C, H1, "propuesta", "Un texto mejor")).toBe("ok");
+    expect(await latest(C)).toMatchObject([
+      { status: "propuesta", proposal: "Un texto mejor", default_hash: H1 },
+    ]);
+    // Una aprobación posterior pisa la propuesta y no arrastra su texto
+    expect(await add(C, H1, "aprobada")).toBe("ok");
+    expect(await latest(C)).toMatchObject([{ status: "aprobada", proposal: null }]);
+  });
+
+  it("rechaza clave, huella y estado fuera de lo permitido, y propuestas de más de 1000 caracteres", async () => {
+    const bad = async (key: string, hash: string, status: string, proposal: string | null = null) =>
+      (
+        await asUser(
+          C,
+          (tx) =>
+            tx<
+              { r: string }[]
+            >`select text_review_add(${key}::text, ${hash}::text, ${status}::text, ${proposal}::text) as r`,
+        )
+      )[0]!.r;
+    expect(await bad("con espacios", H1, "aprobada")).toBe("invalido");
+    expect(await bad("../etc", H1, "aprobada")).toBe("invalido");
+    expect(await bad(KEY, "A".repeat(64), "aprobada")).toBe("invalido");
+    expect(await bad(KEY, "abc", "aprobada")).toBe("invalido");
+    expect(await bad(KEY, H1, "cambios")).toBe("invalido");
+    expect(await bad(KEY, H1, "propuesta", "x".repeat(1001))).toBe("invalido");
+  });
+
+  it("el historial dice quién y cuándo, y la app no puede cambiarlo ni borrarlo", async () => {
+    const history = await asUser(
+      C,
+      (tx) =>
+        tx<
+          { status: string; reviewer_email: string | null }[]
+        >`select * from text_review_history(${KEY}, 50)`,
+    );
+    expect(history.map((h) => h.status)).toEqual(["aprobada", "propuesta", "aprobada"]);
+    expect(history[0]!.reviewer_email).toBe("c@dos.test");
+    await expect(
+      asUser(C, (tx) => tx`update text_reviews set status = 'propuesta'`),
+    ).rejects.toThrow(/permission denied/);
+    await expect(asUser(C, (tx) => tx`delete from text_reviews`)).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it("una admin (app_admins) también revisa", async () => {
+    const D = "d8000000-0000-4000-8000-0000000000d6";
+    await owner`insert into users (id, email, password_hash) values (${D}, 'd6@dos.test', 'x')`;
+    await owner`insert into app_admins (user_id) values (${D})`;
+    try {
+      expect(await add(D, H2, "aprobada")).toBe("ok");
+      expect(await latest(D)).toMatchObject([{ status: "aprobada", default_hash: H2 }]);
+    } finally {
+      await owner`delete from users where id = ${D}`;
     }
   });
 });

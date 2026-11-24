@@ -20,18 +20,29 @@ const MASCOT_FACE_SIZE = 48;
 /** El aviso se esconde solo a los 6 s, para no quedar encima del contenido. */
 const HINT_MS = 6_000;
 
-function sessionStore(): Storage | null {
+/** R26-05: el aviso se ve una sola vez por navegador (antes, una vez por sesión: volvía a tapar). */
+function persistentStore(): Storage | null {
   try {
-    return window.sessionStorage;
+    return window.localStorage;
   } catch {
     return null;
   }
 }
 
+/** ¿El foco está en un campo donde se escribe? (fuera del propio panel del asistente) */
+function isTypingField(el: Element | null): boolean {
+  if (!(el instanceof HTMLElement) || el.closest("dialog")) return false;
+  if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) return true;
+  if (el instanceof HTMLInputElement) {
+    return !["button", "checkbox", "radio", "submit", "reset", "range", "file"].includes(el.type);
+  }
+  return el.isContentEditable;
+}
+
 /**
  * Mascota del asistente: botón fijo abajo a la derecha, por encima de las pestañas del celular
  * (`--tabbar-h`). En el celular es un círculo compacto de 44 px solo con el ícono de charla
- * (`aria-label`); desde `sm`, el círculo grande de siempre. Una vez por sesión, un aviso corto en
+ * (`aria-label`); desde `sm`, el círculo grande de siempre. Una vez por navegador, un aviso corto en
  * el celular dice para qué sirve y se cierra solo. Abre el panel del asistente. El panel vive acá, así la charla sigue al cambiar de
  * pantalla; al recargar se pierde, a propósito. El layout la monta solo si `canUseAssistant`.
  * Esc cierra el panel (`<dialog>` nativo) y el foco vuelve al botón. Con «reducir movimiento» no
@@ -42,12 +53,24 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const reduce = useReducedMotion();
   const [hint, setHint] = useState(false);
+  // R26-05: en el celular el botón se esconde mientras se escribe en un campo (teclado abierto)
+  const [typing, setTyping] = useState(false);
   useEffect(() => {
-    // Aparece un momento después de cargar la página y se va solo. Una sola vez por sesión; si no
-    // hay sessionStorage, no se muestra. Se marca como visto recién al mostrarlo: si el efecto se
+    const onIn = () => setTyping(isTypingField(document.activeElement));
+    const onOut = () => setTyping(false);
+    document.addEventListener("focusin", onIn);
+    document.addEventListener("focusout", onOut);
+    return () => {
+      document.removeEventListener("focusin", onIn);
+      document.removeEventListener("focusout", onOut);
+    };
+  }, []);
+  useEffect(() => {
+    // Aparece un momento después de cargar la página y se va solo. Una sola vez por navegador; si
+    // no hay almacenamiento, no se muestra. Se marca como visto recién al mostrarlo: si el efecto se
     // monta dos veces (modo estricto de React), la primera pasada no lo gasta.
     const show = window.setTimeout(() => {
-      if (claimAsistenteAviso(sessionStore())) setHint(true);
+      if (claimAsistenteAviso(persistentStore())) setHint(true);
     }, 800);
     const hide = window.setTimeout(() => setHint(false), 800 + HINT_MS);
     return () => {
@@ -66,12 +89,13 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
           animate={{ opacity: 1, scale: 1 }}
           whileHover={reduce ? undefined : { scale: 1.06 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="fixed right-[calc(1rem+env(safe-area-inset-right,0px))] bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] z-40"
+          data-escribiendo={typing ? "si" : "no"}
+          className="fixed right-[calc(1rem+env(safe-area-inset-right,0px))] bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] z-40 data-[escribiendo=si]:max-sm:hidden"
         >
           {hint ? (
             <div
               data-testid="asistente-aviso-inicial"
-              className="pointer-events-none absolute right-0 bottom-full mb-2 w-56 rounded-card border-2 border-line-strong bg-surface p-3 pr-9 text-sm text-fg shadow-sm sm:hidden"
+              className="pointer-events-none absolute right-0 bottom-full mb-2 w-48 rounded-card border-2 border-line-strong bg-surface p-2.5 pr-11 text-xs text-fg shadow-sm sm:hidden"
             >
               Preguntame lo que quieras sobre tu búsqueda.
               <button

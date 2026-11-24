@@ -8,7 +8,6 @@ import {
   type CvCoachCard,
   type CvCoachState,
 } from "@job-search-os/pipeline";
-import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -79,7 +78,6 @@ function cardText(card: CvCoachCard, anchor: string | null): string {
  * guarda en ningún lado. «Ya está, armalo» lleva al cierre con lo confirmado.
  */
 export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean }) {
-  const reduce = useReducedMotion();
   const router = useRouter();
   const stored = parseCoachSnapshot(useCoachSnapshot());
   const [state, setState] = useState<CvCoachState | null>(null);
@@ -266,28 +264,23 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
         </Alert>
       ) : null}
 
-      <LazyMotion features={domAnimation}>
-        <ol className="flex flex-col gap-2" aria-live="polite" data-testid="coach-lines">
-          {lines.map((l) => (
-            <m.li
-              key={l.id}
-              initial={reduce ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18 }}
-              className={
-                l.who === "me"
-                  ? "self-end rounded-lg bg-surface-muted px-3 py-2 text-sm text-fg"
-                  : l.who === "ack"
-                    ? "text-sm text-fg-muted"
-                    : "text-sm font-semibold text-fg"
-              }
-              data-testid={`coach-line-${l.who}`}
-            >
-              {l.text}
-            </m.li>
-          ))}
-        </ol>
-      </LazyMotion>
+      <ol className="flex flex-col gap-2" aria-live="polite" data-testid="coach-lines">
+        {lines.map((l) => (
+          <li
+            key={l.id}
+            className={`aparecer-subiendo ${
+              l.who === "me"
+                ? "self-end rounded-lg bg-surface-muted px-3 py-2 text-sm text-fg"
+                : l.who === "ack"
+                  ? "text-sm text-fg-muted"
+                  : "text-sm font-semibold text-fg"
+            }`}
+            data-testid={`coach-line-${l.who}`}
+          >
+            {l.text}
+          </li>
+        ))}
+      </ol>
 
       {cards.length > 0 ? (
         <section className="flex flex-col gap-2" aria-label="Para confirmar">

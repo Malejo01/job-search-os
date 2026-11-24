@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createEvaluation, createJob, deleteJob, login } from "./helpers";
+import { ensureSeedPerson } from "./persona-qa";
 
 /**
  * Flujo 115 (C9-14, decisión 13): los dos momentos de marca y «reducir movimiento».
@@ -31,6 +32,8 @@ test.describe("Flujo 115: movimiento", () => {
   let jobId = "";
 
   test.beforeAll(async () => {
+    // La base local no trae al usuario del seed: la persona de prueba la crea el helper (R26-07)
+    await ensureSeedPerson();
     jobId = await createJob({ title: `E2E sello estampa ${tag}`, status: "evaluada" });
     await createEvaluation(jobId, { score: 9 });
   });

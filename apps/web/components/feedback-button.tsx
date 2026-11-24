@@ -8,16 +8,24 @@ import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_CATEGORY_LABELS,
   FEEDBACK_MESSAGE_MAX,
+  FEEDBACK_SUGGESTION_MAX,
 } from "@job-search-os/pipeline";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { sendFeedbackAction } from "@/app/(app)/feedback-actions";
 import { collectFeedbackContext } from "@/lib/action-tracker";
+import {
+  FEEDBACK_OPEN_EVENT,
+  parseFeedbackOpenDetail,
+  type FeedbackOpenDetail,
+} from "@/lib/feedback-screen";
+import { FEEDBACK_SUGGESTION_TEXTOS } from "@/lib/textos-recorrido";
 import { TextareaWithCounter, countChars } from "./char-counter";
 
 const ERRORS: Record<string, string> = {
   category: "Elegí qué tipo de comentario es.",
   message: `Escribí tu mensaje (hasta ${FEEDBACK_MESSAGE_MAX} caracteres).`,
+  suggestion: FEEDBACK_SUGGESTION_TEXTOS.errorSuggestion,
   limit: "Hoy ya enviaste varios comentarios. Probá de nuevo mañana.",
 };
 const GENERIC_ERROR = "No pudimos guardar tu mensaje. Probá de nuevo en un rato.";
@@ -35,6 +43,8 @@ export function FeedbackButton() {
   const [thanks, setThanks] = useState(false);
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
+  // R26-04: pantalla elegida de antemano («Comentar esta pantalla»); null = la pantalla actual
+  const [target, setTarget] = useState<FeedbackOpenDetail | null>(null);
 
   useEffect(() => {
     if (!thanks) return;
@@ -42,11 +52,27 @@ export function FeedbackButton() {
     return () => clearTimeout(id);
   }, [thanks]);
 
-  function open() {
+  function openDialog(next: FeedbackOpenDetail | null) {
     setError(null);
+    setTarget(next);
     setFormKey((k) => k + 1); // formulario limpio cada vez que se abre
-    dialogRef.current?.showModal();
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
   }
+
+  function open() {
+    openDialog(null);
+  }
+
+  // El evento lo dispara `openFeedbackForScreen` (p. ej. el botón de /recorrido)
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const detail = parseFeedbackOpenDetail(event);
+      if (detail) openDialog(detail);
+    };
+    window.addEventListener(FEEDBACK_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(FEEDBACK_OPEN_EVENT, onOpen);
+  }, []);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,9 +80,17 @@ export function FeedbackButton() {
     if (!data.get("category")) return setError(ERRORS.category!);
     const length = countChars(String(data.get("message") ?? ""));
     if (length < 1 || length > FEEDBACK_MESSAGE_MAX) return setError(ERRORS.message!);
+    if (countChars(String(data.get("suggestion") ?? "")) > FEEDBACK_SUGGESTION_MAX) {
+      return setError(ERRORS.suggestion!);
+    }
 
     // Adjunta contexto del entorno y buffer de acciones
     const context = collectFeedbackContext();
+    if (target) {
+      // La pantalla elegida manda sobre la que se estaba mirando
+      context.pathname = target.screen;
+      context.pageTitle = target.label;
+    }
     data.set("context", JSON.stringify(context));
 
     setError(null);
@@ -121,7 +155,12 @@ export function FeedbackButton() {
             Guardamos tu mensaje y la pantalla en la que estabas. No incluyas datos personales de
             otras personas ni datos sensibles tuyos.
           </p>
-          <input type="hidden" name="path" value={pathname} />
+          <input type="hidden" name="path" value={target?.screen ?? pathname} />
+          {target ? (
+            <p data-testid="feedback-pantalla" className="text-sm font-semibold text-fg">
+              {FEEDBACK_SUGGESTION_TEXTOS.screenNote(target.label)}
+            </p>
+          ) : null}
           <fieldset className="flex flex-col gap-1">
             <legend className="mb-1 text-sm font-medium">Tipo de comentario</legend>
             {FEEDBACK_CATEGORIES.map((c) => (
@@ -139,6 +178,21 @@ export function FeedbackButton() {
               name="message"
               max={FEEDBACK_MESSAGE_MAX}
               rows={5}
+              className="w-full rounded-control border border-line-control bg-surface p-2 text-base"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="feedback-suggestion" className="text-sm font-medium">
+              {FEEDBACK_SUGGESTION_TEXTOS.label}{" "}
+              <span className="font-normal text-fg-subtle">
+                {FEEDBACK_SUGGESTION_TEXTOS.optional}
+              </span>
+            </label>
+            <TextareaWithCounter
+              name="suggestion"
+              id="feedback-suggestion"
+              max={FEEDBACK_SUGGESTION_MAX}
+              rows={2}
               className="w-full rounded-control border border-line-control bg-surface p-2 text-base"
             />
           </div>

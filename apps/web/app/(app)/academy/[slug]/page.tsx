@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cardClasses } from "@/components/ui";
-import { fichaWordCount, loadApprovedFicha, loadApprovedFichas } from "@/lib/academy";
+import { fichaWordCount } from "@/lib/academy";
+import { loadApprovedFichaFor, loadApprovedFichasFor } from "@/lib/academy-revisiones";
+import { requireUserId } from "@/lib/session";
 import {
   fichaRelacionadas,
   parseOrigen,
@@ -16,7 +18,7 @@ export const dynamic = "force-dynamic";
 /** Una ficha aprobada. Una en borrador o que no existe da 404. Server Component. */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const ficha = loadApprovedFicha(slug);
+  const ficha = await loadApprovedFichaFor(await requireUserId(), slug);
   return { title: ficha ? ficha.titulo : "Academy" };
 }
 
@@ -29,11 +31,12 @@ export default async function AcademyFichaPage({
 }) {
   const { slug } = await params;
   const { desde } = await searchParams;
-  const ficha = loadApprovedFicha(slug);
+  const userId = await requireUserId();
+  const ficha = await loadApprovedFichaFor(userId, slug);
   if (!ficha) notFound();
 
   // Solo fichas aprobadas: ni «Te puede servir» ni las relacionadas muestran borradores
-  const aprobadas = loadApprovedFichas();
+  const aprobadas = await loadApprovedFichasFor(userId);
   const titulos = new Map(aprobadas.map((f) => [f.slug, f.titulo]));
   const disponibles = [...titulos.keys()];
   const sugeridas = recomendadasPorOrigen(parseOrigen(desde), disponibles, slug);

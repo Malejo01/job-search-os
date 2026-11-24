@@ -9,6 +9,7 @@ import {
   shouldShowPrimerUso,
   tourSteps,
 } from "@/lib/primer-uso";
+import { markPrimerUsoSeenAction } from "@/lib/primer-uso-actions";
 import { PRIMER_USO } from "@/lib/textos-rediseno";
 
 /**
@@ -16,7 +17,8 @@ import { PRIMER_USO } from "@/lib/textos-rediseno";
  * por persona. No usa `GuidedTour`: ese es un panel que no bloquea ni atrapa el foco y no se abre
  * solo; acá hace falta un diálogo modal (foco atrapado y devuelto, Escape cierra). Sin animación,
  * así que el movimiento reducido se respeta por construcción. Estado en `localStorage` (try/catch:
- * sin almacenamiento, el recorrido se ve en cada visita pero se puede cerrar).
+ * sin almacenamiento, el recorrido se ve en cada visita pero se puede cerrar) y, desde R26-05, también
+ * en la cuenta (`profiles.primer_uso_visto`): lo que ya vio la cuenta no reaparece en otro dispositivo.
  */
 const BUTTON =
   "inline-flex min-h-11 items-center justify-center rounded-control border border-line-strong bg-surface px-3 text-sm text-fg aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
@@ -24,7 +26,7 @@ const FOCUSABLE = "button:not([disabled]), [href], [tabindex]:not([tabindex='-1'
 
 const subscribeNothing = () => () => undefined;
 
-function readEligible(userId: string): boolean {
+function readEligible(userId: string, account: string | null): boolean {
   let stored: string | null = null;
   let forced = false;
   try {
@@ -33,15 +35,25 @@ function readEligible(userId: string): boolean {
   } catch {
     // Sin almacenamiento: se trata como no visto
   }
-  return shouldShowPrimerUso({ stored, automated: navigator.webdriver === true, forced });
+  return shouldShowPrimerUso({ stored, automated: navigator.webdriver === true, forced, account });
 }
 
-export function PrimerUso({ userId }: { userId: string }) {
+/**
+ * `seenInAccount`: la versión del recorrido que la cuenta ya tiene como vista (`profiles.primer_uso_visto`,
+ * R26-05), o null si no la vio o no se pudo leer. Es lo que evita que reaparezca en otro dispositivo.
+ */
+export function PrimerUso({
+  userId,
+  seenInAccount = null,
+}: {
+  userId: string;
+  seenInAccount?: string | null;
+}) {
   const steps = tourSteps();
   // En el servidor y en la hidratación no se muestra; en el cliente lee el almacenamiento
   const eligible = useSyncExternalStore(
     subscribeNothing,
-    () => readEligible(userId),
+    () => readEligible(userId, seenInAccount),
     () => false,
   );
   const [closed, setClosed] = useState(false);
@@ -64,6 +76,8 @@ export function PrimerUso({ userId }: { userId: string }) {
     } catch {
       // Sin almacenamiento: se cierra igual
     }
+    // R26-05: también en la cuenta, para que no vuelva en otro dispositivo. Si falla, el cierre sigue igual
+    void markPrimerUsoSeenAction().catch(() => undefined);
     setClosed(true);
     returnTo.current?.focus();
   }, [userId]);

@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -71,6 +72,9 @@ export default defineConfig({
       CV_TAILOR: "testers",
       // R25: voz transcripta en el servidor para testers (la persona B), modelo simulado por LLM_DEMO=1. Flujos 220-229
       VOICE_SERVER_TRANSCRIBE: "testers",
+      // R26-01: fichas de prueba de Academy (todas en borrador), en vez de las del repo. Solo vale con
+      // DB_TARGET=local (lib/academy.ts). Flujos 230-234
+      ACADEMY_DIR: join(__dirname, "e2e", "fixtures", "academy"),
       START_HERE_ENABLED: "1",
       // C8-6: «¿Qué es esto?» en las 5 pantallas (e2e 108), apagado por defecto en Vercel
       HELP_TIPS_ENABLED: "1",
