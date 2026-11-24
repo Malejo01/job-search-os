@@ -547,6 +547,13 @@
       "when": 1795408126601,
       "tag": "0077_vengeful_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1795476365051,
+      "tag": "0078_admin_panel",
+      "breakpoints": true
     }
   ]
 }

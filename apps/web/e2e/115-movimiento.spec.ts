@@ -51,7 +51,7 @@ test.describe("Flujo 115: movimiento", () => {
       // Primera visita: queda marcada como vista, pero sin animación
       await expect.poll(() => seen(page)).toContain(jobId);
       expect(await inlineTransform(page)).toBe("");
-      await page.goto("/settings/marca/componentes");
+      await page.goto("/admin/marca/componentes");
       const ring = page
         .getByTestId("sellos-light")
         .getByRole("img", { name: "en cola" })
@@ -66,7 +66,7 @@ test.describe("Flujo 115: movimiento", () => {
   test("sin «reducir movimiento»: se estampa la primera vez y la segunda no", async ({ page }) => {
     await login(page);
     // El anillo del sello en cola gira (la única animación en loop)
-    await page.goto("/settings/marca/componentes");
+    await page.goto("/admin/marca/componentes");
     const ring = page
       .getByTestId("sellos-light")
       .getByRole("img", { name: "en cola" })

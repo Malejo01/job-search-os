@@ -43,6 +43,14 @@ const nextConfig: NextConfig = {
         destination: "/ofertas/product_manager",
         permanent: true,
       },
+      // Panel /admin (ADM-1): las pantallas de administración se mudaron de /settings a /admin. Los links
+      // viejos (favoritos, emails ya enviados) siguen andando. Temporal (307): la página exige admin igual.
+      {
+        source:
+          "/settings/:seccion(invitations|planes|metricas|costos|salud|feedback|apertura|marca|textos)/:resto*",
+        destination: "/admin/:seccion/:resto*",
+        permanent: false,
+      },
       // Cambio de dominio (C3-4): el dominio viejo (LEGACY_HOSTS) redirige al nuevo (SITE_URL) con la ruta
       // y los parámetros, menos /api y /_next. Sin esas variables no agrega nada. Se evalúa al construir
       ...legacyHostRedirects(process.env),

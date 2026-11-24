@@ -52,7 +52,7 @@ test.describe("Flujo 91: lista de espera en tanda (admin)", () => {
     await login(page);
     // El origen se filtra por su clave normalizada (minúsculas)
     await page.goto(
-      `/settings/invitations?carrera=comunicacion&origen=${encodeURIComponent(ORIGIN)}&estado=sin_invitar`,
+      `/admin/invitations?carrera=comunicacion&origen=${encodeURIComponent(ORIGIN)}&estado=sin_invitar`,
     );
     await expect(page.getByTestId("waitlist-counters")).toBeVisible();
     const rows = page.getByTestId("waitlist-row");
@@ -80,14 +80,12 @@ test.describe("Flujo 91: lista de espera en tanda (admin)", () => {
     else await expect(result).toContainText("El link de pago todavía no está listo");
 
     // Recargar: las dos quedan marcadas como invitadas
-    await page.goto(
-      `/settings/invitations?carrera=comunicacion&origen=${encodeURIComponent(ORIGIN)}`,
-    );
+    await page.goto(`/admin/invitations?carrera=comunicacion&origen=${encodeURIComponent(ORIGIN)}`);
     await expect(page.getByTestId("waitlist-row").first()).toContainText("invitada");
 
     // CSV con los mismos filtros: solo las cinco columnas
     const res = await page.request.get(
-      `/settings/invitations/export?carrera=comunicacion&origen=${encodeURIComponent(ORIGIN)}`,
+      `/admin/invitations/export?carrera=comunicacion&origen=${encodeURIComponent(ORIGIN)}`,
     );
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toContain("text/csv");
@@ -101,7 +99,7 @@ test.describe("Flujo 91: lista de espera en tanda (admin)", () => {
   });
 
   test("sin sesión el CSV no se entrega", async ({ request }) => {
-    const res = await request.get("/settings/invitations/export", { maxRedirects: 0 });
+    const res = await request.get("/admin/invitations/export", { maxRedirects: 0 });
     expect([401, 307, 308, 302, 303]).toContain(res.status());
   });
 });

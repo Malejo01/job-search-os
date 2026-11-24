@@ -2,10 +2,12 @@ import { schema as s } from "@job-search-os/db";
 import {
   profileAgentAccess,
   profileAgentFlagFor,
+  profileAgentMode,
   type ProfileAgentAccess,
 } from "@job-search-os/pipeline";
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/db";
+import { testerEnvFor } from "@/lib/user-roles";
 
 /**
  * La única puerta del agente de perfil en la app (ADR-034 §7 y §9). La usan las páginas, la tarjeta de `/cv`,
@@ -30,8 +32,15 @@ export async function getSessionEmail(userId: string): Promise<string | null> {
  * ¿Esta persona ve el agente? Para las páginas, que ya resolvieron la sesión. Sin el flag no se consulta la
  * base; ante un error de la consulta, no lo ve (falla cerrado).
  */
-export function profileAgentAllowedFor(userId: string): Promise<boolean> {
-  return profileAgentFlagFor(process.env, () => getSessionEmail(userId));
+export async function profileAgentAllowedFor(userId: string): Promise<boolean> {
+  if (process.env.CV_IMPORT_ENABLED !== "1" || profileAgentMode(process.env) === "off")
+    return false;
+  // Tester por la base (ADM-1): solo cambia algo en la etapa `testers`
+  if (profileAgentMode(process.env) !== "testers") {
+    return profileAgentFlagFor(process.env, () => getSessionEmail(userId));
+  }
+  const email = await getSessionEmail(userId);
+  return profileAgentFlagFor(await testerEnvFor(userId, email), async () => email);
 }
 
 /**

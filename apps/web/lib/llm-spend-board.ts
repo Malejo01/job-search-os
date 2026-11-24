@@ -5,7 +5,7 @@ import { withUser } from "./db";
 import { canCreateInvitations } from "./invitations";
 
 /**
- * Tablero de gasto de IA (`/settings/costos`), solo servidor y solo admins. Dos barreras, como las
+ * Tablero de gasto de IA (`/admin/costos`), solo servidor y solo admins. Dos barreras, como las
  * métricas de la beta: ADMIN_EMAILS acá y `app_admins` en la base (`admin_llm_spend_board()`,
  * rls/0055), que devuelve solo agregados de `llm_calls` de los últimos 30 días en una consulta. Acá se
  * validan y se arman las filas; el tope diario sale de la misma función que usa el worker.

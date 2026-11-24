@@ -52,6 +52,10 @@ export const users = pgTable("users", {
   // T-1: cuenta de prueba (la marca `admin:test-users --create` después de registrarla por el camino real).
   // No cuenta en las métricas de la beta (rls/0020) ni recibe avisos de vencimiento de plan.
   isTest: boolean("is_test").notNull().default(false),
+  // Panel /admin (ADM-1): cuenta bloqueada por un admin. Con fecha, no inicia sesión (auth_user_by_email no
+  // la devuelve) y sus sesiones abiertas dejan de valer (user_session_version da null). Se pone y se saca
+  // solo con admin_person_block (rls/0064); la persona no la puede tocar.
+  blockedAt: timestamp("blocked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("users_email").on(t.email)]);
@@ -457,6 +461,37 @@ export const appAdmins = pgTable("app_admins", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Roles que se dan desde el panel /admin (ADM-1, rls/0064). Hoy solo `tester`: suma a la persona a la etapa
+// «testers» de las funciones nuevas, igual que ASSISTANT_TESTER_EMAILS, sin tocar Vercel. Ser admin sigue
+// siendo ADMIN_EMAILS + app_admins. Sin acceso directo de la app: se lee con my_roles() y se cambia con
+// admin_person_role (SECURITY DEFINER, con la barrera app_admins). Cae con la cuenta (cascade).
+export const userRoles = pgTable("user_roles", {
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),
+  grantedBy: uuid("granted_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.role] }),
+  check("user_roles_role", sql`${t.role} in ('tester')`),
+]);
+
+// Registro de lo que hace un admin sobre una cuenta desde el panel /admin (ADM-1, rls/0064): roles, bloqueo y
+// cuenta de prueba. Los cambios de plan siguen en plan_events. Sin textos libres ni emails. Sin acceso de la
+// app: solo las funciones admin_person_* lo escriben y lo leen.
+export const adminEvents = pgTable("admin_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  adminId: uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("admin_events_user").on(t.userId, t.createdAt.desc()),
+  check(
+    "admin_events_action",
+    sql`${t.action} in ('tester_si', 'tester_no', 'bloquear', 'desbloquear', 'prueba_si', 'prueba_no')`,
+  ),
+]);
 
 // Candidatos de skills de /market (C8-15, JS-102): los 15 términos que se calcularon con los JD de la
 // persona y la fecha de su JD más nuevo. Se reusan mientras no entre una oferta nueva (sin volver a leer

@@ -291,7 +291,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
   test("38k: una cuenta que no puede invitar no ve la tarjeta «Invitar a alguien»", async () => {
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "Cuenta" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Invitar a alguien" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Administración" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Crear invitación" })).toHaveCount(0);
   });
 
@@ -367,20 +367,20 @@ test.describe("Flujo 38k: tarjeta «Invitar a alguien» en Ajustes del usuario e
     await login(page);
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "Cuenta" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Invitar a alguien" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Administración" })).toHaveCount(0);
   });
 
-  test("con el usuario e2e en ADMIN_EMAILS la tarjeta lleva a /settings/invitations", async ({
+  test("con el usuario e2e en ADMIN_EMAILS la tarjeta lleva a /admin/invitations", async ({
     page,
   }) => {
     test.skip(!canInvite, "falta ADMIN_EMAILS con el email e2e en el entorno del runner");
     await login(page);
     await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: "Invitar a alguien" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Administración" })).toBeVisible();
     await expect(page.getByText("Mandale un link a quien quieras sumar a la beta.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Crear invitación" })).toHaveAttribute(
       "href",
-      "/settings/invitations",
+      "/admin/invitations",
     );
   });
 });

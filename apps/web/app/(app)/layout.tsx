@@ -90,8 +90,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4">
             {canInvite ? (
-              <Link href="/settings/invitations" className={HEADER_LINK}>
-                Invitar
+              <Link href="/admin" className={HEADER_LINK}>
+                Admin
               </Link>
             ) : null}
             {/* Claro u oscuro, a mano en todas las pantallas (C10) */}

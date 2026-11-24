@@ -1,5 +1,5 @@
 /**
- * Checklist de apertura de la beta (R22-05, `/settings/apertura`). Puro: recibe lo que la app leyó del
+ * Checklist de apertura de la beta (R22-05, `/admin/apertura`). Puro: recibe lo que la app leyó del
  * entorno, del disco y de la base (solo hechos: presencia, conteos, nombres de tareas) y devuelve cada
  * ítem como listo o pendiente, con qué hacer y en qué doc está. No lee variables ni la base, no mira el
  * reloj, y nunca recibe el valor de una variable: solo si existe.
@@ -239,7 +239,7 @@ export function buildAperturaChecklist(input: AperturaInput): AperturaChecklist 
             ? "No hay invitaciones vigentes sin usar."
             : "No se pudo leer el conteo de invitaciones.",
           "Elegí a quién invitar y creá las invitaciones desde el panel.",
-          "/settings/invitations",
+          "/admin/invitations",
         ),
   );
 

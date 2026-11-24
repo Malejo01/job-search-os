@@ -40,7 +40,7 @@ describe("rol de admin en settings y admin (R11-6)", () => {
 
   it("el recorrido encuentra el árbol de settings", () => {
     expect(todos.length).toBeGreaterThan(25);
-    expect(todos.some((f) => f.includes("settings/invitations/"))).toBe(true);
+    expect(todos.some((f) => f.includes("admin/invitations/"))).toBe(true);
   });
 
   it("las dos listas no se pisan y apuntan a archivos que existen", () => {

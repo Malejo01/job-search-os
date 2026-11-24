@@ -24,7 +24,7 @@ export function readMode<T extends string>(
 }
 
 /**
- * Avisos de configuración del correo entrante para `/settings/salud`: se calculan solo con las variables
+ * Avisos de configuración del correo entrante para `/admin/salud`: se calculan solo con las variables
  * (sin consultar la base) y nunca copian el valor mal escrito. Lista vacía = nada que avisar. Los valores
  * válidos de los modos son los mismos que usa el handler (`INBOUND_SIZE_MODE`: log o enforce;
  * `INBOUND_DMARC_MODE`: off, log o enforce).

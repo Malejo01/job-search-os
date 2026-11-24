@@ -11,7 +11,7 @@ import {
 } from "./helpers";
 
 /**
- * Flujo 109 (C8-11): /settings/salud, el semáforo de la mañana. Solo para quien administra la beta;
+ * Flujo 109 (C8-11): /admin/salud, el semáforo de la mañana. Solo para quien administra la beta;
  * conteos agregados de la base (cola, gasto de IA, emails, errores de ingesta, activas y feedback) con
  * su nivel en texto, no solo en color. A 390 px y en claro y oscuro.
  */
@@ -19,7 +19,7 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
 
   test.beforeAll(async () => {
-    // /settings/salud exige app_admins en la base, además de ADMIN_EMAILS (como 46, 91 y 111)
+    // /admin/salud exige app_admins en la base, además de ADMIN_EMAILS (como 46, 91 y 111)
     const { db, close } = ownerDb();
     try {
       await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
@@ -36,7 +36,7 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
     await login(page);
     await page.goto("/settings");
     await page.getByRole("link", { name: "Salud de la beta" }).click();
-    await expect(page).toHaveURL(/\/settings\/salud$/);
+    await expect(page).toHaveURL(/\/admin\/salud$/);
     await expect(page.getByRole("heading", { level: 1, name: "Salud de la beta" })).toBeVisible();
     // R8-7: cuatro señales más (evaluaciones fallidas, pool, emails sin parser, invitaciones)
     for (const key of [
@@ -74,7 +74,7 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
     test(`sin violaciones de axe ni scroll horizontal (${tema})`, async ({ page }) => {
       await login(page);
       await page.evaluate((t) => localStorage.setItem("jso-tema", t), tema);
-      await page.goto("/settings/salud");
+      await page.goto("/admin/salud");
       await expect(page.getByTestId("salud-cola")).toBeVisible();
       const { violations, unmeasured } = await axeSummary(page);
       expect(violations).toEqual([]);
@@ -90,7 +90,7 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
   test("quien no administra la beta recibe un 404", async ({ page }) => {
     await ensureSecondUser();
     await loginAsSecondUser(page);
-    const res = await page.goto("/settings/salud");
+    const res = await page.goto("/admin/salud");
     expect(res?.status()).toBe(404);
   });
 });

@@ -24,8 +24,8 @@ const PATHS = [
   "/settings/senders",
   "/settings/criteria",
   "/settings/asistente",
-  "/settings/invitations",
-  "/settings/metricas",
+  "/admin/invitations",
+  "/admin/metricas",
 ] as const;
 
 const THEMES = ["claro", "oscuro"] as const;

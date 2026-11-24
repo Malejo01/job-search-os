@@ -126,3 +126,4 @@ export * from "./cv-coach";
 export * from "./voice/path";
 export * from "./voice/flag";
 export * from "./voice/limits";
+export * from "./admin-people";

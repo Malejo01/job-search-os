@@ -38,7 +38,7 @@ type Route = {
 
 type Seeded = { jobId: string; emailId: string };
 
-// `/settings/invitations` es solo de admin (R4-09: 404 para una cuenta común); en el CI el usuario
+// `/admin/invitations` es solo de admin (R4-09: 404 para una cuenta común); en el CI el usuario
 // e2e está en ADMIN_EMAILS, por eso entra en la lista. Si se suma una página bajo
 // `app/(app)/settings/`, sumarla acá.
 const ROUTES: Route[] = [
@@ -55,7 +55,7 @@ const ROUTES: Route[] = [
   { label: "/settings", path: "/settings" },
   { label: "/settings/asistente", path: "/settings/asistente" },
   { label: "/settings/criteria", path: "/settings/criteria" },
-  { label: "/settings/invitations", path: "/settings/invitations" },
+  { label: "/admin/invitations", path: "/admin/invitations" },
   { label: "/settings/perfil", path: "/settings/perfil" },
   { label: "/settings/senders", path: "/settings/senders" },
   { label: "/settings/skills", path: "/settings/skills" },

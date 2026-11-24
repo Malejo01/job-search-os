@@ -4,10 +4,10 @@ import { like } from "drizzle-orm";
 import { login, ownerDb } from "./helpers";
 
 /**
- * Flujo 149 (R16-4): cobertura del pool por carrera en `/settings/metricas` (solo admin). Se siembran ofertas
+ * Flujo 149 (R16-4): cobertura del pool por carrera en `/admin/metricas` (solo admin). Se siembran ofertas
  * inventadas de una carrera de la beta y se comprueba que los totales suben en la cantidad exacta (los números
  * de antes no importan: se leen antes y después). Que una cuenta común no la ve lo cubre el flujo 140
- * (`/settings/metricas` da 404); el desborde horizontal y axe, los flujos 102 y 77. No corre en local.
+ * (`/admin/metricas` da 404); el desborde horizontal y axe, los flujos 102 y 77. No corre en local.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -63,10 +63,10 @@ test.describe("Flujo 149: cobertura del pool por carrera", () => {
     page,
   }) => {
     await login(page);
-    const response = await page.goto("/settings/metricas");
+    const response = await page.goto("/admin/metricas");
     test.skip(
       response?.status() === 404,
-      "El usuario e2e no es admin en este entorno (ADMIN_EMAILS sin E2E_EMAIL): /settings/metricas da 404",
+      "El usuario e2e no es admin en este entorno (ADMIN_EMAILS sin E2E_EMAIL): /admin/metricas da 404",
     );
     const panel = page.getByTestId("cobertura-pool");
     await expect(panel).toBeVisible();

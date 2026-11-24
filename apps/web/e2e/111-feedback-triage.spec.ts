@@ -5,7 +5,7 @@ import { axeSummary } from "./axe-helpers";
 import { E2E_USER_ID, login, ownerDb } from "./helpers";
 
 /**
- * Flujo 111 (C8-17): triage del feedback en /settings/feedback, solo admin. Filtros, acciones del chip
+ * Flujo 111 (C8-17): triage del feedback en /admin/feedback, solo admin. Filtros, acciones del chip
  * en llano, cambio de estado y CSV sin fórmulas de planilla. Mensajes inventados, borrados al final.
  */
 test.describe("Flujo 111: triage del feedback (C8-17)", () => {
@@ -46,7 +46,7 @@ test.describe("Flujo 111: triage del feedback (C8-17)", () => {
 
   test("filtra, muestra lo que hizo antes y cambia el estado", async ({ page }) => {
     await login(page);
-    await page.goto("/settings/feedback?categoria=algo_no_anduvo&pagina=/jobs");
+    await page.goto("/admin/feedback?categoria=algo_no_anduvo&pagina=/jobs");
     const item = page.getByTestId("feedback-item").filter({ hasText: `${tag} no carga` });
     await expect(item).toBeVisible();
     await expect(
@@ -59,7 +59,7 @@ test.describe("Flujo 111: triage del feedback (C8-17)", () => {
     await expect(
       page.getByTestId("feedback-item").filter({ hasText: `${tag} no carga` }),
     ).toContainText("Visto");
-    await page.goto("/settings/feedback?estado=visto");
+    await page.goto("/admin/feedback?estado=visto");
     await expect(
       page.getByTestId("feedback-item").filter({ hasText: `${tag} no carga` }),
     ).toBeVisible();
@@ -67,7 +67,7 @@ test.describe("Flujo 111: triage del feedback (C8-17)", () => {
 
   test("filtra por persona: el link del mensaje deja solo lo de esa persona", async ({ page }) => {
     await login(page);
-    await page.goto("/settings/feedback");
+    await page.goto("/admin/feedback");
     const item = page.getByTestId("feedback-item").filter({ hasText: `${tag} no carga` });
     await item.getByRole("link", { name: /Ver solo lo de la persona/ }).click();
     await expect(page).toHaveURL(/persona=[0-9a-f]{6}$/);
@@ -76,13 +76,13 @@ test.describe("Flujo 111: triage del feedback (C8-17)", () => {
       page.getByTestId("feedback-item").filter({ hasText: `${tag} una idea` }),
     ).toBeVisible();
     // Otra persona: no aparece nada de lo anterior
-    await page.goto("/settings/feedback?persona=ffffff");
+    await page.goto("/admin/feedback?persona=ffffff");
     await expect(page.getByTestId("feedback-item").filter({ hasText: tag })).toHaveCount(0);
   });
 
   test("el CSV sale sin fórmulas de planilla", async ({ page }) => {
     await login(page);
-    const res = await page.request.get("/settings/feedback/export?categoria=idea");
+    const res = await page.request.get("/admin/feedback/export?categoria=idea");
     expect(res.status()).toBe(200);
     const csv = await res.text();
     expect(csv).toContain(`"'=${tag} una idea"`);
@@ -93,7 +93,7 @@ test.describe("Flujo 111: triage del feedback (C8-17)", () => {
     test(`sin violaciones de axe (${tema})`, async ({ page }) => {
       await login(page);
       await page.evaluate((t) => localStorage.setItem("jso-tema", t), tema);
-      await page.goto("/settings/feedback");
+      await page.goto("/admin/feedback");
       await expect(page.getByTestId("feedback-lista")).toBeVisible();
       const { violations, unmeasured } = await axeSummary(page);
       expect(violations).toEqual([]);

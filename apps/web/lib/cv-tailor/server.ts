@@ -20,6 +20,7 @@ import { buildUserCv, type CvOptions } from "@/lib/cv-source";
 import { withUser } from "@/lib/db";
 import { serviceLlm } from "@/lib/llm-service";
 import { getSessionEmail } from "@/lib/profile-agent/access";
+import { testerEnvFor } from "@/lib/user-roles";
 
 /**
  * Parte de servidor de la versión del CV adaptada con IA (R20-04). La versión sin IA (R20-03) es siempre el
@@ -60,7 +61,8 @@ export type CvTailorOutcome =
 export async function cvTailorAllowedFor(userId: string): Promise<boolean> {
   if (cvTailorMode(process.env) === "off") return false;
   try {
-    return cvTailorAllowed(process.env, await getSessionEmail(userId));
+    const email = await getSessionEmail(userId);
+    return cvTailorAllowed(await testerEnvFor(userId, email), email);
   } catch {
     return false;
   }

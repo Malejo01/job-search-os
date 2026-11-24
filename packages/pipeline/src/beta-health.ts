@@ -250,7 +250,7 @@ function invitationsRow(input: BetaHealthInput): BetaHealthRow {
           ? `${pending} sin usar · ${expiringIn48h} vencen en 48 h`
           : `${pending} sin usar`,
     detail:
-      "Creadas, sin canjear y sin vencer (vencen a los 14 días). Si una persona esperada no entró, reenviar el link desde /settings/invitations.",
+      "Creadas, sin canjear y sin vencer (vencen a los 14 días). Si una persona esperada no entró, reenviar el link desde /admin/invitations.",
     level: pending === 0 ? "gris" : expiringIn48h > 0 ? "amarillo" : "verde",
   };
 }

@@ -3,7 +3,7 @@ import { axeSummary } from "./axe-helpers";
 import { login } from "./helpers";
 
 /**
- * Flujo 105 (reserva R-1): /settings/marca, la vitrina de marca para revisar, solo para quien
+ * Flujo 105 (reserva R-1): /admin/marca, la vitrina de marca para revisar, solo para quien
  * administra la beta (en el CI, la cuenta del e2e está en ADMIN_EMAILS). Claro y oscuro van lado a
  * lado en la misma página, así que un solo pase de axe revisa los dos.
  */
@@ -14,12 +14,12 @@ test.describe("Flujo 105: vitrina de marca", () => {
     page,
   }) => {
     await login(page);
-    await page.goto("/settings/marca");
+    await page.goto("/admin/marca");
     const section = page.getByTestId("marca-email");
     await expect(section.getByRole("heading", { name: "Email de bienvenida" })).toBeVisible();
     await expect(section).toContainText("Completá tu perfil");
     await expect(section).toContainText("Contanos qué pasó");
-    const res = await page.request.get("/settings/marca/email-bienvenida");
+    const res = await page.request.get("/admin/marca/email-bienvenida");
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toContain("text/html");
     const html = await res.text();
@@ -35,7 +35,7 @@ test.describe("Flujo 105: vitrina de marca", () => {
       await login(page);
       await page.goto("/settings");
       await page.getByRole("link", { name: /^Marca/ }).click();
-      await expect(page).toHaveURL(/\/settings\/marca$/);
+      await expect(page).toHaveURL(/\/admin\/marca$/);
       await expect(page.getByRole("heading", { level: 1, name: "Marca" })).toBeVisible();
       const light = page.getByRole("region", { name: "Claro" });
       const dark = page.getByRole("region", { name: "Oscuro" });

@@ -77,7 +77,7 @@ describe("runBudgetAlerts (R7-1, R8-5)", () => {
       idempotencyKey: `budget-alert:2026-11-12:70:${A}`,
     });
     expect(send.mock.calls[1]![0].idempotencyKey).toBe(`budget-alert:2026-11-12:70:${B}`);
-    expect(send.mock.calls[0]![0].text).toContain("https://app.example.test/settings/salud");
+    expect(send.mock.calls[0]![0].text).toContain("https://app.example.test/admin/salud");
   });
 
   it("la clave de un admin no cambia si cambia el orden de ADMIN_EMAILS", async () => {

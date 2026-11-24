@@ -3,14 +3,14 @@ import { ensureSecondUser, loginAsSecondUser, removeSecondUser } from "./helpers
 
 /**
  * Flujo 123 (R4-09, hallazgos 23 y 24): las pantallas de administración y el catálogo interno de
- * componentes dan 404 a una cuenta común, igual que /settings/marca.
+ * componentes dan 404 a una cuenta común, igual que /admin/marca.
  */
 test.describe("Flujo 123: pantallas de admin con cuenta común", () => {
   test.afterAll(async () => {
     await removeSecondUser().catch(() => {});
   });
 
-  for (const path of ["/ui", "/settings/planes", "/settings/invitations", "/settings/marca"]) {
+  for (const path of ["/ui", "/admin/planes", "/admin/invitations", "/admin/marca"]) {
     test(`${path} responde 404 a quien no administra la beta`, async ({ page }) => {
       await ensureSecondUser();
       await loginAsSecondUser(page);

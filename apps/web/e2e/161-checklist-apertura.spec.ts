@@ -11,7 +11,7 @@ import {
 } from "./helpers";
 
 /**
- * Flujo 161 (R22-05): `/settings/apertura`, el checklist de apertura. Solo admins. Cada ítem sale como
+ * Flujo 161 (R22-05): `/admin/apertura`, el checklist de apertura. Solo admins. Cada ítem sale como
  * listo o pendiente, con qué hacer cuando falta algo, y nunca muestra el valor de una variable. Quien no
  * administra recibe un 404. Con el usuario del seed (admin en el e2e, como el flujo 109).
  */
@@ -30,7 +30,7 @@ test.describe("Flujo 161: checklist de apertura (R22-05)", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
 
   test.beforeAll(async () => {
-    // Como /settings/salud: la pantalla lee la base y exige app_admins además de ADMIN_EMAILS
+    // Como /admin/salud: la pantalla lee la base y exige app_admins además de ADMIN_EMAILS
     const { db, close } = ownerDb();
     try {
       await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
@@ -49,7 +49,7 @@ test.describe("Flujo 161: checklist de apertura (R22-05)", () => {
     await login(page);
     await page.goto("/settings");
     await page.getByRole("link", { name: "Checklist de apertura" }).click();
-    await expect(page).toHaveURL(/\/settings\/apertura$/);
+    await expect(page).toHaveURL(/\/admin\/apertura$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Checklist de apertura" }),
     ).toBeVisible();
@@ -72,7 +72,7 @@ test.describe("Flujo 161: checklist de apertura (R22-05)", () => {
     test(`sin violaciones de axe ni scroll horizontal (${tema})`, async ({ page }) => {
       await login(page);
       await page.evaluate((t) => localStorage.setItem("jso-tema", t), tema);
-      await page.goto("/settings/apertura");
+      await page.goto("/admin/apertura");
       await expect(page.getByTestId("apertura-fecha")).toBeVisible();
       const { violations, unmeasured } = await axeSummary(page);
       expect(violations).toEqual([]);
@@ -88,7 +88,7 @@ test.describe("Flujo 161: checklist de apertura (R22-05)", () => {
   test("quien no administra la beta recibe un 404", async ({ page }) => {
     await ensureSecondUser();
     await loginAsSecondUser(page);
-    const res = await page.goto("/settings/apertura");
+    const res = await page.goto("/admin/apertura");
     expect(res?.status()).toBe(404);
   });
 });

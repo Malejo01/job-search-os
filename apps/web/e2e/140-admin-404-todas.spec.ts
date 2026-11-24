@@ -9,22 +9,25 @@ import { ensureSecondUser, loginAsSecondUser, removeSecondUser } from "./helpers
  */
 const PAGES = [
   "/ui",
-  "/settings/invitations",
-  "/settings/planes",
-  "/settings/marca",
-  "/settings/marca/componentes",
-  "/settings/textos",
-  "/settings/metricas",
-  "/settings/salud",
-  "/settings/costos",
-  "/settings/apertura",
-  "/settings/feedback",
+  "/admin",
+  "/admin/personas",
+  "/admin/personas/00000000-0000-4000-8000-000000000000",
+  "/admin/invitations",
+  "/admin/planes",
+  "/admin/marca",
+  "/admin/marca/componentes",
+  "/admin/textos",
+  "/admin/metricas",
+  "/admin/salud",
+  "/admin/costos",
+  "/admin/apertura",
+  "/admin/feedback",
 ];
 
 const ROUTES = [
-  "/settings/invitations/export",
-  "/settings/feedback/export",
-  "/settings/marca/email-bienvenida",
+  "/admin/invitations/export",
+  "/admin/feedback/export",
+  "/admin/marca/email-bienvenida",
 ];
 
 test.describe("Flujo 140: administración con cuenta común", () => {

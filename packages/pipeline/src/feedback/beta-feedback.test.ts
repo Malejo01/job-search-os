@@ -19,7 +19,7 @@ import {
 
 describe("isValidFeedbackPath", () => {
   it("acepta pathnames simples", () => {
-    for (const p of ["/", "/hoy", "/jobs/abc-123", "/settings/metricas"]) {
+    for (const p of ["/", "/hoy", "/jobs/abc-123", "/admin/metricas"]) {
       expect(isValidFeedbackPath(p), p).toBe(true);
     }
   });

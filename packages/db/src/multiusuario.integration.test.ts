@@ -49,6 +49,9 @@ const CATALOG_TABLES = [
   "login_attempts",
   // Historial del plan (R22-02): con user_id pero sin policy para la app; solo por funciones admin (rls/0054).
   "plan_events",
+  // Panel /admin (ADM-1): roles e historial con user_id pero sin acceso de la app; solo por funciones (rls/0064).
+  "user_roles",
+  "admin_events",
 ];
 
 /**
@@ -935,6 +938,53 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         asUser(A, (tx) => tx`insert into payment_notices (user_id, plan) values (${B}, 'lista')`),
       ).rejects.toThrow(/row-level security/);
       expect(await fingerprint({ table: "payment_notices", column: "user_id" }, B)).toBe(before);
+    },
+    // Panel /admin (ADM-1, rls/0064): solo app_admins. Una sesión común no lista, no lee fichas ni cambia a B.
+    admin_panel_summary: async () => {
+      await expect(asUser(A, (tx) => tx`select admin_panel_summary()`)).rejects.toThrow(
+        /admin_people: no autorizado/,
+      );
+    },
+    admin_people_list: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_people_list()`)).rejects.toThrow(
+        /admin_people: no autorizado/,
+      );
+    },
+    admin_person_get: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_person_get(${B})`)).rejects.toThrow(
+        /admin_people: no autorizado/,
+      );
+    },
+    admin_person_history: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_person_history(${B})`)).rejects.toThrow(
+        /admin_people: no autorizado/,
+      );
+    },
+    admin_person_role: async () => {
+      const before = await fingerprint({ table: "users", column: "id" }, B);
+      await expect(
+        asUser(A, (tx) => tx`select admin_person_role(${B}, 'tester', true)`),
+      ).rejects.toThrow(/admin_people: no autorizado/);
+      expect(await fingerprint({ table: "users", column: "id" }, B)).toBe(before);
+    },
+    admin_person_block: async () => {
+      const before = await fingerprint({ table: "users", column: "id" }, B);
+      await expect(asUser(A, (tx) => tx`select admin_person_block(${B}, true)`)).rejects.toThrow(
+        /admin_people: no autorizado/,
+      );
+      expect(await fingerprint({ table: "users", column: "id" }, B)).toBe(before);
+    },
+    admin_person_test: async () => {
+      const before = await fingerprint({ table: "users", column: "id" }, B);
+      await expect(asUser(A, (tx) => tx`select admin_person_test(${B}, true)`)).rejects.toThrow(
+        /admin_people: no autorizado/,
+      );
+      expect(await fingerprint({ table: "users", column: "id" }, B)).toBe(before);
+    },
+    // Sin parámetros: solo responde por la sesión (A no tiene roles).
+    my_roles: async () => {
+      const [r] = await asUser(A, (tx) => tx<{ r: string[] }[]>`select my_roles() as r`);
+      expect(r!.r).toEqual([]);
     },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {

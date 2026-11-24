@@ -8,7 +8,7 @@ import { resetUrlBase } from "../auth/reset-url";
 import { sendEmail, type SendEmailParams } from "../email/resend";
 
 /**
- * Email de bienvenida al activar el plan de la beta (C8-7). Lo llama la acción de /settings/planes con
+ * Email de bienvenida al activar el plan de la beta (C8-7). Lo llama la acción de /admin/planes con
  * `after()`, así el panel no espera a Resend. Quién recibe y cuándo lo decide la web
  * (`isPlanActivation`, pipeline); acá solo el orden seguro:
  *   1. Apagado salvo `WELCOME_EMAIL_ENABLED=1`.

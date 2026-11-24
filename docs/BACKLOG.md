@@ -2134,3 +2134,15 @@ Informe de la tanda: [`docs/beta/informe-r25.md`](beta/informe-r25.md). Pasos ma
 
 ### R25 · Cierre de la tanda
 `estado:` en rama (23/11) · `ronda/r25-cierre`
+
+## Bloque 43 · Panel de administración /admin (23/11)
+
+Pedido de Mauro (23/11): gestionar quién tiene acceso sin entrar a la base, con el modelo del panel de MaestrIA. Decisión: [ADR-045](adr/045-panel-admin-y-roles-en-la-base.md). Pasos manuales: [`docs/beta/pasos-manuales-admin.md`](beta/pasos-manuales-admin.md). Migración 0078 y RLS 0064. Va encima de la R25 (#560). USD 0.
+
+- **ADM-1** · Panel /admin: barra lateral (pestañas en el celular), portada con pendientes, Personas (buscador, 10 filtros, ficha), rol tester en la base, bloqueo de cuentas, cuenta de prueba e historial de cada acción · `estado:` en rama (23/11) · `ronda/admin-panel`
+- **ADM-2** · Las pantallas de administración de /settings se mudan a /admin (invitaciones, planes, métricas, costos, salud, feedback, apertura, textos, marca); los links viejos redirigen. Academy queda en /settings (la usan también los testers) · `estado:` en rama (23/11) · `ronda/admin-panel`
+
+### Pendientes
+- Dar y sacar admins desde el panel (hoy siguen en `ADMIN_EMAILS` + `app_admins`, a propósito).
+- Las exenciones de cupo de los testers (`profileAgentQuotaExempt`) siguen mirando solo `ASSISTANT_TESTER_EMAILS`.
+- Mensaje propio en el login para una cuenta bloqueada (hoy ve el error genérico de credenciales).

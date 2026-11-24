@@ -76,7 +76,7 @@ test.describe("Flujo 116: revisión del rediseño", () => {
           ["ofertas", "/jobs?estado=todas"],
           ["detalle-muy-afin", `/jobs/${top}`],
           ["detalle-lejana", `/jobs/${far}`],
-          ["componentes", "/settings/marca/componentes"],
+          ["componentes", "/admin/marca/componentes"],
         ];
         if (width === 1280) screens.push(["ofertas-panel", `/jobs?estado=todas&oferta=${top}`]);
         for (const [name, path] of screens) {
