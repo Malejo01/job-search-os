@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { EMAIL_NUDGE_COOKIE } from "@/app/components/email-nudge";
 import { getFirstStepsFacts } from "@/lib/first-steps";
-import { Mascota } from "@/components/mascota";
+import { Afi } from "@/components/afi";
 import { CheckMark, Icon } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
 
@@ -70,7 +70,7 @@ export async function FirstSteps({ userId }: { userId: string }) {
           Primeros pasos
         </h2>
         <p className="flex items-center gap-2">
-          <Mascota pose="festejo" size={32} />
+          <Afi pose="motivacion" size={32} decorative />
           <CheckMark done className="size-5" />
           <span>
             ¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar cada día las ofertas con mejor

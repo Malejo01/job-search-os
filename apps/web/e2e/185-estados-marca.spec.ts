@@ -17,7 +17,7 @@ test.describe("Flujo 185: estados vacíos con la marca (R23-07)", () => {
     const vacia = page.getByTestId("academy-vacia");
     if ((await vacia.count()) > 0) {
       await expect(vacia.getByRole("link", { name: "Volver a Hoy" })).toBeVisible();
-      await expect(vacia.locator("[data-mascota], [data-ilustracion]").first()).toBeAttached();
+      await expect(vacia.locator("[data-afi], [data-ilustracion]").first()).toBeAttached();
     } else {
       await page.getByLabel("Buscar una ficha").fill("zzzzzz-no-existe");
       const sin = page.getByTestId("academy-sin-resultados");
@@ -34,7 +34,7 @@ test.describe("Flujo 185: estados vacíos con la marca (R23-07)", () => {
     for (const path of ["/jobs?periodo=hoy&estado=zzz", "/applications"]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
-      const figuras = page.locator("[data-mascota], [data-ilustracion]");
+      const figuras = page.locator("[data-afi], [data-ilustracion]");
       if ((await figuras.count()) > 0) {
         await expect(figuras.first()).toBeAttached();
       }
@@ -50,7 +50,7 @@ test.describe("Flujo 185: estados vacíos con la marca (R23-07)", () => {
     await page.goto("/interview");
     const vacio = page.getByTestId("interview-vacio");
     await expect(vacio).toBeVisible();
-    await expect(vacio.locator("[data-mascota], [data-ilustracion]").first()).toBeAttached();
+    await expect(vacio.locator("[data-afi], [data-ilustracion]").first()).toBeAttached();
     await expect(vacio.getByRole("link")).toHaveCount(1);
     const { violations } = await axeSummary(page);
     expect(violations).toEqual([]);
