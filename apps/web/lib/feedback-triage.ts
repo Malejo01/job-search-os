@@ -1,5 +1,6 @@
 import {
   isFeedbackStatus,
+  normalizeScreenPath,
   type FeedbackAction,
   type FeedbackStatus,
   type TriageRow,
@@ -62,7 +63,8 @@ export async function getFeedbackTriage(userId: string): Promise<TriageResult> {
         id: r.id,
         createdAt: new Date(r.created_at),
         category: r.category,
-        path: r.path,
+        // R26-04: la pantalla sin ids, también la de los comentarios guardados antes de normalizar
+        path: normalizeScreenPath(r.path),
         message: r.message,
         person: r.person,
         career: r.career,

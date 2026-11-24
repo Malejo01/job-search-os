@@ -6,6 +6,10 @@ import {
   FEEDBACK_DAILY_LIMIT,
   FEEDBACK_MESSAGE_MAX,
   FEEDBACK_PATH_MAX,
+  FEEDBACK_SUGGESTION_MARKER,
+  FEEDBACK_SUGGESTION_MAX,
+  composeFeedbackMessage,
+  splitFeedbackSuggestion,
   feedbackClickLabel,
   isOverDailyLimit,
   isValidFeedbackPath,
@@ -203,6 +207,13 @@ describe("validateFeedbackContext", () => {
     }
   });
 
+  it("el pathname del contexto tampoco lleva ids (R26-04)", () => {
+    const res = validateFeedbackContext({
+      pathname: "/jobs/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f8a9b0c?tab=1",
+    });
+    expect(res.ok && res.value?.pathname).toBe("/jobs/[id]");
+  });
+
   it("rechaza contexto mayor a 4096 bytes", () => {
     const gigante = {
       pathname: "/hoy",
@@ -286,5 +297,71 @@ describe("validateFeedbackContext · defensa en profundidad (C5-5)", () => {
     expect(res.ok).toBe(true);
     if (!res.ok || !res.value) return;
     expect((res.value.actions ?? []).map((a) => a.text)).toEqual(["Documento #", "Guardar"]);
+  });
+});
+
+describe("sugerencia opcional «¿Qué te gustaría que cambie?» (R26-04)", () => {
+  const ok = { category: "idea", message: "Cuesta encontrar el botón", path: "/jobs/12345" };
+
+  it("sin sugerencia, el mensaje queda como estaba", () => {
+    expect(composeFeedbackMessage("hola", "")).toBe("hola");
+    expect(composeFeedbackMessage("hola", "   ")).toBe("hola");
+    expect(composeFeedbackMessage("hola", null)).toBe("hola");
+  });
+
+  it("con sugerencia, va después del mensaje con su título, y se separa al leer", () => {
+    const stored = composeFeedbackMessage("hola", "  que el botón sea más grande ");
+    expect(stored).toBe("hola" + FEEDBACK_SUGGESTION_MARKER + "que el botón sea más grande");
+    expect(splitFeedbackSuggestion(stored)).toEqual({
+      message: "hola",
+      suggestion: "que el botón sea más grande",
+    });
+  });
+
+  it("un mensaje sin sugerencia se lee igual, con suggestion null", () => {
+    expect(splitFeedbackSuggestion("solo esto")).toEqual({
+      message: "solo esto",
+      suggestion: null,
+    });
+  });
+
+  it("validateFeedback guarda todo en el mensaje y respeta el tope de la base", () => {
+    const res = validateFeedback({ ...ok, suggestion: "Un botón más grande" });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(splitFeedbackSuggestion(res.value.message)).toEqual({
+        message: "Cuesta encontrar el botón",
+        suggestion: "Un botón más grande",
+      });
+      expect(res.value.path).toBe("/jobs/[id]");
+    }
+  });
+
+  it("sugerencia en blanco o ausente: igual que antes", () => {
+    for (const suggestion of [undefined, null, "", "   "]) {
+      const res = validateFeedback({ ...ok, suggestion });
+      expect(res.ok && res.value.message).toBe("Cuesta encontrar el botón");
+    }
+  });
+
+  it("falla con field «suggestion» si no es texto, si pasa su tope o si el total pasa el de la base", () => {
+    expect(validateFeedback({ ...ok, suggestion: 5 })).toEqual({ ok: false, field: "suggestion" });
+    expect(
+      validateFeedback({ ...ok, suggestion: "x".repeat(FEEDBACK_SUGGESTION_MAX + 1) }),
+    ).toEqual({ ok: false, field: "suggestion" });
+    expect(
+      validateFeedback({
+        ...ok,
+        message: "y".repeat(FEEDBACK_MESSAGE_MAX - 10),
+        suggestion: "x".repeat(100),
+      }),
+    ).toEqual({ ok: false, field: "suggestion" });
+    const justo = validateFeedback({
+      ...ok,
+      message: "y".repeat(100),
+      suggestion: "x".repeat(FEEDBACK_SUGGESTION_MAX),
+    });
+    expect(justo.ok).toBe(true);
+    if (justo.ok) expect(justo.value.message.length).toBeLessThanOrEqual(FEEDBACK_MESSAGE_MAX);
   });
 });

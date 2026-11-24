@@ -21,6 +21,8 @@ import { contactLink } from "@/lib/contact";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { canCreateInvitations } from "@/lib/invitations";
 import { canUseMcpTokens } from "@/lib/mcp-tokens";
+import { canViewRecorrido } from "@/lib/recorrido-access";
+import { RECORRIDO_TEXTOS } from "@/lib/textos-recorrido";
 import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
 import { getPlanOverride, getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
@@ -74,6 +76,7 @@ export default async function SettingsPage({
     canConnectChat,
     ownNotices,
     [user],
+    showRecorrido,
   ] = await Promise.all([
     getInboundAddress(userId),
     getTargetRoles(userId),
@@ -93,6 +96,8 @@ export default async function SettingsPage({
     withUser(userId, (tx) =>
       tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
     ),
+    // R26-03: el recorrido para revisar es de admins y testers; el resto ni ve el link
+    canViewRecorrido(userId),
   ]);
 
   const pendingNotices = ownNotices.filter((n) => n.status === "pendiente").length;
@@ -132,6 +137,34 @@ export default async function SettingsPage({
           ›
         </span>
       </Link>
+
+      {showRecorrido ? (
+        <Link href="/recorrido" className={NAV_CARD} data-testid="ajustes-recorrido">
+          <span className="flex flex-col">
+            <span className="font-bold text-fg underline underline-offset-2">
+              {RECORRIDO_TEXTOS.menuLink}
+            </span>
+            <span className="text-fg-muted">{RECORRIDO_TEXTOS.menuHint}</span>
+          </span>
+          <span aria-hidden="true" className="text-lg text-fg-subtle">
+            ›
+          </span>
+        </Link>
+      ) : null}
+
+      {showRecorrido ? (
+        <Link href="/settings/textos" className={NAV_CARD} data-testid="ajustes-textos">
+          <span className="flex flex-col">
+            <span className="font-bold text-fg underline underline-offset-2">
+              {RECORRIDO_TEXTOS.textosLink}
+            </span>
+            <span className="text-fg-muted">{RECORRIDO_TEXTOS.textosHint}</span>
+          </span>
+          <span aria-hidden="true" className="text-lg text-fg-subtle">
+            ›
+          </span>
+        </Link>
+      ) : null}
 
       <section className={SECTION}>
         <h2 className={H2}>Cuenta</h2>

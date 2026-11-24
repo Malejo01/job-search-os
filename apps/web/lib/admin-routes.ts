@@ -59,6 +59,10 @@ export const MEMBER_FILES: readonly string[] = [
   // Revisión de los textos del rediseño (R26-02): admins y testers, con `canReviewAcademy` y 404 para el resto
   "(app)/settings/textos/page.tsx",
   "(app)/settings/textos/actions.ts",
+  // Recorrido para revisar (R26-03): también admins y testers, con `canViewRecorrido` y 404 para el resto.
+  // Vive en /recorrido (no bajo settings ni admin), por eso el test del árbol no lo exige; se anota acá
+  // para que quede junto a la otra pantalla de revisión.
+  "(app)/recorrido/page.tsx",
   "(app)/settings/perfil/page.tsx",
   "(app)/settings/perfil/actions.ts",
   "(app)/settings/senders/page.tsx",

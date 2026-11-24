@@ -66,6 +66,8 @@ apps/web/lib/academy-revisiones.ts
 apps/web/lib/textos-revisiones.ts
 apps/web/app/(app)/settings/academy/actions.ts
 apps/web/app/(app)/settings/textos/**
+apps/web/lib/recorrido-access.ts
+apps/web/app/(app)/recorrido/page.tsx
 apps/web/app/(app)/interview/server.ts
 apps/web/app/(app)/admin/metricas/pool-coverage-panel.tsx
 apps/web/lib/cv-tailor/actions.ts

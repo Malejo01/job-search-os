@@ -4,6 +4,7 @@
  * CHECK (`beta_feedback_*`, migración 0045); `packages/db` tiene un test que los compara.
  */
 import { readCap, type CapEnv } from "../cap-env";
+import { normalizeScreenPath } from "./screen-path";
 
 export const FEEDBACK_CATEGORIES = ["algo_no_anduvo", "idea", "confuso"] as const;
 export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
@@ -38,7 +39,32 @@ export type FeedbackContext = {
   actions?: FeedbackAction[];
 };
 
-export type FeedbackField = "category" | "message" | "path" | "context" | "limit";
+export type FeedbackField = "category" | "message" | "path" | "context" | "limit" | "suggestion";
+
+/** «¿Qué te gustaría que cambie?» (R26-04): opcional, hasta este largo. */
+export const FEEDBACK_SUGGESTION_MAX = 500;
+/**
+ * La sugerencia se guarda al final del mensaje, bajo este título (sin migración: la base ya limita el
+ * mensaje a FEEDBACK_MESSAGE_MAX y los lectores del admin ya traen `message`). Se separa al leer.
+ */
+export const FEEDBACK_SUGGESTION_MARKER = "\n\n¿Qué te gustaría que cambie?\n";
+
+/** Mensaje y sugerencia en un solo texto para guardar; sin sugerencia (o en blanco) queda el mensaje. */
+export function composeFeedbackMessage(message: string, suggestion: string | null | undefined) {
+  const clean = normalizeFeedbackMessage(suggestion ?? "");
+  return clean ? `${message}${FEEDBACK_SUGGESTION_MARKER}${clean}` : message;
+}
+
+/** Lo inverso de `composeFeedbackMessage`, para mostrar cada parte por separado. */
+export function splitFeedbackSuggestion(stored: string): {
+  message: string;
+  suggestion: string | null;
+} {
+  const at = stored.lastIndexOf(FEEDBACK_SUGGESTION_MARKER);
+  if (at < 0) return { message: stored, suggestion: null };
+  const suggestion = stored.slice(at + FEEDBACK_SUGGESTION_MARKER.length).trim();
+  return { message: stored.slice(0, at), suggestion: suggestion || null };
+}
 
 export type FeedbackInput = {
   category: FeedbackCategory;
@@ -215,7 +241,8 @@ export function validateFeedbackContext(raw: unknown): FeedbackContextValidation
 
   let pathname: string | undefined;
   if (typeof rec.pathname === "string") {
-    pathname = rec.pathname.split(/[?#]/)[0]?.slice(0, FEEDBACK_PATH_MAX);
+    // R26-04: tampoco acá se guardan ids (`/jobs/<uuid>` queda `/jobs/[id]`)
+    pathname = normalizeScreenPath(rec.pathname.split(/[?#]/)[0] ?? "").slice(0, FEEDBACK_PATH_MAX);
   }
 
   const pageTitle = typeof rec.pageTitle === "string" ? rec.pageTitle.slice(0, 100) : undefined;
@@ -248,13 +275,13 @@ export function validateFeedbackContext(raw: unknown): FeedbackContextValidation
 export type FeedbackValidation =
   | { ok: true; value: FeedbackInput }
   | { ok: false; field: Exclude<FeedbackField, "limit" | "context"> };
-
 /** Valida los campos en orden; devuelve el primero inválido, nunca su contenido. */
 export function validateFeedback(raw: {
   category: unknown;
   message: unknown;
   path: unknown;
   context?: unknown;
+  suggestion?: unknown;
 }): FeedbackValidation {
   if (!isFeedbackCategory(raw.category)) return { ok: false, field: "category" };
   if (typeof raw.message !== "string") return { ok: false, field: "message" };
@@ -263,6 +290,15 @@ export function validateFeedback(raw: {
     return { ok: false, field: "message" };
   }
   if (!isValidFeedbackPath(raw.path)) return { ok: false, field: "path" };
+  // La sugerencia es opcional; si viene, tiene su tope y entra junto al mensaje en el de la base
+  let stored = message;
+  if (raw.suggestion !== undefined && raw.suggestion !== null) {
+    if (typeof raw.suggestion !== "string") return { ok: false, field: "suggestion" };
+    const suggestion = normalizeFeedbackMessage(raw.suggestion);
+    if (suggestion.length > FEEDBACK_SUGGESTION_MAX) return { ok: false, field: "suggestion" };
+    stored = composeFeedbackMessage(message, suggestion);
+    if (stored.length > FEEDBACK_MESSAGE_MAX) return { ok: false, field: "suggestion" };
+  }
 
   let context: FeedbackContext | null = null;
   if (raw.context !== undefined && raw.context !== null && raw.context !== "") {
@@ -276,8 +312,8 @@ export function validateFeedback(raw: {
     ok: true,
     value: {
       category: raw.category,
-      message,
-      path: normalizeFeedbackPath(raw.path),
+      message: stored,
+      path: normalizeScreenPath(normalizeFeedbackPath(raw.path)),
       context,
     },
   };

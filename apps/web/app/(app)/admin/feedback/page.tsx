@@ -5,11 +5,14 @@ import {
   FEEDBACK_STATUSES,
   FEEDBACK_STATUS_LABELS,
   filterFeedback,
+  groupFeedbackByScreen,
   isFeedbackCategory,
   isRoleKey,
   parseFeedbackFilters,
   readableActions,
+  splitFeedbackSuggestion,
   type FeedbackStatus,
+  type ScreenGroup,
 } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -55,6 +58,8 @@ export default async function FeedbackTriagePage({
   if (!result.ok && (result.reason === "no_admin" || result.reason === "apagado")) notFound();
   const params = await searchParams;
   const filters = parseFeedbackFilters(params);
+  // R26-04: los comentarios agrupados por pantalla (sin ids), de más a menos comentadas
+  const screenGroups = result.ok ? groupFeedbackByScreen(result.rows) : [];
   const exportQuery = new URLSearchParams(
     Object.entries(params).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])),
   ).toString();
@@ -68,6 +73,8 @@ export default async function FeedbackTriagePage({
           tiene un identificador de 6 caracteres.
         </p>
       </div>
+
+      <ScreenSummary groups={screenGroups} active={filters.screen} />
 
       <form method="get" className="grid gap-3 rounded-card bg-surface p-4 sm:grid-cols-3">
         <label className={label}>
@@ -101,6 +108,20 @@ export default async function FeedbackTriagePage({
                 {FEEDBACK_STATUS_LABELS[s]}
               </option>
             ))}
+          </select>
+        </label>
+        <label className={label}>
+          Pantalla
+          <select name="pantalla" defaultValue={filters.screen ?? ""} className={inputClasses()}>
+            <option value="">Todas</option>
+            {screenGroups.map((g) => (
+              <option key={g.screen} value={g.screen}>
+                {g.screen} ({g.count})
+              </option>
+            ))}
+            {filters.screen && !screenGroups.some((g) => g.screen === filters.screen) ? (
+              <option value={filters.screen}>{filters.screen} (0)</option>
+            ) : null}
           </select>
         </label>
         <label className={label}>
@@ -172,6 +193,42 @@ export default async function FeedbackTriagePage({
   );
 }
 
+/** «Por pantalla» (R26-04): cuántos comentarios hay en cada pantalla y cuántos siguen nuevos; cada una filtra la lista. */
+function ScreenSummary({ groups, active }: { groups: ScreenGroup[]; active: string | null }) {
+  if (groups.length === 0) return null;
+  return (
+    <section
+      aria-labelledby="feedback-por-pantalla"
+      data-testid="feedback-por-pantalla"
+      className="flex flex-col gap-2 rounded-card bg-surface p-4"
+    >
+      <h2 id="feedback-por-pantalla" className="text-heading font-bold">
+        Por pantalla
+      </h2>
+      <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+        {groups.map((g) => (
+          <li key={g.screen}>
+            <Link
+              href={`/admin/feedback?pantalla=${encodeURIComponent(g.screen)}`}
+              aria-current={g.screen === active ? "true" : undefined}
+              data-testid="feedback-pantalla-grupo"
+              className="inline-flex min-h-11 items-center gap-2 rounded-pill border-2 border-line-strong px-3 text-sm hover:bg-surface-muted aria-[current=true]:border-line-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+            >
+              <code>{g.screen}</code>
+              <span className="font-bold">{g.count}</span>
+              {g.nuevos > 0 ? (
+                <span className="text-xs text-fg-subtle">
+                  {g.nuevos === 1 ? "1 nuevo" : `${g.nuevos} nuevos`}
+                </span>
+              ) : null}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function FeedbackList({ rows, total }: { rows: ReturnType<typeof filterFeedback>; total: number }) {
   if (rows.length === 0) {
     return (
@@ -184,6 +241,7 @@ function FeedbackList({ rows, total }: { rows: ReturnType<typeof filterFeedback>
     <ul data-testid="feedback-lista" className="m-0 flex list-none flex-col gap-3 p-0">
       {rows.map((r) => {
         const actions = readableActions(r.actions);
+        const text = splitFeedbackSuggestion(r.message);
         return (
           <li
             key={r.id}
@@ -212,7 +270,15 @@ function FeedbackList({ rows, total }: { rows: ReturnType<typeof filterFeedback>
                 persona {r.person}
               </Link>
             </div>
-            <p className="whitespace-pre-wrap break-words text-fg">{r.message}</p>
+            <p className="whitespace-pre-wrap break-words text-fg" data-testid="feedback-mensaje">
+              {text.message}
+            </p>
+            {text.suggestion ? (
+              <div data-testid="feedback-sugerencia" className="flex flex-col gap-0.5">
+                <p className="text-xs font-semibold text-fg-subtle">¿Qué te gustaría que cambie?</p>
+                <p className="whitespace-pre-wrap break-words text-fg">{text.suggestion}</p>
+              </div>
+            ) : null}
             {actions.length > 0 ? (
               <details>
                 <summary className="inline-flex min-h-11 cursor-pointer items-center text-fg-muted underline">

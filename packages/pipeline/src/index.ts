@@ -111,6 +111,7 @@ export * from "./public-url";
 export * from "./evaluator/skill-level-overlay";
 export * from "./evaluator/wire";
 export * from "./feedback/beta-feedback";
+export * from "./feedback/screen-path";
 export * from "./waitlist-admin";
 export * from "./acceso-funnel";
 export * from "./usage-by-career";

@@ -65,6 +65,8 @@
 /apps/web/lib/textos-revisiones.ts @Malejo01
 /apps/web/app/(app)/settings/academy/actions.ts @Malejo01
 /apps/web/app/(app)/settings/textos/** @Malejo01
+/apps/web/lib/recorrido-access.ts @Malejo01
+/apps/web/app/(app)/recorrido/page.tsx @Malejo01
 /apps/web/app/(app)/interview/server.ts @Malejo01
 /apps/web/app/(app)/admin/metricas/pool-coverage-panel.tsx @Malejo01
 /apps/web/lib/cv-tailor/actions.ts @Malejo01
