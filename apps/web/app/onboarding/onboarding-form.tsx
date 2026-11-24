@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  BETA_GROUP_LABEL,
-  PROFILE_AGENT_STORAGE_KEYS,
-  onboardingGuidePrefill,
-  parseProfileAgentState,
-} from "@job-search-os/pipeline";
-import { useMemo, useSyncExternalStore } from "react";
+import { PROFILE_AGENT_STORAGE_KEYS, onboardingGuidePrefill } from "@job-search-os/pipeline";
+import { useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { FieldError, ProfileForm, useProfileError } from "@/components/profile-form";
 import type { ProfileFormValues } from "@/lib/onboarding";
 import {
@@ -34,6 +29,37 @@ function readAgentStorage(): string {
   }
 }
 
+/**
+ * País y modalidades de la guía, leídos del estado del agente sin zod (R26-06: el esquema completo
+ * sumaba ~25 kB al JavaScript de esta pantalla). Solo precarga el formulario, que la acción vuelve a
+ * validar al guardar; igual, un valor que no es del catálogo (país fuera de la lista, modalidad rara,
+ * más de 3) se ignora, no se cuela: falla cerrado hacia «lo guardado».
+ */
+/** Las mismas tres de `MODALITIES` (pipeline); acá a mano para no traer su módulo al navegador. */
+const GUIDE_MODALITIES: readonly string[] = ["remoto", "hibrido", "presencial"];
+
+function readGuide(
+  raw: unknown,
+  countryCodes: readonly string[],
+): { country?: string; modalities?: readonly string[] } | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const guide = (raw as { guide?: unknown }).guide;
+  if (typeof guide !== "object" || guide === null) return null;
+  const { country, modalities } = guide as { country?: unknown; modalities?: unknown };
+  const out: { country?: string; modalities?: readonly string[] } = {};
+  if (typeof country === "string" && country !== "XX" && countryCodes.includes(country)) {
+    out.country = country;
+  }
+  if (
+    Array.isArray(modalities) &&
+    modalities.length <= 3 &&
+    modalities.every((m): m is string => typeof m === "string" && GUIDE_MODALITIES.includes(m))
+  ) {
+    out.modalities = modalities;
+  }
+  return out;
+}
+
 /** «A, B y C» con los nombres de los grupos del selector (salen de `ROLE_GROUPS`, no se escriben acá). */
 function groupsText(labels: string[]): string {
   const lower = labels.map((l) => l.toLowerCase());
@@ -47,8 +73,7 @@ function RolesSection({
   salaries,
   spanishCounts,
   selectedRoles,
-  specialtySelection,
-  areasFilter,
+  specialtyPanels,
   rolesLimit,
   defaultRolesLimit,
 }: {
@@ -56,8 +81,7 @@ function RolesSection({
   salaries?: RolePickerSalaries | undefined;
   spanishCounts?: Partial<Record<string, number>> | undefined;
   selectedRoles: readonly string[];
-  specialtySelection?: unknown;
-  areasFilter?: boolean | undefined;
+  specialtyPanels?: Readonly<Record<string, ReactNode>> | undefined;
   rolesLimit: number;
   defaultRolesLimit: number;
 }) {
@@ -71,7 +95,7 @@ function RolesSection({
       <p id="roles-help" className="text-xs text-fg-subtle">
         Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Arriba están las
         carreras de la beta; también hay de{" "}
-        {groupsText(roleGroups.filter((g) => g.label !== BETA_GROUP_LABEL).map((g) => g.label))}.
+        {groupsText(roleGroups.filter((g) => !g.beta).map((g) => g.label))}.
       </p>
       <RolePicker
         name="targetRoles"
@@ -81,8 +105,7 @@ function RolesSection({
         groups={roleGroups}
         salaries={salaries}
         spanishCounts={spanishCounts}
-        specialtySelection={specialtySelection}
-        areasFilter={areasFilter ?? false}
+        specialtyPanels={specialtyPanels}
       />
       <FieldError name="targetRoles" />
     </fieldset>
@@ -98,8 +121,7 @@ export function OnboardingForm({
   salaries,
   spanishCounts,
   selectedRoles,
-  specialtySelection,
-  areasFilter,
+  specialtyPanels,
   rolesLimit,
   defaultRolesLimit,
   countries,
@@ -120,10 +142,8 @@ export function OnboardingForm({
   /** Ofertas en español por puesto; sin ellas no hay «en español: N» ni aviso. */
   spanishCounts?: Partial<Record<string, number>> | undefined;
   selectedRoles: readonly string[];
-  /** Áreas ya guardadas por carrera (C3-3); sin ellas, «Todas las áreas». */
-  specialtySelection?: unknown;
-  /** `AREAS_FILTER_ENABLED` prendido (C5-3): el texto de las áreas dice que las otras bajan y se marcan. */
-  areasFilter?: boolean | undefined;
+  /** Paneles de áreas por carrera, armados en el servidor (`specialtyPanelsFor`, R26-06). */
+  specialtyPanels?: Readonly<Record<string, ReactNode>> | undefined;
   rolesLimit: number;
   defaultRolesLimit: number;
   /** Países de LATAM: van primero en el buscador de residencia. */
@@ -141,8 +161,8 @@ export function OnboardingForm({
     if (!agentInitial) return undefined;
     try {
       const [stateRaw] = JSON.parse(stored) as [string | null];
-      const state = parseProfileAgentState(JSON.parse(stateRaw ?? "null"));
-      const prefill = onboardingGuidePrefill(state?.guide ?? null, {
+      const guide = readGuide(JSON.parse(stateRaw ?? "null"), countryCodes);
+      const prefill = onboardingGuidePrefill(guide, {
         country: agentInitial.country,
       });
       return { ...agentInitial, ...prefill };
@@ -150,7 +170,7 @@ export function OnboardingForm({
       // un estado roto en el navegador: queda lo guardado
       return agentInitial;
     }
-  }, [agentInitial, stored]);
+  }, [agentInitial, stored, countryCodes]);
   return (
     <ProfileForm
       // al llegar el precargado el formulario se vuelve a montar: la persona todavía no escribió nada
@@ -176,8 +196,7 @@ export function OnboardingForm({
         salaries={salaries}
         spanishCounts={spanishCounts}
         selectedRoles={selectedRoles}
-        specialtySelection={specialtySelection}
-        areasFilter={areasFilter}
+        specialtyPanels={specialtyPanels}
         rolesLimit={rolesLimit}
         defaultRolesLimit={defaultRolesLimit}
       />

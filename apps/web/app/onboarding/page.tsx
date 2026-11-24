@@ -1,5 +1,6 @@
 import {
   areasFilterEnabled,
+  BETA_GROUP_LABEL,
   CEFR_LEVELS,
   COUNTRY_OPTIONS,
   ISO_COUNTRY_CODES,
@@ -16,6 +17,7 @@ import { GuidedTour } from "@/components/guided-tour";
 import { getCareerSalaries, getCareerSpanishCounts } from "@/lib/career-market";
 import { dismissGuideAction } from "@/lib/guide-actions";
 import { GUIDE_INVITE, GUIDE_LABELS, GUIDE_STEPS, guideDismissed } from "@/lib/guide";
+import { specialtyPanelsFor } from "@/components/specialty-panels";
 import { OnboardingChoice } from "@/components/profile-agent/onboarding-choice";
 import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { loadAgentOnboardingFacts } from "@/lib/profile-agent/close-server";
@@ -84,6 +86,7 @@ export default async function OnboardingPage({
     : undefined;
   const roleGroups = profileRoleGroups(targetRoles).map((group) => ({
     label: group.label,
+    beta: group.label === BETA_GROUP_LABEL,
     roles: group.roles.map((key) => ({ key, label: catalogLabel(key) })),
   }));
   return (
@@ -119,8 +122,11 @@ export default async function OnboardingPage({
         salaries={salaries}
         spanishCounts={spanishCounts}
         selectedRoles={targetRoles}
-        specialtySelection={targetSpecialties}
-        areasFilter={areasFilterEnabled(process.env)}
+        specialtyPanels={specialtyPanelsFor(
+          roleGroups,
+          targetSpecialties,
+          areasFilterEnabled(process.env),
+        )}
         rolesLimit={rolesLimit}
         defaultRolesLimit={TARGET_ROLES_DEFAULT_LIMIT}
         countries={COUNTRY_OPTIONS}
