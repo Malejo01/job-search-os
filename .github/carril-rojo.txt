@@ -201,3 +201,5 @@ pnpm-workspace.yaml
 .npmrc
 apps/web/next.config.ts
 **/vercel.json
+# R26-05: server action del primer uso guardado en la cuenta
+apps/web/lib/primer-uso-actions.ts
