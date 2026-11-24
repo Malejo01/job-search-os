@@ -1,6 +1,6 @@
 # Afi · recursos de la mascota (24/11)
 
-Mascota 3D de AfinIAJobs. Las imágenes originales (896×1200, fondo negro) las generaron Mauro y Ani. Claude les sacó el fondo (rembg `isnet-general-use` + relleno desde los bordes), las recortó al personaje y armó los tamaños. Plan: `ops/rondas/r27-tanda/prompt-r27.md`.
+Mascota 3D de AfinIAJobs. Las imágenes originales (896×1200, fondo negro) las generó el equipo de marca. Claude les sacó el fondo (rembg `isnet-general-use` + relleno desde los bordes), las recortó al personaje y armó los tamaños. Plan: `ops/rondas/r27-tanda/prompt-r27.md`.
 
 ## Poses (`apps/web/public/mascota/`)
 Cada pose tiene `<pose>-256.webp`, `<pose>-512.webp` y `<pose>-1024.webp` (alto en px, fondo transparente) y `<pose>-512.png` (para emails).

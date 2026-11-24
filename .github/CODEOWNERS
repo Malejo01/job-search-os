@@ -200,3 +200,5 @@
 **/vercel.json @Malejo01
 # R26-05: server action del primer uso guardado en la cuenta
 /apps/web/lib/primer-uso-actions.ts @Malejo01
+# R27-04: server action del saludo diario guardado en la cuenta
+/apps/web/lib/saludo-actions.ts @Malejo01
