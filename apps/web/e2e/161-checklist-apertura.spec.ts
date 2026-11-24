@@ -1,14 +1,7 @@
 import { expect, test } from "@playwright/test";
-import * as s from "@job-search-os/db/schema";
 import { axeSummary } from "./axe-helpers";
-import {
-  E2E_USER_ID,
-  ensureSecondUser,
-  login,
-  loginAsSecondUser,
-  ownerDb,
-  removeSecondUser,
-} from "./helpers";
+import { ensureSecondUser, login, loginAsSecondUser, removeSecondUser } from "./helpers";
+import { ensureSeedPerson } from "./persona-qa";
 
 /**
  * Flujo 161 (R22-05): `/admin/apertura`, el checklist de apertura. Solo admins. Cada ítem sale como
@@ -30,13 +23,9 @@ test.describe("Flujo 161: checklist de apertura (R22-05)", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
 
   test.beforeAll(async () => {
-    // Como /admin/salud: la pantalla lee la base y exige app_admins además de ADMIN_EMAILS
-    const { db, close } = ownerDb();
-    try {
-      await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
-    } finally {
-      await close();
-    }
+    // Como /admin/salud: la pantalla lee la base y exige app_admins además de ADMIN_EMAILS. La persona
+    // de prueba la crea el helper si la base local no trae al usuario del seed (R26-07)
+    await ensureSeedPerson();
   });
 
   test.afterAll(async () => {

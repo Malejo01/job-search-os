@@ -1,7 +1,8 @@
 import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { eq, inArray } from "drizzle-orm";
-import { E2E_USER_ID, login, ownerDb } from "./helpers";
+import { login, ownerDb } from "./helpers";
+import { ensureSeedPerson } from "./persona-qa";
 
 /**
  * Flujo 165 (R22-02): cola de altas en `/admin/planes` (solo admin). El spec crea dos personas ficticias,
@@ -31,7 +32,6 @@ async function clean(): Promise<void> {
 async function seed(): Promise<void> {
   const { db, close } = ownerDb();
   try {
-    await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
     for (const id of PEOPLE) {
       await db.insert(s.users).values({ id, email: EMAIL(id), name: "Persona ficticia" });
       await db.insert(s.profiles).values({
@@ -69,6 +69,8 @@ async function planOf(id: string) {
 test.describe("Flujo 165: cola de altas", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
   test.beforeAll(async () => {
+    // La persona de prueba (admin) la crea el helper si la base local no trae al usuario del seed (R26-07)
+    await ensureSeedPerson();
     await clean();
     await seed();
   });

@@ -31,10 +31,12 @@ describe("parseFeedbackFilters (C8-17)", () => {
         hasta: "2026-11-30",
         estado: "visto",
         persona: " A1B2C3 ",
+        pantalla: " /jobs/[id] ",
       }),
     ).toEqual({
       career: "abogacia",
       category: "idea",
+      screen: "/jobs/[id]",
       path: "/jobs",
       from: "2026-11-26",
       to: "2026-11-30",
@@ -49,10 +51,12 @@ describe("parseFeedbackFilters (C8-17)", () => {
         desde: "ayer",
         estado: "?",
         persona: "no es un id",
+        pantalla: "jobs",
       }),
     ).toEqual({
       career: null,
       category: null,
+      screen: null,
       path: null,
       from: null,
       to: null,
@@ -85,6 +89,18 @@ describe("filterFeedback", () => {
     expect(f({ persona: "d4e5f6" })).toEqual(["c"]);
     expect(f({ persona: "A1B2C3" })).toEqual(["a", "b"]);
     expect(f({ persona: "ffffff" })).toEqual([]);
+  });
+
+  it("por pantalla: compara la ruta ya normalizada, también la de comentarios viejos con id", () => {
+    const old = [
+      row({ id: "a", path: "/jobs/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f8a9b0c" }),
+      row({ id: "b", path: "/jobs/[id]" }),
+      row({ id: "c", path: "/jobs/new" }),
+    ];
+    const f = (q: Record<string, string>) =>
+      filterFeedback(old, parseFeedbackFilters(q)).map((r) => r.id);
+    expect(f({ pantalla: "/jobs/[id]" })).toEqual(["a", "b"]);
+    expect(f({ pantalla: "/jobs/new" })).toEqual(["c"]);
   });
 });
 

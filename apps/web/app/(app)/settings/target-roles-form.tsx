@@ -1,5 +1,6 @@
 import {
   areasFilterEnabled,
+  BETA_GROUP_LABEL,
   profileRoleGroups,
   specialtiesFor,
   TARGET_ROLES_DEFAULT_LIMIT,
@@ -7,6 +8,7 @@ import {
 } from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
+import { specialtyPanelsFor } from "@/components/specialty-panels";
 import { RolePickerWithProposal } from "@/components/role-picker-with-proposal";
 import { catalogLabel } from "@/lib/career-names";
 import { Alert, buttonClasses, cardClasses } from "@/components/ui";
@@ -32,6 +34,7 @@ export function TargetRolesForm({
 }) {
   const groups = profileRoleGroups(current).map((group) => ({
     label: group.label,
+    beta: group.label === BETA_GROUP_LABEL,
     roles: group.roles.map((key) => ({ key, label: catalogLabel(key) })),
   }));
   return (
@@ -64,8 +67,11 @@ export function TargetRolesForm({
         <RolePickerWithProposal
           name="targetRoles"
           selected={current}
-          specialtySelection={specialtySelection}
-          areasFilter={areasFilterEnabled(process.env)}
+          specialtyPanels={specialtyPanelsFor(
+            groups,
+            specialtySelection,
+            areasFilterEnabled(process.env),
+          )}
           limit={limit}
           defaultLimit={TARGET_ROLES_DEFAULT_LIMIT}
           groups={groups}

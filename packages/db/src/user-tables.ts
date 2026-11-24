@@ -121,6 +121,18 @@ export const USER_TABLES_EXEMPT: readonly { table: string; column: string; reaso
     reason:
       "registro del panel /admin (ADM-1, rls/0064) sin acceso de la app: solo lo leen y escriben las funciones admin_person_* (SECURITY DEFINER); las filas caen por ON DELETE CASCADE desde users",
   },
+  {
+    table: "text_reviews",
+    column: "user_id",
+    reason:
+      "revisiones de los textos del rediseño (R26-02, rls/0066) sin acceso de la app: user_id es quien revisó (admin o tester), no un dato de la persona que usa la app; solo lo leen y escriben las funciones text_review_* (SECURITY DEFINER, con la barrera app_admins o tester); las filas caen por ON DELETE CASCADE desde users",
+  },
+  {
+    table: "academy_reviews",
+    column: "user_id",
+    reason:
+      "revisiones de las fichas de Academy (R26-01, rls/0065) sin acceso de la app: user_id es quien revisó (admin o tester), no un dato de la persona que usa Academy; solo lo leen y escriben las funciones academy_* (SECURITY DEFINER, con la barrera app_admins o tester); las filas caen por ON DELETE CASCADE desde users",
+  },
 ];
 
 /** `users` se borra siempre al final: el resto de las tablas la referencian lógicamente. */

@@ -1,9 +1,8 @@
 "use client";
 
 import { CV_COACH_API, CV_COACH_PAGES } from "@job-search-os/pipeline";
-import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Alert, Badge, buttonClasses, cardClasses } from "@/components/ui";
 import {
   parseCoachSnapshot,
@@ -36,7 +35,6 @@ const SEVERITY: Record<string, { label: string; tone: "danger" | "warning" | "ne
  * para la charla y el «qué mejoró»; al recargar se muestran sin volver a pedir el diagnóstico.
  */
 export function CvCoachDiagnosis() {
-  const reduce = useReducedMotion();
   const [phase, setPhase] = useState<Phase>({ name: "idle" });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -148,33 +146,32 @@ export function CvCoachDiagnosis() {
               No encontramos nada importante que mejorar. Podés armar tu CV con lo que confirmaste.
             </p>
           ) : (
-            <LazyMotion features={domAnimation}>
-              <ol className="flex flex-col gap-3" data-testid="coach-issues">
-                {shown.views.map((v, n) => (
-                  <m.li
-                    key={v.id}
-                    initial={reduce ? false : { opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: reduce ? 0 : n * 0.04 }}
-                    className={cardClasses({ padding: "md", className: "flex flex-col gap-2" })}
-                    data-testid="coach-issue"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={SEVERITY[v.severity]?.tone ?? "neutral"} srLabel="Prioridad">
-                        {SEVERITY[v.severity]?.label ?? v.severity}
-                      </Badge>
-                      <span className="text-sm font-semibold text-fg">{v.title}</span>
-                    </div>
-                    {v.quote ? (
-                      <blockquote className="border-l-2 border-border pl-3 text-sm text-fg-muted">
-                        «{v.quote}» <span className="text-xs">(de tu CV)</span>
-                      </blockquote>
-                    ) : null}
-                    <p className="text-sm text-fg-muted">{v.hint}</p>
-                  </m.li>
-                ))}
-              </ol>
-            </LazyMotion>
+            <ol className="flex flex-col gap-3" data-testid="coach-issues">
+              {shown.views.map((v, n) => (
+                <li
+                  key={v.id}
+                  style={{ "--aparecer-delay": `${n * 40}ms` } as CSSProperties}
+                  className={cardClasses({
+                    padding: "md",
+                    className: "aparecer-subiendo flex flex-col gap-2",
+                  })}
+                  data-testid="coach-issue"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone={SEVERITY[v.severity]?.tone ?? "neutral"} srLabel="Prioridad">
+                      {SEVERITY[v.severity]?.label ?? v.severity}
+                    </Badge>
+                    <span className="text-sm font-semibold text-fg">{v.title}</span>
+                  </div>
+                  {v.quote ? (
+                    <blockquote className="border-l-2 border-border pl-3 text-sm text-fg-muted">
+                      «{v.quote}» <span className="text-xs">(de tu CV)</span>
+                    </blockquote>
+                  ) : null}
+                  <p className="text-sm text-fg-muted">{v.hint}</p>
+                </li>
+              ))}
+            </ol>
           )}
           <div className="flex flex-wrap gap-3">
             {shown.views.length > 0 ? (

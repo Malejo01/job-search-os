@@ -22,6 +22,7 @@ import {
   seedAndEvaluate,
   seedPool,
 } from "./personas/flow";
+import { ensureSeedPerson } from "./persona-qa";
 
 /**
  * Flujo 38 (ronda 49): «Primeros pasos». La checklist de /jobs, el «Paso N de 3» del onboarding, la
@@ -77,6 +78,8 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
   let bestJobId = "";
 
   test.beforeAll(async ({ browser }) => {
+    // La invitación la crea la persona de prueba: sin el seed en la base local, la crea el helper (R26-07)
+    await ensureSeedPerson();
     await createInvitation(run);
     await seedPool(run);
     context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -322,6 +325,7 @@ test.describe("Flujo 38e: «Saltear por ahora» en skills deja el ítem 2 pendie
   let page: Page;
 
   test.beforeAll(async ({ browser }) => {
+    await ensureSeedPerson();
     await createInvitation(run);
     await seedPool(run);
     context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -364,6 +368,7 @@ test.describe("Flujo 38k: tarjeta «Invitar a alguien» en Ajustes del usuario e
 
   test("sin ADMIN_EMAILS la tarjeta no está", async ({ page }) => {
     test.skip(canInvite, "el usuario e2e es admin en este entorno");
+    await ensureSeedPerson();
     await login(page);
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "Cuenta" })).toBeVisible();
@@ -374,6 +379,7 @@ test.describe("Flujo 38k: tarjeta «Invitar a alguien» en Ajustes del usuario e
     page,
   }) => {
     test.skip(!canInvite, "falta ADMIN_EMAILS con el email e2e en el entorno del runner");
+    await ensureSeedPerson();
     await login(page);
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "Administración" })).toBeVisible();

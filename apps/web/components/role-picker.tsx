@@ -1,19 +1,18 @@
 "use client";
 
-import {
-  BETA_GROUP_LABEL,
-  selectedSpecialtyIds,
-  specialtiesFor,
-  type RoleKey,
-} from "@job-search-os/pipeline";
-import { Fragment, useId, useState } from "react";
+import type { RoleKey } from "@job-search-os/pipeline";
+import { Fragment, useId, useState, type ReactNode } from "react";
 import { CareerSalary, type CareerSalaryView } from "./career-salary";
-import { RoleSpecialties } from "./specialty-chips";
 
 export type RolePickerSalaries = Partial<Record<RoleKey, CareerSalaryView>>;
 
 export type RolePickerGroup = {
   label: string;
+  /**
+   * Es el grupo de las carreras de la beta (`BETA_GROUP_LABEL`). Lo marca el servidor: importar la
+   * constante en el cliente traía el módulo de `pipeline` con zod (R26-06).
+   */
+  beta?: boolean;
   roles: { key: string; label: string }[];
 };
 
@@ -60,16 +59,14 @@ export function RolePicker({
   defaultLimit,
   salaries,
   spanishCounts,
-  specialtySelection,
-  areasFilter = false,
+  specialtyPanels,
 }: {
-  /** `AREAS_FILTER_ENABLED` prendido (C5-3): cambia el texto de las áreas, que hasta ahora no filtraban. */
-  areasFilter?: boolean;
   /**
-   * Áreas guardadas por carrera (`profiles.target_specialties`, C3-3); null o ausente = «Todas las
-   * áreas». El selector no la valida: `selectedSpecialtyIds` ignora lo que no sea del catálogo.
+   * Panel de áreas por carrera (R2-2, C3-3, C5-3), ya armado en el servidor (`specialtyPanelsFor`):
+   * el catálogo de áreas pesa y no tiene por qué viajar al navegador (R26-06). Se muestra al marcar
+   * la carrera; una carrera sin entrada no tiene áreas.
    */
-  specialtySelection?: unknown;
+  specialtyPanels?: Readonly<Record<string, ReactNode>> | undefined;
   /** Ofertas en español por puesto (30 días); sin esto, el selector no muestra «en español: N». */
   spanishCounts?: Partial<Record<RoleKey, number>> | undefined;
   /** Sueldos del pool por puesto (ronda 80); sin esto, el selector no muestra nada de sueldos. */
@@ -99,7 +96,7 @@ export function RolePicker({
       {groups.map((group, index) => (
         <Fragment key={group.label}>
           {/* R5-C8: debajo de las 8 carreras de la beta, el resto va bajo «Otras carreras» */}
-          {index === 1 && groups[0]?.label === BETA_GROUP_LABEL ? (
+          {index === 1 && groups[0]?.beta === true ? (
             <p className="mt-2 text-sm font-bold text-fg">Otras carreras</p>
           ) : null}
           <fieldset className="flex flex-col gap-1 text-sm">
@@ -112,8 +109,8 @@ export function RolePicker({
                 const spanish = spanishCounts?.[role.key as RoleKey];
                 const help = ROLE_HELP[role.key];
                 const helpId = `${noteId}-help-${role.key}`;
-                const specialties = specialtiesFor(role.key as RoleKey);
-                const hasSpecialties = specialties.length > 0;
+                const panel = specialtyPanels?.[role.key] ?? null;
+                const hasSpecialties = panel !== null;
                 const describedBy = [help ? helpId : null, disabled ? noteId : null]
                   .filter(Boolean)
                   .join(" ");
@@ -165,17 +162,7 @@ export function RolePicker({
                       </div>
                     ) : null}
                     {checked && hasSpecialties ? (
-                      <div className="border-t-2 border-line p-3">
-                        <RoleSpecialties
-                          roleKey={role.key as RoleKey}
-                          roleLabel={role.label}
-                          areasFilter={areasFilter}
-                          initialSpecialties={
-                            selectedSpecialtyIds(specialtySelection, role.key as RoleKey) ??
-                            undefined
-                          }
-                        />
-                      </div>
+                      <div className="border-t-2 border-line p-3">{panel}</div>
                     ) : null}
                   </div>
                 );

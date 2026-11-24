@@ -48,7 +48,7 @@ La app no habla con Mercado Pago: confirmar que el pago se acreditó lo hacés v
 ## 5. Checklist de apertura (`/settings/apertura`)
 
 - Sin migración ni variables nuevas. Abrila antes de abrir la beta y seguí lo que marque como pendiente.
-- **Textos de Ani:** `textos-rediseno.ts` no marca cuáles están aprobados. Cuando Ani apruebe uno, sumá su nombre a `TEXTOS_REDISENO_APROBADOS` en `apps/web/lib/apertura.ts`.
+- **Textos de Ani:** desde la R26 se aprueban desde la app (`/admin/textos` o `/settings/textos`) y la checklist los cuenta desde la base. La lista `TEXTOS_REDISENO_APROBADOS` ya no existe (ver [`pasos-manuales-r26.md`](pasos-manuales-r26.md)).
 - **Mascota:** busca los PNG en `apps/web/public/mascota/`, que todavía no existe.
 
 ## 6. e2e que corren solo con variables

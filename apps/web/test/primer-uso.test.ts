@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PRIMER_USO_DONE,
+  PRIMER_USO_VERSION,
   clampStep,
   primerUsoKey,
   shouldShowPrimerUso,
@@ -40,6 +41,38 @@ describe("primer uso tras el rediseño (R23-05)", () => {
     expect(shouldShowPrimerUso({ stored: PRIMER_USO_DONE, automated: true, forced: true })).toBe(
       false,
     );
+  });
+
+  describe("guardado en la cuenta (R26-05)", () => {
+    it("lo visto en la cuenta alcanza aunque este navegador no lo sepa (otro dispositivo)", () => {
+      expect(
+        shouldShowPrimerUso({ stored: null, automated: false, account: PRIMER_USO_VERSION }),
+      ).toBe(false);
+    });
+
+    it("la cuenta sin dato, o con una versión anterior, se muestra de nuevo (falla cerrado)", () => {
+      expect(shouldShowPrimerUso({ stored: null, automated: false, account: null })).toBe(true);
+      expect(shouldShowPrimerUso({ stored: null, automated: false, account: undefined })).toBe(
+        true,
+      );
+      expect(shouldShowPrimerUso({ stored: null, automated: false, account: "r20" })).toBe(true);
+    });
+
+    it("un valor raro en la cuenta no cuenta como visto", () => {
+      expect(shouldShowPrimerUso({ stored: null, automated: false, account: "???" })).toBe(true);
+    });
+
+    it("el navegador sigue valiendo si la cuenta no lo sabe todavía", () => {
+      expect(
+        shouldShowPrimerUso({ stored: PRIMER_USO_DONE, automated: false, account: null }),
+      ).toBe(false);
+    });
+
+    it("forzar (solo e2e) ignora lo de la cuenta pero no lo del navegador", () => {
+      const base = { automated: true, forced: true, account: PRIMER_USO_VERSION };
+      expect(shouldShowPrimerUso({ ...base, stored: null })).toBe(true);
+      expect(shouldShowPrimerUso({ ...base, stored: PRIMER_USO_DONE })).toBe(false);
+    });
   });
 
   it("el paso no se sale del rango", () => {

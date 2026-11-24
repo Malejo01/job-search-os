@@ -1,5 +1,6 @@
 import { isRoleKey } from "../skills/self-assessment";
 import { isFeedbackCategory, type FeedbackAction, type FeedbackCategory } from "./beta-feedback";
+import { normalizeScreenPath } from "./screen-path";
 
 /**
  * Triage del feedback de la beta (C8-17), puro: filtros del panel del admin, las últimas acciones del
@@ -34,6 +35,8 @@ export type TriageRow = {
 export type FeedbackFilters = {
   career: string | null;
   category: FeedbackCategory | null;
+  /** Pantalla normalizada (`/jobs/[id]`), R26-04: coincide exacta, no por prefijo. */
+  screen: string | null;
   /** Prefijo de la página (`/jobs` incluye `/jobs/123`). */
   path: string | null;
   /** Días de Argentina, `AAAA-MM-DD`, inclusivos. */
@@ -58,7 +61,9 @@ export function parseFeedbackFilters(
   const to = one(params.hasta);
   const status = one(params.estado);
   const person = one(params.persona).trim().toLowerCase();
+  const screen = one(params.pantalla).trim().slice(0, 200);
   return {
+    screen: screen.startsWith("/") ? normalizeScreenPath(screen) : null,
     person: PERSON.test(person) ? person : null,
     career: isRoleKey(career) ? career : null,
     category: isFeedbackCategory(category) ? category : null,
@@ -79,6 +84,7 @@ export function filterFeedback(rows: readonly TriageRow[], f: FeedbackFilters): 
     if (f.career && r.career !== f.career) return false;
     if (f.category && r.category !== f.category) return false;
     if (f.path && !r.path.startsWith(f.path)) return false;
+    if (f.screen && normalizeScreenPath(r.path) !== f.screen) return false;
     if (f.status && r.status !== f.status) return false;
     if (f.person && r.person.toLowerCase() !== f.person) return false;
     const day = argentinaDay(r.createdAt);

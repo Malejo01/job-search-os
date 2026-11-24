@@ -129,8 +129,8 @@ export function buildAperturaChecklist(input: AperturaInput): AperturaChecklist 
           "textos",
           "Textos del rediseño",
           `${textosPending} de ${input.textos.total} siguen con el valor por defecto.`,
-          "Revisá los textos con quien define la marca y, al aprobarlos, sumalos a TEXTOS_REDISENO_APROBADOS en apps/web/lib/apertura.ts.",
-          "docs/beta/textos-para-ani.md",
+          "Quien define la marca los aprueba desde la app, uno por uno (o propone otro texto). Una aprobación deja de valer si cambia el texto del código.",
+          "/admin/textos",
         ),
   );
 
@@ -151,7 +151,7 @@ export function buildAperturaChecklist(input: AperturaInput): AperturaChecklist 
         input.academy && input.academy.total > 0
           ? `${input.academy.approved} de ${input.academy.total} aprobadas.`
           : "No se encontraron fichas.",
-        "Revisá cada ficha y cambiá `estado: borrador` por `estado: aprobada` en su archivo.",
+        "Revisá cada ficha y aprobala desde la app (una aprobación deja de valer si cambia el texto de la ficha).",
         "/settings/academy",
       ),
     );
