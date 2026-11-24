@@ -45,9 +45,10 @@ const nextConfig: NextConfig = {
       },
       // Panel /admin (ADM-1): las pantallas de administración se mudaron de /settings a /admin. Los links
       // viejos (favoritos, emails ya enviados) siguen andando. Temporal (307): la página exige admin igual.
+      // `textos` no: desde la R26 /settings/textos es la vista de los testers (Ani) y /admin/textos la del admin.
       {
         source:
-          "/settings/:seccion(invitations|planes|metricas|costos|salud|feedback|apertura|marca|textos)/:resto*",
+          "/settings/:seccion(invitations|planes|metricas|costos|salud|feedback|apertura|marca)/:resto*",
         destination: "/admin/:seccion/:resto*",
         permanent: false,
       },
