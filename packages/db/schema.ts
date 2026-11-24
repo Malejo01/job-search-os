@@ -201,9 +201,13 @@ export const profiles = pgTable("profiles", {
   // carreras que acotó. null = «Todas las áreas». Se valida en código (pipeline/skills/specialty-selection.ts)
   // y acá solo se acota la forma y el tamaño. Todavía no filtra avisos: queda guardado
   targetSpecialties: jsonb("target_specialties").$type<Record<string, string[]>>(),
+  // Versión del recorrido de primer uso que la persona ya vio o salteó (R26-05, p. ej. 'r23'); null = no lo vio.
+  // Va con la cuenta para que no reaparezca en otro dispositivo; el navegador sigue guardando lo suyo
+  primerUsoVisto: text("primer_uso_visto"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
+  check("profiles_primer_uso_visto_shape", sql`${t.primerUsoVisto} is null or char_length(${t.primerUsoVisto}) <= 20`),
   check("profiles_plan_check", sql`${t.plan} in ('gratis', 'fundador', 'lista', 'pase_3_meses')`),
   check("profiles_plan_source_check", sql`${t.planSource} is null or ${t.planSource} in ('pago', 'beca')`),
   check("profiles_target_specialties_shape", sql`${t.targetSpecialties} is null or (jsonb_typeof(${t.targetSpecialties}) = 'object' and octet_length(${t.targetSpecialties}::text) <= 8192)`),

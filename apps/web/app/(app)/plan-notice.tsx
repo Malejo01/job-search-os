@@ -18,7 +18,9 @@ export function PlanNotice({ access }: { access: PlanAccess }) {
     <div
       role="status"
       data-testid="aviso-plan"
-      className={`mb-4 flex flex-col gap-1 rounded-control border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3 ${
+      // En las pantallas de ancho completo (Hoy, Ofertas) el `main` no tiene margen: sin esto el
+      // aviso queda pegado al borde de la pantalla (R26-05)
+      className={`mb-4 flex flex-col gap-1 rounded-control border px-3 py-2 text-sm group-has-[[data-ancho=completo]]/main:mx-4 group-has-[[data-ancho=completo]]/main:mt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:group-has-[[data-ancho=completo]]/main:mx-12 ${
         vencido
           ? "border-warning-line bg-warning-soft text-warning"
           : "border-info-line bg-info-soft text-info"

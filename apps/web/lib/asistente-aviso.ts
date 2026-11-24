@@ -1,4 +1,4 @@
-/** Clave del aviso de bienvenida del asistente: una sola vez por sesión del navegador. */
+/** Clave del aviso de bienvenida del asistente: una sola vez por navegador (R26-05; antes, por sesión). */
 export const ASISTENTE_AVISO_KEY = "afinia:asistente-aviso-sesion";
 
 type Almacen = Pick<Storage, "getItem" | "setItem">;
