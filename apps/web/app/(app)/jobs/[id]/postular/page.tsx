@@ -140,6 +140,7 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
         {forOffer === null || !forOffer.ok ? (
           <EstadoMarca
             tipo="sin-datos"
+            pose="analizando"
             variant="inline"
             data-testid="cv-oferta-vacio"
             className="mt-2"

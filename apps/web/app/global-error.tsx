@@ -1,7 +1,7 @@
 "use client";
 
 import { BRAND_COLORS } from "@job-search-os/pipeline";
-import { MONOGRAM } from "@/components/brand/monogram";
+import { mascotaAncho, mascotaSrc } from "@/lib/mascota";
 
 // Reemplaza al layout raíz: sin Tailwind ni componentes compartidos, porque el layout puede ser lo que falló.
 // F1 (C9-13): el recuadro lavanda con el monograma, una frase clara y una salida, con estilos en línea.
@@ -47,23 +47,29 @@ export default function GlobalError({
             gap: 16,
           }}
         >
+          {/* R27-05: la mascota `analizando` sobre el círculo lavanda, con estilos en línea (sin Tailwind) */}
           <div
             aria-hidden="true"
             style={{
-              width: 224,
-              aspectRatio: "4 / 3",
-              borderRadius: 32,
+              width: 176,
+              height: 176,
+              borderRadius: "50%",
               background: BRAND_COLORS.canvas,
-              border: `2px solid ${BRAND_COLORS.line}`,
               display: "flex",
-              alignItems: "center",
+              alignItems: "flex-end",
               justifyContent: "center",
             }}
           >
-            <svg width={56} height={56} viewBox={MONOGRAM.viewBox} style={{ opacity: 0.4 }}>
-              <path d={MONOGRAM.path} fillRule="evenodd" fill={BRAND_COLORS.ink} />
-              <circle {...MONOGRAM.dot} fill={BRAND_COLORS.accentDeep} />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              {...mascotaSrc("analizando")}
+              sizes={`${mascotaAncho("analizando", 176)}px`}
+              width={mascotaAncho("analizando", 176)}
+              height={176}
+              alt=""
+              draggable={false}
+              style={{ display: "block", height: "100%", width: "auto", maxWidth: "none" }}
+            />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Algo falló de nuestro lado</h1>
           <p style={{ fontSize: 14, color: BRAND_COLORS.textMuted, margin: 0 }}>

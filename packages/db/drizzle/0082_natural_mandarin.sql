@@ -1,0 +1,2 @@
+ALTER TABLE "profiles" ADD COLUMN "saludo_visto" text;--> statement-breakpoint
+ALTER TABLE "profiles" ADD CONSTRAINT "profiles_saludo_visto_shape" CHECK ("profiles"."saludo_visto" is null or char_length("profiles"."saludo_visto") <= 10);

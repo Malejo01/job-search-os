@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AcademyFicha } from "../lib/academy";
+import { Afi } from "./afi";
 import type { AcademyOrigen } from "../lib/academy-lectura";
 import { loadApprovedFichaFor } from "../lib/academy-revisiones";
 import { renderLegalBlocks } from "../lib/legal";
@@ -38,7 +39,11 @@ export function ContextHelpPanel({
         aria-label={ficha.titulo}
         className="absolute top-full left-0 z-20 mt-1 max-h-80 w-72 max-w-[85vw] overflow-y-auto rounded-card border-2 border-line-strong bg-surface p-3 text-fg shadow-lg"
       >
-        <p className="font-bold">{ficha.titulo}</p>
+        {/* R27-05: quien explica, decorativa (el título de al lado es lo que dice) */}
+        <div className="flex items-center gap-2">
+          <Afi pose="explicando" size={40} decorative />
+          <p className="min-w-0 flex-1 font-bold">{ficha.titulo}</p>
+        </div>
         {renderLegalBlocks(ficha.blocks)}
         <Link
           href={desde ? `/academy/${ficha.slug}?desde=${desde}` : `/academy/${ficha.slug}`}

@@ -8,6 +8,7 @@ import {
   interviewScoreLevel,
   type InterviewScoreLevel,
 } from "@job-search-os/pipeline";
+import { Afi } from "@/components/afi";
 import { joinDictated } from "@/components/dictar-engine";
 import { VoiceInput } from "@/components/voice-input-lazy";
 import { PrintButton } from "@/components/print-button";
@@ -179,7 +180,10 @@ export function Simulator({
           aria-labelledby={`${uid}-resumen`}
           className="rounded-card bg-ink p-5 text-on-ink sm:p-6"
         >
-          <p className="text-sm font-bold text-brand">Simulación terminada</p>
+          <div className="flex items-center gap-3">
+            <Afi pose="hablando-2" size={56} decorative />
+            <p className="text-sm font-bold text-brand">Simulación terminada</p>
+          </div>
           <h2 id={`${uid}-resumen`} className="mt-1 text-xl font-extrabold">
             {title}
           </h2>
@@ -261,14 +265,25 @@ export function Simulator({
             style={{ width: `${(answered / TOTAL) * 100}%` }}
           />
         </div>
-        <p className="mt-4 text-lg font-bold leading-snug" data-testid="interview-question">
-          {questions[questionIndex]}
-        </p>
+        <div className="mt-4 flex items-center gap-4">
+          <p
+            className="min-w-0 flex-1 text-lg font-bold leading-snug"
+            data-testid="interview-question"
+          >
+            {questions[questionIndex]}
+          </p>
+          {/* R27-04: quien pregunta (decorativa: el texto de al lado es la pregunta) */}
+          <div className="hidden shrink-0 sm:block">
+            <Afi pose="hablando-1" size={72} decorative />
+          </div>
+        </div>
       </section>
 
       {reviewing && last ? (
         <Card as="section" aria-label="Devolución de tu respuesta" level="featured" padding="md">
           <div className="flex flex-col gap-4">
+            {/* R27-04: la devolución (decorativa: el texto del puntaje y el consejo va al lado) */}
+            <Afi pose="hablando-2" size={56} decorative />
             {truncated ? (
               <Alert tone="info" role="note">
                 Tu respuesta era muy larga y evaluamos solo los primeros{" "}

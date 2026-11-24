@@ -1,46 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { ESTADOS_TIPOS, visualDeEstado } from "../lib/estados-vacios";
-import { MASCOTA_DISPONIBLE, MASCOTA_IMAGENES, type MascotaImagen } from "../lib/mascota";
+import { ESTADOS_TIPOS, poseDeEstado } from "../lib/estados-vacios";
+import { MASCOTA_POSES } from "../lib/mascota";
 
-const sinMascota = Object.fromEntries(MASCOTA_IMAGENES.map((i) => [i, false])) as Record<
-  MascotaImagen,
-  boolean
->;
-const conMascota = Object.fromEntries(MASCOTA_IMAGENES.map((i) => [i, true])) as Record<
-  MascotaImagen,
-  boolean
->;
-
-describe("visualDeEstado", () => {
-  it("sin mascota: la ilustración de la escena si el tipo la tiene", () => {
-    expect(visualDeEstado("lista-vacia", sinMascota)).toEqual({
-      kind: "ilustracion",
-      escena: "vacio",
-    });
-    expect(visualDeEstado("postulaciones", sinMascota)).toEqual({
-      kind: "ilustracion",
-      escena: "postulaciones",
-    });
-    expect(visualDeEstado("error", sinMascota)).toEqual({ kind: "ilustracion", escena: "error" });
+describe("poseDeEstado", () => {
+  it("todo tipo de vacío tiene una de las nueve poses reales", () => {
+    for (const t of ESTADOS_TIPOS) expect(MASCOTA_POSES).toContain(poseDeEstado(t));
   });
 
-  it("sin mascota ni escena: el monograma", () => {
-    expect(visualDeEstado("sin-resultados", sinMascota)).toEqual({ kind: "monograma" });
-    expect(visualDeEstado("sin-datos", sinMascota)).toEqual({ kind: "monograma" });
+  it("los vacíos genéricos van con `quieto`", () => {
+    expect(poseDeEstado("lista-vacia")).toBe("quieto");
+    expect(poseDeEstado("sin-resultados")).toBe("quieto");
+    expect(poseDeEstado("sin-datos")).toBe("quieto");
   });
 
-  it("cuando la pose existe, la mascota tiene prioridad", () => {
-    for (const t of ESTADOS_TIPOS) expect(visualDeEstado(t, conMascota).kind).toBe("mascota");
+  it("Tracker y los errores «lo estamos revisando» van con `analizando`", () => {
+    expect(poseDeEstado("postulaciones")).toBe("analizando");
+    expect(poseDeEstado("error")).toBe("analizando");
   });
 
-  it("una pose que falta cae a la ilustración o al monograma, nunca a un hueco", () => {
-    for (const t of ESTADOS_TIPOS) {
-      expect(["ilustracion", "monograma"]).toContain(visualDeEstado(t, sinMascota).kind);
-    }
-  });
-
-  it("por defecto lee las banderas reales de lib/mascota", () => {
-    const real = visualDeEstado("lista-vacia");
-    expect(real.kind).toBe(MASCOTA_DISPONIBLE.quieta ? "mascota" : "ilustracion");
+  it("la pantalla puede pedir otra pose y esa gana", () => {
+    expect(poseDeEstado("lista-vacia", "trabajando")).toBe("trabajando");
+    expect(poseDeEstado("error", "quieto")).toBe("quieto");
   });
 });

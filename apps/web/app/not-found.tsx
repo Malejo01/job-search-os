@@ -14,6 +14,7 @@ export default function NotFound() {
     <main id="contenido">
       <FullScreenState
         logo
+        pose="quieto"
         title="No encontramos esta página"
         actions={
           <Link href="/" className={buttonClasses()}>
