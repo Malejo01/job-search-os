@@ -10,7 +10,7 @@ export const metadata = { title: T.title, robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 /**
- * Recorrido para revisar (R26-03): la lista de pantallas que miran Ani, Julieta y los testers. Solo admins y
+ * Recorrido para revisar (R26-03): la lista de pantallas que miran Ani y los testers. Solo admins y
  * testers (`canViewRecorrido`, comprobado en el servidor antes de leer nada); el resto recibe el 404. «Abrir»
  * lleva a la pantalla real con los datos de quien revisa: la primera oferta y la primera simulación se
  * resuelven acá, con su sesión (RLS), y al cliente solo llegan los links. Server Component; el progreso y

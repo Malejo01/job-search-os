@@ -1,5 +1,5 @@
 /**
- * Contenido del recorrido para revisar (R26-03): las pantallas que miran Ani, Julieta y los testers, en los
+ * Contenido del recorrido para revisar (R26-03): las pantallas que miran Ani y los testers, en los
  * mismos grupos que el menú. Cada una dice qué es en una línea y tres cosas para mirar, en palabras de
  * quien no programa. Sin imports y sin I/O: lo lee la página (servidor), el listado (cliente) y los tests.
  *
