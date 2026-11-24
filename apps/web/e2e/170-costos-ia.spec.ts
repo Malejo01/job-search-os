@@ -38,7 +38,7 @@ test.describe("Flujo 170: costos de IA (R21-01)", () => {
     await login(page);
     await page.goto("/settings");
     await page.getByRole("link", { name: "Costos de IA" }).click();
-    await expect(page).toHaveURL(/\/settings\/costos$/);
+    await expect(page).toHaveURL(/\/admin\/costos$/);
     await expect(page.getByRole("heading", { level: 1, name: "Costos de IA" })).toBeVisible();
     await expect(page.getByTestId("costos-proyeccion")).toHaveAttribute(
       "data-level",

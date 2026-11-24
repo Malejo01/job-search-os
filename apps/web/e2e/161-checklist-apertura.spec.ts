@@ -49,7 +49,7 @@ test.describe("Flujo 161: checklist de apertura (R22-05)", () => {
     await login(page);
     await page.goto("/settings");
     await page.getByRole("link", { name: "Checklist de apertura" }).click();
-    await expect(page).toHaveURL(/\/settings\/apertura$/);
+    await expect(page).toHaveURL(/\/admin\/apertura$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Checklist de apertura" }),
     ).toBeVisible();

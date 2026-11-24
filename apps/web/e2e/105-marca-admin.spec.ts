@@ -35,7 +35,7 @@ test.describe("Flujo 105: vitrina de marca", () => {
       await login(page);
       await page.goto("/settings");
       await page.getByRole("link", { name: /^Marca/ }).click();
-      await expect(page).toHaveURL(/\/settings\/marca$/);
+      await expect(page).toHaveURL(/\/admin\/marca$/);
       await expect(page.getByRole("heading", { level: 1, name: "Marca" })).toBeVisible();
       const light = page.getByRole("region", { name: "Claro" });
       const dark = page.getByRole("region", { name: "Oscuro" });

@@ -21,7 +21,7 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
       await page
         .getByRole("link", { name: "Ver los componentes del rediseño en todos sus estados" })
         .click();
-      await expect(page).toHaveURL(/\/settings\/marca\/componentes$/);
+      await expect(page).toHaveURL(/\/admin\/marca\/componentes$/);
       await expect(page.getByRole("heading", { level: 1, name: "Componentes" })).toBeVisible();
       await expect(page.getByRole("region", { name: "En claro" })).toBeVisible();
       await expect(page.getByRole("region", { name: "En oscuro" })).toBeVisible();

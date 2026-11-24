@@ -36,7 +36,7 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
     await login(page);
     await page.goto("/settings");
     await page.getByRole("link", { name: "Salud de la beta" }).click();
-    await expect(page).toHaveURL(/\/settings\/salud$/);
+    await expect(page).toHaveURL(/\/admin\/salud$/);
     await expect(page.getByRole("heading", { level: 1, name: "Salud de la beta" })).toBeVisible();
     // R8-7: cuatro señales más (evaluaciones fallidas, pool, emails sin parser, invitaciones)
     for (const key of [
