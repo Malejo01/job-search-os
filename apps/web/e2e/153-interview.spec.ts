@@ -201,15 +201,17 @@ async function openInProgress(page: Page): Promise<void> {
   await expect(page.getByTestId("interview-answer")).toBeVisible();
 }
 
-test("sin dictado en el navegador no hay micrófono y se puede responder escribiendo", async ({
-  page,
-}) => {
+test("sin dictado en el navegador se puede responder escribiendo", async ({ page }) => {
   await page.addInitScript(() => {
     Reflect.deleteProperty(window, "SpeechRecognition");
     Reflect.deleteProperty(window, "webkitSpeechRecognition");
   });
   await openInProgress(page);
-  await expect(page.getByTestId("dictar")).toHaveCount(0);
+  // R25-05: sin dictado propio se graba (servidor en `testers`) o se muestra un mensaje en vez del botón
+  await expect(page.getByTestId("voice-input")).toBeVisible();
+  if (process.env.E2E_VOICE_SERVER_MODE !== "testers") {
+    await expect(page.getByTestId("voice-boton")).toHaveCount(0);
+  }
   await page.getByTestId("interview-answer").fill(GOOD_ANSWER);
   await expect(page.getByTestId("interview-send")).toBeVisible();
 });
@@ -232,8 +234,8 @@ test("con dictado en el navegador aparece el micrófono con su aviso de privacid
     });
   });
   await openInProgress(page);
-  await expect(page.getByTestId("dictar-boton")).toBeVisible();
-  await expect(page.getByTestId("dictar")).toContainText("no lo grabamos");
+  await expect(page.getByTestId("voice-boton")).toBeVisible();
+  await expect(page.getByTestId("voice-input")).toContainText("no lo grabamos");
   await expectNoOverflowNorAxe(page);
 });
 

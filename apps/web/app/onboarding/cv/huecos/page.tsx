@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ProfileGaps } from "@/components/profile-agent/gaps";
 import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { requireUserId } from "@/lib/session";
+import { voiceServerAllowedFor } from "@/lib/voice/server";
 
 export const metadata = { title: "Completemos lo que falta" };
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingHuecosPage() {
   const userId = await requireUserId();
   if (!(await profileAgentAllowedFor(userId))) notFound();
+  const serverTranscribe = await voiceServerAllowedFor(userId);
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-title font-bold">Completemos lo que falta</h1>
@@ -20,7 +22,7 @@ export default async function OnboardingHuecosPage() {
         Te pregunto de a una cosa, solo sobre lo que quedó flojo o sin completar. Podés responder
         «No tengo» o saltear. Nada cambia en tu perfil hasta que confirmes cada tarjeta.
       </p>
-      <ProfileGaps base="onboarding" />
+      <ProfileGaps base="onboarding" serverTranscribe={serverTranscribe} />
     </div>
   );
 }

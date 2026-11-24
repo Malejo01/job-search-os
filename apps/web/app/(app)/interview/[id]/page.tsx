@@ -5,6 +5,7 @@ import { ContextHelp } from "@/components/context-help";
 import { textLinkClasses } from "@/components/ui";
 import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
 import { requireActiveUserId } from "@/lib/session";
+import { voiceServerAllowedFor } from "@/lib/voice/server";
 import { loadSession } from "../server";
 import type { RetrySource } from "./retry-button";
 import { Simulator, type AnswerView } from "./simulator";
@@ -24,7 +25,10 @@ export default async function InterviewSessionPage({
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
   const userId = await requireActiveUserId();
-  const loaded = await loadSession(userId, id);
+  const [loaded, serverTranscribe] = await Promise.all([
+    loadSession(userId, id),
+    voiceServerAllowedFor(userId),
+  ]);
   if (!loaded) notFound();
 
   const answers: AnswerView[] = loaded.answers.map((a) => ({
@@ -61,6 +65,7 @@ export default async function InterviewSessionPage({
         questions={loaded.session.questions}
         initialAnswers={answers}
         source={source}
+        serverTranscribe={serverTranscribe}
         starHelp={
           <ContextHelp
             slug={AYUDAS_ACADEMY.star.slug}

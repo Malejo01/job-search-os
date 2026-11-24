@@ -131,6 +131,8 @@ El coach comparte con el agente de perfil los topes por persona y día (#37) y e
 | 61 | Puestos a la vez | Carreras que puede tener una persona en el plan gratis (el de pago: 4, en `plans.ts:65`) | 2 | `packages/pipeline/src/skills/target-roles.ts:9` (lectura `:24`) | `TARGET_ROLES_FREE_LIMIT` (entero 1 a 16; inválido = 2) |
 | 62 | Ofertas cargadas a mano por persona | Total de ofertas manuales | 1.000 | `packages/pipeline/src/quota.ts:10` | Fijo (por persona) |
 | 63 | Candidatas del pool | Candidatas que mira la selección por persona | 300 | `packages/adapters/src/pool/select.ts:45` | Fijo |
+| 85 | Voz por persona y día | Minutos de audio transcriptos en el servidor en 24 h (reserva antes de llamar; se cuenta solo lo que respondió; además rigen los topes de USD global y por persona, `LLM_DAILY_CAP_USD` y `LLM_USER_DAILY_CAP_USD`) | 20 minutos (1.200 s) | `packages/pipeline/src/voice/limits.ts:21` (lectura `:33`; cupo en `packages/adapters/src/voice/reserve.ts`) | **Nueva (R25-03):** `VOICE_DAILY_MINUTES` (entero 1 a 1.440; inválido = 20) |
+| 86 | Una grabación de voz | 120 s declarados, 2 MB y 32 kB por segundo (control contra una duración declarada de menos) | 120 s · 2 MB | `packages/pipeline/src/voice/limits.ts:13` a `:27` | Fijo (seguridad de entrada) |
 
 ### 9. Correo entrante y avisos
 
@@ -183,7 +185,7 @@ No son topes de gasto ni de cupo: protegen contra entradas enormes o mal formada
 
 ### Resumen
 
-- **Topes inventariados:** 84 filas numeradas más la familia de límites de entrada del punto 12.
+- **Topes inventariados:** 86 filas (las 85 y 86, de la voz, son de la R25-03) numeradas más la familia de límites de entrada del punto 12.
 - **Ya eran variables, de gasto y uso:** 17 (más cuatro de retención, infraestructura y timeout: `POOL_BACKFILL_DAYS`, `INBOUND_RAW_RETENTION_DAYS`, `DB_POOL_MAX`, `LLM_CALL_TIMEOUT_MS`) (`LLM_DAILY_CAP_USD`, `LLM_USER_DAILY_CAP_USD`, `LLM_RESERVE_MAX_CONCURRENT`, `ASSISTANT_MAX_TURNS`, `ASSISTANT_MAX_USD_PER_CONVERSATION`, `ASSISTANT_MONTHLY_CONVERSATIONS`, `CV_CHAT_DAILY_CAP_USD`, `CV_PROFILE_AGENT_DAILY_CAP_USD`, `POOL_FIRST_ASSIGN_LIMIT`, `FIRST_EVAL_TOP_N`, `POOL_DAILY_ASSIGN_LIMIT`, `POOL_DAILY_EVAL_PER_USER`, `EVALUATE_MAX_CONSECUTIVE_FAILURES`, `TARGET_ROLES_FREE_LIMIT`, `INBOUND_MAX_BYTES_PER_USER`, `PLAN_NOTICE_DAILY_CAP`, `WAITLIST_INVITE_CAP`).
 - **Pasaron a variable en la R21-04 (15):** `INTERVIEW_MAX_SIMULATIONS_PER_DAY`, `CV_CHAT_MAX_COST_USD`, `CV_CHAT_USER_DAILY_CAP_USD`, `CV_CHAT_MAX_STARTS_PER_DAY`, `CV_PROFILE_AGENT_MAX_READS_PER_DAY`, `CV_PROFILE_AGENT_MAX_FLOW_COST_USD`, `CV_PROFILE_AGENT_USER_DAILY_CAP_USD`, `CV_COACH_MAX_FLOW_COST_USD`, `IMAGE_DAILY_LIMIT`, `IMAGE_ATTEMPTS_DAILY_LIMIT`, `FEEDBACK_DAILY_LIMIT`, `POOL_QUEUE_MAX_PER_HOUR`, `POOL_QUEUE_MAX_PER_DAY`, `DEMO_WEEKLY_CAP_USD`, `EVALUATE_CRON_LIMIT`.
 - **Por plan (fijos, sin tocar):** `FREE_LIMITS` y `PAID_LIMITS` en `packages/pipeline/src/plans.ts:53` y `:60`, y `PERSON_QUOTA` en `quota.ts`. Cambiarlos exige rehacer la estructura de `plans.ts`: no entra en esta tanda.
@@ -209,6 +211,7 @@ POOL_QUEUE_MAX_PER_HOUR=30
 POOL_QUEUE_MAX_PER_DAY=200
 DEMO_WEEKLY_CAP_USD=1
 EVALUATE_CRON_LIMIT=50
+VOICE_DAILY_MINUTES=20
 ```
 
 Los valores son los de hoy: copiarlos tal cual no cambia nada. Para operar, se cambia el número.
