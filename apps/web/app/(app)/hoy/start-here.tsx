@@ -122,7 +122,7 @@ export async function StartHere({
           {tasks.length - pending.length} de {tasks.length} listos.
         </span>
       </div>
-      <ol className="m-0 flex list-none flex-col gap-2.5 p-0 sm:gap-3.5">
+      <ol className="m-0 flex list-none flex-col gap-0.5 p-0 sm:gap-3.5">
         {tasks.map((task) => (
           <li
             key={task.id}
@@ -141,7 +141,7 @@ export async function StartHere({
             ) : task.link ? (
               <Link
                 href={task.link.href}
-                className="text-sm font-bold text-fg hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus sm:text-[15px]"
+                className="inline-flex min-h-11 items-center text-sm font-bold text-fg hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus sm:min-h-0 sm:text-[15px]"
               >
                 {task.title}
                 <span className="sr-only"> (pendiente)</span>

@@ -3,7 +3,13 @@ import type { ReactNode } from "react";
 import { APPLICATION_OUTCOMES } from "@job-search-os/pipeline";
 import { buttonClasses, inputClasses } from "@/components/ui";
 import type { ApplicationView } from "@/lib/applications";
-import { ACTION_LABELS, OUTCOME_CLASSES, OUTCOME_LABELS, STATUS_LABELS } from "@/lib/labels";
+import {
+  ACTION_LABELS,
+  formatScoreNumber,
+  OUTCOME_CLASSES,
+  OUTCOME_LABELS,
+  STATUS_LABELS,
+} from "@/lib/labels";
 import { setOutcomeAction } from "@/app/(app)/applications/actions";
 
 function OutcomeForm({ a }: { a: ApplicationView }) {
@@ -65,7 +71,7 @@ export function ApplicationRow({
             {a.appliedAt ? ` · postulada ${a.appliedAt}` : ""}
             {a.channel ? ` · ${a.channel}` : ""}
             {a.score !== null
-              ? ` · score ${a.score}${a.accion ? ` (${ACTION_LABELS[a.accion] ?? a.accion})` : ""}`
+              ? ` · puntaje ${formatScoreNumber(a.score)}${a.accion ? ` (${ACTION_LABELS[a.accion] ?? a.accion})` : ""}`
               : " · sin evaluación"}
             {a.model === "fake" ? " · modo demo" : ""}
           </p>

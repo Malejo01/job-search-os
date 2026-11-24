@@ -1,5 +1,5 @@
 import { SELF_LEVELS, type AgendaRow } from "@job-search-os/pipeline";
-import { SKILL_CATEGORY_LABEL } from "@/lib/labels";
+import { formatDecimal, SKILL_CATEGORY_LABEL } from "@/lib/labels";
 import type { MarketView } from "@/lib/market";
 
 function levelText(level: number | null): string {
@@ -48,7 +48,7 @@ export function SkillRows({
                 </span>
                 <span className="w-12 text-right tabular-nums text-fg">
                   <span className="sr-only">Demanda: </span>
-                  {r.weightedDemand.toFixed(1)}
+                  {formatDecimal(r.weightedDemand, 1)}
                 </span>
               </li>
             );
@@ -74,7 +74,7 @@ export function SkillRows({
                 <div>
                   <dt className="text-fg-subtle">Demanda</dt>
                   <dd className="text-sm font-medium tabular-nums text-fg">
-                    {r.weightedDemand.toFixed(1)}
+                    {formatDecimal(r.weightedDemand, 1)}
                   </dd>
                 </div>
                 <div>
@@ -133,7 +133,7 @@ export function SkillRows({
                   <td className="py-1 pr-2 text-right tabular-nums">{r.mentions}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">{r.mustMentions}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">
-                    {r.weightedDemand.toFixed(1)}
+                    {formatDecimal(r.weightedDemand, 1)}
                   </td>
                   <td className="py-1 text-right tabular-nums text-fg-subtle">
                     {k?.closureHours ?? ""}

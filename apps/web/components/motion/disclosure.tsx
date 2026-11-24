@@ -1,16 +1,24 @@
 "use client";
 
-import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { barMotion, disclosureMotion } from "./motion-config";
 
 const OpenCount = createContext(0);
+
+function prefersReducedMotion(): boolean {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Detalle plegable con transición de altura (R23-06). Sigue siendo un `<details>` nativo (teclado,
  * sin JS no cambia nada): al abrirlo, el contenido crece desde altura 0. Cerrar es inmediato, como
  * el nativo. Cuenta las aperturas para que las barras de adentro (`GrowBar`) crezcan cada vez.
  * Con «reducir movimiento» no hay animación. El contenido llega ya armado desde el servidor.
+ * R24-04b: la transición usa la Web Animations API (sin Framer Motion en el cliente).
  */
 export function AnimatedDetails({
   summary,
@@ -25,30 +33,31 @@ export function AnimatedDetails({
   className?: string;
   "data-testid"?: string;
 }) {
-  const reduce = useReducedMotion() ?? false;
   const [openCount, setOpenCount] = useState(0);
-  const motion = disclosureMotion({ reduce, openCount });
+  const panel = useRef<HTMLDivElement>(null);
   return (
-    <LazyMotion features={domAnimation} strict>
-      <details
-        {...rest}
-        onToggle={(e) => {
-          if (e.currentTarget.open) setOpenCount((n) => n + 1);
-        }}
-      >
-        <summary className={summaryClassName}>{summary}</summary>
-        {/* key: cada apertura vuelve a montar el panel y arranca la transición */}
-        <m.div
-          key={openCount}
-          initial={motion.initial}
-          animate={motion.animate}
-          transition={motion.transition}
-          className="overflow-hidden"
-        >
-          <OpenCount.Provider value={openCount}>{children}</OpenCount.Provider>
-        </m.div>
-      </details>
-    </LazyMotion>
+    <details
+      {...rest}
+      onToggle={(e) => {
+        if (!e.currentTarget.open) return;
+        const next = openCount + 1;
+        setOpenCount(next);
+        const motion = disclosureMotion({ reduce: prefersReducedMotion(), openCount: next });
+        if (motion.initial === false) return;
+        panel.current?.animate?.(
+          [
+            { height: "0px", opacity: 0 },
+            { height: `${panel.current.scrollHeight}px`, opacity: 1 },
+          ],
+          { duration: motion.transition.duration * 1000, easing: "ease-out" },
+        );
+      }}
+    >
+      <summary className={summaryClassName}>{summary}</summary>
+      <div ref={panel} className="overflow-hidden">
+        <OpenCount.Provider value={openCount}>{children}</OpenCount.Provider>
+      </div>
+    </details>
   );
 }
 
@@ -62,15 +71,22 @@ export function GrowBar({
   index: number;
   className?: string;
 }) {
-  const reduce = useReducedMotion() ?? false;
   const openCount = useContext(OpenCount);
-  const motion = barMotion({ reduce, openCount, percent, index });
-  return (
-    <m.div
-      initial={motion.initial}
-      animate={motion.animate}
-      transition={motion.transition}
-      className={className}
-    />
-  );
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const motion = barMotion({
+      reduce: prefersReducedMotion(),
+      openCount,
+      percent,
+      index,
+    });
+    if (motion.initial === false) return;
+    ref.current?.animate?.([{ width: "0%" }, { width: `${percent}%` }], {
+      duration: motion.transition.duration * 1000,
+      delay: motion.transition.delay * 1000,
+      easing: "ease-out",
+      fill: "backwards",
+    });
+  }, [openCount, percent, index]);
+  return <div ref={ref} style={{ width: `${percent}%` }} className={className} />;
 }

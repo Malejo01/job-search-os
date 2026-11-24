@@ -1,41 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import type { CvTailorOutput } from "@job-search-os/pipeline";
-import { buttonClasses } from "@/components/ui";
-import { CvTailorPanel } from "@/components/cv-tailor/cv-tailor-panel";
+import { lazy, Suspense } from "react";
 
-/**
- * Versión adaptada con IA dentro de «Preparar mi postulación» (R20-04b). Se monta solo si el flag está
- * prendido (lo decide la página, en el servidor). Cuando hay una propuesta ya verificada, ofrece bajar el
- * .docx: un formulario POST normal manda la propuesta a la ruta de descarga, que la vuelve a verificar
- * contra el CV de hoy y, si no sirve, cae en la versión sin IA. El navegador no guarda nada.
- */
+// R24-04b: todo el bloque (panel, botón de descarga y sus dependencias) va en un chunk aparte; solo lo
+// baja quien tiene prendido el flag. Acá queda lo mínimo para que la ruta no lo cuente en su First Load.
+const Cuerpo = lazy(() => import("./postular-tailor-cuerpo"));
+
+/** Versión adaptada con IA dentro de «Preparar mi postulación» (R20-04b); la monta la página si el flag está prendido. */
 export function PostularTailor({ jobId }: { jobId: string }) {
-  const [proposal, setProposal] = useState<CvTailorOutput | null>(null);
   return (
-    <div className="flex flex-col gap-3" data-testid="postular-tailor">
-      <CvTailorPanel jobId={jobId} onResult={setProposal} />
-      {proposal ? (
-        <form
-          method="post"
-          action={`/jobs/${jobId}/postular/descargar`}
-          className="flex flex-col gap-1"
-        >
-          <input type="hidden" name="proposal" value={JSON.stringify(proposal)} />
-          <button
-            type="submit"
-            data-testid="descargar-cv-adaptado"
-            className={`${buttonClasses({ size: "sm" })} w-fit`}
-          >
-            Descargar la versión adaptada (.docx)
-          </button>
-          <p className="text-xs text-fg-subtle">
-            Se vuelve a verificar contra tu CV al descargar. Si algo no coincide, baja la versión
-            sin IA.
-          </p>
-        </form>
-      ) : null}
-    </div>
+    <Suspense fallback={null}>
+      <Cuerpo jobId={jobId} />
+    </Suspense>
   );
 }

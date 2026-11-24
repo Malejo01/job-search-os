@@ -10,8 +10,8 @@ import { Icon, type IconName } from "./icons";
  *   píldora de 4×10. El signo y el texto van siempre: el color nunca es la única señal. No se toca.
  * - `filterChipClasses` (`.chip` y `.chipon`): un chip o filtro que se toca (`<button>`,
  *   `<Link>`): píldora blanca con borde de 2 px y 4 abajo que se hunde, 13 px 700; el elegido va en
- *   lima con borde índigo (uno de los tres lugares de la lima). Mide 38 px como la referencia, y el
- *   área que se toca llega a 44 con un margen invisible. Quien lo usa pone `aria-pressed` o
+ *   lima con borde índigo (uno de los tres lugares de la lima). En el celular mide 44 px; desde
+ *   `sm`, 38 como la referencia, con el área que se toca ampliada a 44 por un margen invisible. Quien lo usa pone `aria-pressed` o
  *   `aria-current`.
  */
 export type ChipTone = "have" | "missing" | "neutral";
@@ -79,8 +79,10 @@ export function filterChipClasses({
   className?: string;
 } = {}): string {
   return cx(
-    "pressable edge-4 relative inline-flex items-center justify-center gap-1.5 rounded-pill border-x-2 border-t-2 px-3.5 py-2 [--jso-edge-top:2px] text-[13px] leading-[1.2] font-bold whitespace-nowrap before:absolute before:inset-x-0 before:-inset-y-[3px] before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-    !compact && "min-h-11",
+    "pressable edge-4 relative inline-flex items-center justify-center gap-1.5 rounded-pill border-x-2 border-t-2 px-3.5 py-2 [--jso-edge-top:2px] text-[13px] leading-[1.2] font-bold whitespace-nowrap before:absolute before:inset-x-0 before:inset-y-0 before:content-[''] sm:before:-inset-y-[3px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+    // R24-03: en el celular el chip mide 44 px de verdad (antes 38 más un margen invisible, que axe y
+    // las personas con temblor no «ven»); desde `sm` vuelve a 38 con el área táctil ampliada.
+    compact ? "min-h-11 sm:min-h-0" : "min-h-11",
     selected
       ? "border-brand-contrast bg-brand text-brand-contrast"
       : "border-line-strong bg-surface text-fg hover:bg-surface-muted",
