@@ -1,17 +1,28 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { lazy, Suspense, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import {
   INTERVIEW_ANSWER_MAX_CHARS,
-  interviewAverage,
+  buildInterviewReport,
   interviewScoreLevel,
   type InterviewScoreLevel,
 } from "@job-search-os/pipeline";
 import { Dictar } from "@/components/dictar";
+import { PrintButton } from "@/components/print-button";
 import { Alert, Button, buttonClasses, Card, inputClasses, labelClasses } from "@/components/ui";
 import { answerInterviewAction } from "../actions";
-import { ANSWER_ERRORS, CRITERIA, formatAverage, scoreWord } from "../copy";
+import { ANSWER_ERRORS, CRITERIA, formatAverage, scoreWord } from "../copy-cliente";
+import { INTERVIEW_CLIENTE as INTERVIEW_TEXTOS } from "@/lib/textos-interview";
+import { AnswerSkeleton } from "./answer-skeleton";
+import type { RetrySource } from "./retry-button";
+
+// R23-09: el informe y «Practicar de nuevo» solo se ven al terminar; se cargan recién ahí y no suman
+// al First Load. `lazy` y no `next/dynamic`: este último agrega su propio cargador al bundle.
+const InterviewReportView = lazy(() =>
+  import("./report").then((m) => ({ default: m.InterviewReportView })),
+);
+const RetryButton = lazy(() => import("./retry-button").then((m) => ({ default: m.RetryButton })));
 
 export type AnswerView = {
   position: number;
@@ -24,9 +35,17 @@ export type AnswerView = {
 };
 
 const TOTAL = 5;
+/** Errores de envío que se arreglan probando de nuevo con el mismo texto (los demás piden cambiar algo). */
+const RETRYABLE = new Set(["busy", "llm_failed", "server", "capped"]);
 
 /** Los tres puntajes de una respuesta con su palabra. El número y la palabra siempre van juntos. */
-function Scores({ item }: { item: Pick<AnswerView, "clarity" | "relevance" | "star"> }) {
+function Scores({
+  item,
+  starHelp,
+}: {
+  item: Pick<AnswerView, "clarity" | "relevance" | "star">;
+  starHelp?: ReactNode;
+}) {
   return (
     <dl className="grid gap-3 sm:grid-cols-3">
       {CRITERIA.map(({ key, label }) => {
@@ -34,7 +53,10 @@ function Scores({ item }: { item: Pick<AnswerView, "clarity" | "relevance" | "st
         const level: InterviewScoreLevel = interviewScoreLevel(value);
         return (
           <div key={key} className="rounded-control bg-surface-muted p-3">
-            <dt className="text-[13px] font-extrabold text-fg-muted">{label}</dt>
+            <dt className="flex items-center text-[13px] font-extrabold text-fg-muted">
+              {label}
+              {key === "star" ? starHelp : null}
+            </dt>
             <dd className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-extrabold text-fg">{value}</span>
               <span className="text-sm font-semibold text-fg-muted">
@@ -48,10 +70,10 @@ function Scores({ item }: { item: Pick<AnswerView, "clarity" | "relevance" | "st
   );
 }
 
-function FeedbackCard({ item }: { item: AnswerView }) {
+function FeedbackCard({ item, starHelp }: { item: AnswerView; starHelp?: ReactNode }) {
   return (
     <div className="flex flex-col gap-4" data-testid="interview-feedback">
-      <Scores item={item} />
+      <Scores item={item} starHelp={starHelp} />
       <div>
         <h2 className="text-[13px] font-extrabold text-fg-muted">Un consejo</h2>
         <p className="mt-1 text-base text-fg" data-testid="interview-tip">
@@ -78,11 +100,16 @@ export function Simulator({
   title,
   questions,
   initialAnswers,
+  source,
+  starHelp,
 }: {
   sessionId: string;
   title: string;
   questions: string[];
   initialAnswers: AnswerView[];
+  source: RetrySource;
+  /** «?» del método STAR: Server Component armado en la página y pasado como elemento. */
+  starHelp?: ReactNode;
 }) {
   const uid = useId();
   const [answers, setAnswers] = useState<AnswerView[]>(initialAnswers);
@@ -90,6 +117,7 @@ export function Simulator({
   const [reviewing, setReviewing] = useState(false);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
   const [pending, startTransition] = useTransition();
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -102,12 +130,18 @@ export function Simulator({
 
   function send(event: React.FormEvent) {
     event.preventDefault();
+    submit();
+  }
+
+  function submit() {
     if (pending) return;
     setError(null);
+    setErrorCode(null);
     startTransition(async () => {
       const result = await answerInterviewAction({ sessionId, answer: text });
       if (!result.ok) {
         setError(ANSWER_ERRORS[result.error] ?? ANSWER_ERRORS.server!);
+        setErrorCode(result.error);
         return;
       }
       setAnswers((prev) => [
@@ -132,9 +166,11 @@ export function Simulator({
   }
 
   if (done) {
-    const average = interviewAverage(answers);
+    const built = buildInterviewReport(answers);
+    const report = built.ok ? built.value : null;
+    const average = report ? report.overall : null;
     return (
-      <div className="flex flex-col gap-5" data-testid="interview-summary">
+      <div className="interview-report flex flex-col gap-5" data-testid="interview-summary">
         <section
           aria-labelledby={`${uid}-resumen`}
           className="rounded-card bg-ink p-5 text-on-ink sm:p-6"
@@ -151,6 +187,21 @@ export function Simulator({
             </p>
           ) : null}
         </section>
+        {report ? (
+          <Suspense fallback={null}>
+            <InterviewReportView report={report} questions={questions} starHelp={starHelp} />
+          </Suspense>
+        ) : null}
+        <div className="no-print flex flex-wrap items-start gap-3">
+          <Suspense fallback={null}>
+            <RetryButton source={source} />
+          </Suspense>
+          <PrintButton label="Imprimir o guardar como PDF" />
+          <Link href="/interview" className={buttonClasses({ variant: "secondary", size: "md" })}>
+            Volver a Interview
+          </Link>
+        </div>
+        <h2 className="text-lg font-extrabold text-fg">Respuesta por respuesta</h2>
         <ol className="flex flex-col gap-4">
           {answers.map((a) => (
             <Card
@@ -158,13 +209,13 @@ export function Simulator({
               key={a.position}
               level="list"
               padding="md"
-              className="flex flex-col gap-3"
+              className="print-card flex flex-col gap-3"
             >
               <p className="text-[13px] font-extrabold text-fg-muted">
                 Pregunta {a.position + 1} de {TOTAL}
               </p>
               <p className="text-base font-bold text-fg">{questions[a.position]}</p>
-              <Scores item={a} />
+              <Scores item={a} starHelp={starHelp} />
               <p className="text-base text-fg">
                 <span className="font-bold">Consejo: </span>
                 {a.tip}
@@ -172,12 +223,6 @@ export function Simulator({
             </Card>
           ))}
         </ol>
-        <Link
-          href="/interview"
-          className={buttonClasses({ variant: "secondary", size: "md", className: "self-start" })}
-        >
-          Volver a Interview
-        </Link>
       </div>
     );
   }
@@ -226,7 +271,7 @@ export function Simulator({
                 {INTERVIEW_ANSWER_MAX_CHARS} caracteres.
               </Alert>
             ) : null}
-            <FeedbackCard item={last} />
+            <FeedbackCard item={last} starHelp={starHelp} />
             <Button
               type="button"
               size="md"
@@ -275,10 +320,22 @@ export function Simulator({
               <Button type="submit" size="md" aria-disabled={pending} data-testid="interview-send">
                 {pending ? "Evaluando tu respuesta…" : "Enviar respuesta"}
               </Button>
+              {error && errorCode && RETRYABLE.has(errorCode) && !pending ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={submit}
+                  data-testid="interview-answer-retry"
+                >
+                  {INTERVIEW_TEXTOS.retry}
+                </Button>
+              ) : null}
               <span role="status" className="text-sm text-fg-muted">
                 {pending ? "Esto puede tardar unos segundos." : ""}
               </span>
             </div>
+            {pending ? <AnswerSkeleton /> : null}
           </form>
         </Card>
       )}

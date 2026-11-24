@@ -1,7 +1,11 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s, type Db } from "@job-search-os/db";
-import { err, INTERVIEW_MAX_SIMULATIONS_PER_DAY } from "@job-search-os/pipeline";
+import {
+  err,
+  INTERVIEW_MAX_SIMULATIONS_PER_DAY,
+  interviewNextSlotAt,
+} from "@job-search-os/pipeline";
 import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { drizzleCallSink } from "../llm/calls";
@@ -11,7 +15,8 @@ import { LLM_RESERVE_TTL_MS } from "../llm/spend-reserve";
 import type { LlmClient } from "../llm/types";
 import { INTERVIEW_START_LABEL_PREFIX } from "./reserve";
 import { answerInterview, startInterview, type InterviewDeps } from "./service";
-import { loadInterviewSession } from "./store";
+import { deleteInterviewSession, loadInterviewSession } from "./store";
+import { countInterviewStarts, interviewStartTimes } from "./starts";
 
 /**
  * Simulador contra la base: tope de 2 simulaciones por día (también en paralelo), reservas que se sueltan en
@@ -132,6 +137,49 @@ describe("startInterview · tope de simulaciones por día", () => {
     const third = await startInterview(deps, { userId: A, source: career });
     expect(third).toEqual({ ok: false, error: "daily_limit" });
     expect(await sessionsOf(A)).toBe(2);
+  });
+
+  it("borrar una simulación no libera cupo: empezar 2, borrar 1, la tercera sigue frenada", async () => {
+    const deps = makeDeps();
+    const first = await startInterview(deps, { userId: A, source: career });
+    expect(first.ok).toBe(true);
+    expect((await startInterview(deps, { userId: A, source: career })).ok).toBe(true);
+    if (!first.ok) throw new Error("debía empezar");
+    expect(await deleteInterviewSession(conn.db, A, first.value.sessionId)).toBe(true);
+    expect(await sessionsOf(A)).toBe(1);
+    expect(await countInterviewStarts(conn.db, A, new Date())).toBe(2);
+    const third = await startInterview(deps, { userId: A, source: career });
+    expect(third).toEqual({ ok: false, error: "daily_limit" });
+    expect(await sessionsOf(A)).toBe(1);
+  });
+
+  it("lo borrado deja de contar pasadas las 24 horas", async () => {
+    const deps = makeDeps();
+    const first = await startInterview(deps, { userId: A, source: career });
+    if (!first.ok) throw new Error("debía empezar");
+    await deleteInterviewSession(conn.db, A, first.value.sessionId);
+    expect(await countInterviewStarts(conn.db, A, new Date())).toBe(1);
+    const later = new Date(Date.now() + 25 * 60 * 60 * 1000);
+    expect(await countInterviewStarts(conn.db, A, later)).toBe(0);
+  });
+
+  it("los inicios (borradas incluidas) dicen cuándo vuelve el cupo", async () => {
+    const deps = makeDeps();
+    const first = await startInterview(deps, { userId: A, source: career });
+    if (!first.ok) throw new Error("debía empezar");
+    await startInterview(deps, { userId: A, source: career });
+    await deleteInterviewSession(conn.db, A, first.value.sessionId);
+    const times = await interviewStartTimes(conn.db, A, new Date());
+    expect(times).toHaveLength(2);
+    const slot = interviewNextSlotAt(times, 2);
+    const oldest = Math.min(...times.map((t) => t.getTime()));
+    expect(slot?.getTime()).toBe(oldest + 24 * 60 * 60 * 1000);
+  });
+
+  it("las simulaciones de otra persona no cuentan", async () => {
+    const deps = makeDeps();
+    expect((await startInterview(deps, { userId: B, source: career })).ok).toBe(true);
+    expect(await countInterviewStarts(conn.db, A, new Date())).toBe(0);
   });
 
   it("con pedidos en paralelo de la misma persona entran solo dos", async () => {

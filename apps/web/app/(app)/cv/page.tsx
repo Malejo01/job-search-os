@@ -15,7 +15,9 @@ import { canCreateInvitations } from "@/lib/invitations";
 import { buildUserCv, cvChatMode, parseCvOptions } from "@/lib/cv-source";
 import { requireUserId } from "@/lib/session";
 import { loadKeywordMarket } from "./cv-keywords-market";
-import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { EstadoMarca } from "@/components/estado-marca";
+import { buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 
 export const metadata = { title: "CV" };
 export const dynamic = "force-dynamic";
@@ -172,9 +174,19 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
       ) : null}
 
       {!doc ? (
-        <Alert tone="danger" role="alert">
-          Completá tu perfil para armar el CV.
-        </Alert>
+        <EstadoMarca
+          tipo="cv"
+          role="alert"
+          data-testid="cv-sin-perfil"
+          title={ESTADOS_TEXTOS.cvSinPerfil.title}
+          action={
+            <Link href="/settings/perfil" className={buttonClasses()}>
+              {ESTADOS_TEXTOS.cvSinPerfil.action}
+            </Link>
+          }
+        >
+          {ESTADOS_TEXTOS.cvSinPerfil.text}
+        </EstadoMarca>
       ) : (
         <>
           {missing.length > 0 ? (

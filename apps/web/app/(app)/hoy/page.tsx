@@ -16,10 +16,13 @@ import { getDisplayName } from "@/lib/display-name";
 import { getHoyData, type HoyData } from "@/lib/hoy";
 import { parseJobFilters, reviewProgressFor } from "@/lib/jobs";
 import { listPendingJd } from "@/lib/pending-jd";
-import { Card as UiCard, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
+import { Card as UiCard, cardClasses, textLinkClasses } from "@/components/ui";
+import { EstadoMarca } from "@/components/estado-marca";
 import { requireActiveUserId } from "@/lib/session";
 import { getUserPlan } from "@/lib/user-plan";
 import { Illustration } from "@/components/brand/illustration";
+import { ContextHelp } from "@/components/context-help";
+import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
 import { PlanVencido } from "./plan-vencido";
 import { MascotaSaludo } from "./mascota-saludo";
 import { MarkVisit } from "./mark-visit";
@@ -296,12 +299,19 @@ function NewCard({ data }: { data: HoyData }) {
         aria-labelledby="hoy-nuevo-titulo"
         className="flex min-w-0 flex-col gap-3 sm:gap-3.5"
       >
-        <h2
-          id="hoy-nuevo-titulo"
-          className="pl-1 font-sans text-xs font-extrabold text-brand-text sm:pl-0 sm:text-[13px]"
-        >
-          La mejor de hoy
-        </h2>
+        <div className="flex items-center gap-1 pl-1 sm:pl-0">
+          <h2
+            id="hoy-nuevo-titulo"
+            className="font-sans text-xs font-extrabold text-brand-text sm:text-[13px]"
+          >
+            La mejor de hoy
+          </h2>
+          <ContextHelp
+            slug={AYUDAS_ACADEMY.afinidad.slug}
+            term={AYUDAS_ACADEMY.afinidad.term}
+            desde="avisos"
+          />
+        </div>
         <ul className="m-0 list-none p-0">
           <NewJobRow job={best} featured now={new Date()} />
         </ul>
@@ -324,7 +334,8 @@ function NewCard({ data }: { data: HoyData }) {
   return (
     <Card id="hoy-nuevo-titulo" testId="hoy-nuevo" title={title}>
       {empty && empty.counts.total === 0 ? (
-        <EmptyState
+        <EstadoMarca
+          tipo="lista-vacia"
           variant="inline"
           data-testid="hoy-vacio-sin-ofertas"
           action={
@@ -344,9 +355,10 @@ function NewCard({ data }: { data: HoyData }) {
           }
         >
           Todavía no llegaron ofertas para vos: las buscamos todos los días.
-        </EmptyState>
+        </EstadoMarca>
       ) : empty && empty.counts.porEvaluar > 0 ? (
-        <EmptyState
+        <EstadoMarca
+          tipo="sin-datos"
           variant="inline"
           data-testid="hoy-vacio-en-cola"
           action={
@@ -358,9 +370,10 @@ function NewCard({ data }: { data: HoyData }) {
           {empty.counts.porEvaluar === 1
             ? "Estamos evaluando 1 oferta: volvé en un rato."
             : `Estamos evaluando ${empty.counts.porEvaluar} ofertas: volvé en un rato.`}
-        </EmptyState>
+        </EstadoMarca>
       ) : (
-        <EmptyState
+        <EstadoMarca
+          tipo="sin-resultados"
           variant="inline"
           data-testid="hoy-vacio-nada-nuevo"
           action={
@@ -372,7 +385,7 @@ function NewCard({ data }: { data: HoyData }) {
           {since
             ? `Nada nuevo desde tu última visita (${formatDate(since, data.timeZone)}).`
             : "Nada nuevo en la última semana."}
-        </EmptyState>
+        </EstadoMarca>
       )}
     </Card>
   );
@@ -391,8 +404,17 @@ function FollowUpCard({ data, index = 0 }: { data: HoyData; index?: number }) {
       title="Para hacer seguimiento"
       index={index}
     >
+      <p className="flex items-center gap-1 text-xs text-fg-muted">
+        Qué hacer después de postularte
+        <ContextHelp
+          slug={AYUDAS_ACADEMY.seguimiento.slug}
+          term={AYUDAS_ACADEMY.seguimiento.term}
+          desde="postulacion"
+        />
+      </p>
       {followUps.length === 0 ? (
-        <EmptyState
+        <EstadoMarca
+          tipo="sin-datos"
           variant="inline"
           data-testid="hoy-vacio-seguimiento"
           action={
@@ -403,7 +425,7 @@ function FollowUpCard({ data, index = 0 }: { data: HoyData; index?: number }) {
         >
           Nada pendiente. Te lo mostramos acá a los 7 días sin respuesta (5 después de una
           entrevista).
-        </EmptyState>
+        </EstadoMarca>
       ) : (
         <>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -473,7 +495,8 @@ function MarketCard({ data, index = 0 }: { data: HoyData; index?: number }) {
   return (
     <Card id="hoy-mercado-titulo" testId="hoy-mercado" title="Tu mercado esta semana" index={index}>
       {roles.length === 0 ? (
-        <EmptyState
+        <EstadoMarca
+          tipo="sin-datos"
           variant="inline"
           data-testid="hoy-vacio-mercado"
           action={
@@ -483,7 +506,7 @@ function MarketCard({ data, index = 0 }: { data: HoyData; index?: number }) {
           }
         >
           Todavía no elegiste carrera.
-        </EmptyState>
+        </EstadoMarca>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {careers.map(({ role, market }) => {

@@ -13,9 +13,10 @@ import {
   type InterviewFeedbackOutput,
   type InterviewScoreLevel,
 } from "@job-search-os/pipeline";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { activeSessionUserId } from "@/lib/session";
-import { withInterviewDeps } from "./server";
+import { removeSession, withInterviewDeps } from "./server";
 
 /**
  * Server Actions del simulador. Lo que llega del navegador se valida con zod; la persona sale de la sesión,
@@ -67,6 +68,31 @@ export async function startInterviewAction(input: unknown): Promise<StartIntervi
     createLogger({ user_id: userId }).error(
       { err_name: e instanceof Error ? e.name : "unknown" },
       "no se pudo empezar la simulación",
+    );
+    return { ok: false, error: "server" };
+  }
+}
+
+export type DeleteInterviewResult =
+  { ok: true } | { ok: false; error: "not_found" | "unauthorized" | "bad_request" | "server" };
+
+const deleteSchema = z.strictObject({ sessionId: z.string().uuid() });
+
+/** Borra una simulación propia con sus respuestas. La persona sale de la sesión; RLS hace el resto. */
+export async function deleteInterviewAction(input: unknown): Promise<DeleteInterviewResult> {
+  const userId = await activeSessionUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+  const parsed = deleteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "bad_request" };
+  try {
+    const removed = await removeSession(userId, parsed.data.sessionId);
+    if (!removed) return { ok: false, error: "not_found" };
+    revalidatePath("/interview");
+    return { ok: true };
+  } catch (e) {
+    createLogger({ user_id: userId, session_id: parsed.data.sessionId }).error(
+      { err_name: e instanceof Error ? e.name : "unknown" },
+      "no se pudo borrar la simulación",
     );
     return { ok: false, error: "server" };
   }

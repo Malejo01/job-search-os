@@ -11,6 +11,8 @@ import {
   parseFicha,
 } from "../lib/academy";
 
+import { AYUDAS_ACADEMY } from "../lib/textos-rediseno";
+
 const WEB = join(__dirname, "..");
 const FICHAS_DIR = join(WEB, "content", "academy");
 
@@ -43,7 +45,7 @@ describe("filtro por estado", () => {
   });
 
   it("el lector no publica nada mientras todas estén en borrador", () => {
-    expect(loadAcademyFichas().length).toBe(16);
+    expect(loadAcademyFichas().length).toBe(17);
     expect(loadApprovedFichas()).toEqual([]);
     expect(loadApprovedFicha("filtro-ats")).toBeNull();
   });
@@ -80,13 +82,20 @@ describe("control de acceso a los borradores", () => {
   });
 });
 
-describe("las 16 fichas", () => {
+describe("las 17 fichas", () => {
   const files = readdirSync(FICHAS_DIR).filter((f) => f.endsWith(".md"));
   const fichas = loadAcademyFichas();
 
-  it("hay 16, todas en borrador", () => {
-    expect(files).toHaveLength(16);
-    expect(fichas.map((f) => f.estado)).toEqual(Array(16).fill("borrador"));
+  it("hay 17, todas en borrador", () => {
+    expect(files).toHaveLength(17);
+    expect(fichas.map((f) => f.estado)).toEqual(Array(17).fill("borrador"));
+  });
+
+  it("cada «?» de la app apunta a una ficha que existe (R23-04)", () => {
+    const slugs = new Set(fichas.map((f) => f.slug));
+    for (const [clave, a] of Object.entries(AYUDAS_ACADEMY)) {
+      expect(slugs.has(a.slug), `${clave}: falta la ficha ${a.slug}`).toBe(true);
+    }
   });
 
   it("cada una tiene de 120 a 200 palabras", () => {

@@ -13,9 +13,10 @@ import {
 } from "@job-search-os/pipeline";
 import type { LlmClient } from "../llm/types";
 import { interviewLabel } from "./reserve";
+import { INTERVIEW_QUESTIONS_TASK } from "./starts";
 
 /** Tareas de `model_routing` y versiones de prompt del simulador. */
-export const INTERVIEW_QUESTIONS_TASK = "interview_questions";
+export { INTERVIEW_QUESTIONS_TASK };
 export const INTERVIEW_FEEDBACK_TASK = "interview_feedback";
 export const INTERVIEW_QUESTIONS_PROMPT = "interview_questions@v1";
 export const INTERVIEW_FEEDBACK_PROMPT = "interview_feedback@v1";

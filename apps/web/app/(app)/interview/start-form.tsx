@@ -1,12 +1,20 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Card, inputClasses, labelClasses } from "@/components/ui";
 import { startInterviewAction } from "./actions";
 import { SENIORITY_OPTIONS, START_ERRORS } from "./copy";
 
 type Source = "job" | "career";
+
+const slotFormat = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 /**
  * Elegir sobre qué practicar: una oferta guardada o una carrera con su nivel. Client Component porque
@@ -16,10 +24,16 @@ export function StartForm({
   offers,
   suggestedCareer,
   left,
+  seniorityHelp,
+  nextSlotAt = null,
 }: {
+  /** Cuándo vuelve a habilitarse una simulación (ISO), si hoy no quedan. */
+  nextSlotAt?: string | null;
   offers: { id: string; title: string; company: string }[];
   suggestedCareer: string;
   left: number;
+  /** «?» de seniority: es un Server Component, así que llega armado desde la página. */
+  seniorityHelp?: ReactNode;
 }) {
   const router = useRouter();
   const uid = useId();
@@ -50,7 +64,13 @@ export function StartForm({
   const canSubmit = source === "job" ? jobId !== "" : career.trim() !== "";
 
   return (
-    <Card as="section" aria-labelledby={`${uid}-titulo`} level="featured" padding="md">
+    <Card
+      as="section"
+      id="interview-empezar"
+      aria-labelledby={`${uid}-titulo`}
+      level="featured"
+      padding="md"
+    >
       <form onSubmit={submit} className="flex flex-col gap-4" data-testid="interview-start">
         <h2 id={`${uid}-titulo`} className="text-lg font-extrabold">
           Elegí sobre qué practicar
@@ -114,9 +134,12 @@ export function StartForm({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor={`${uid}-seniority`} className={labelClasses()}>
-                Nivel
-              </label>
+              <div className="flex items-center gap-1">
+                <label htmlFor={`${uid}-seniority`} className={labelClasses()}>
+                  Nivel
+                </label>
+                {seniorityHelp}
+              </div>
               <select
                 id={`${uid}-seniority`}
                 value={seniority}
@@ -139,8 +162,18 @@ export function StartForm({
           </Alert>
         ) : null}
         {blocked && !error ? (
-          <Alert tone="info" role="note">
+          <Alert tone="info" role="note" data-testid="interview-daily-limit">
             {START_ERRORS.daily_limit}
+            {nextSlotAt ? (
+              <>
+                {" "}
+                Vas a poder empezar otra el{" "}
+                <time dateTime={nextSlotAt} suppressHydrationWarning>
+                  {slotFormat.format(new Date(nextSlotAt))}
+                </time>
+                .
+              </>
+            ) : null}
           </Alert>
         ) : null}
 

@@ -26,7 +26,7 @@ export function ConditionsBlock({ input }: { input: ConditionsInput }) {
             <dt className="flex items-center gap-1 text-xs text-fg-muted">
               {r.label}
               {HELP[r.key] ? (
-                <ContextHelp slug={HELP[r.key]!.slug} term={HELP[r.key]!.term} />
+                <ContextHelp slug={HELP[r.key]!.slug} term={HELP[r.key]!.term} desde="avisos" />
               ) : null}
             </dt>
             <dd className={r.informed ? "text-fg" : "text-fg-subtle"}>{r.value}</dd>
