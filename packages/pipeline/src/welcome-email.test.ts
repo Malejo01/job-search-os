@@ -63,4 +63,23 @@ describe("buildWelcomeEmail", () => {
     expect(html).toContain("AfinIA");
     expect(html).not.toContain("<b>X</b>");
   });
+
+  it("R27-06: lleva la mascota con URL absoluta, alt y 160 px fijos", () => {
+    const { html } = buildWelcomeEmail(base);
+    const img = html.match(/<img\b[^>]*>/)?.[0] ?? "";
+    expect(img).toContain('src="https://ejemplo.test/mascota/saludando-512.png"');
+    expect(img).toMatch(/alt="[^"]+"/);
+    expect(img).toContain('height="160"');
+    expect(img).toMatch(/width="\d+"/);
+    expect((html.match(/<img\b/g) ?? []).length).toBe(1);
+  });
+
+  it("la barra final de appUrl no duplica la barra de la imagen", () => {
+    const { html } = buildWelcomeEmail({ ...base, appUrl: "https://ejemplo.test/" });
+    expect(html).toContain('src="https://ejemplo.test/mascota/saludando-512.png"');
+  });
+
+  it("el texto plano no lleva la imagen", () => {
+    expect(buildWelcomeEmail(base).text).not.toMatch(/<img|mascota\//);
+  });
 });

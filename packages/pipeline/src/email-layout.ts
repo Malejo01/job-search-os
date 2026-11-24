@@ -1,9 +1,11 @@
 import { BRAND, BRAND_COLORS } from "./brand";
+import { emailMascotaHtml } from "./mascota";
 
 /**
  * Encabezado y pie de marca para los emails transaccionales (C7-2): recuperación de contraseña,
  * aviso de vencimiento del plan y soporte. HTML simple con tablas y estilos en línea, como lo leen
- * los clientes de email. Sin imágenes ni fuentes remotas: el logotipo es texto con los colores de
+ * los clientes de email. Sin imágenes ni fuentes remotas, salvo la mascota de los emails que la piden
+ * (`mascotAppUrl`, R27-06: bienvenida y vencimiento): el logotipo es texto con los colores de
  * marca (logo B2, C9-4: Bricolage Grotesque y Figtree si el cliente las tiene; si no, Arial: los
  * clientes de correo no cargan fuentes).
  */
@@ -25,9 +27,12 @@ export const EMAIL_LINK_STYLE = `color:${BRAND_COLORS.accentDeep};text-decoratio
 export function brandedEmailHtml({
   bodyHtml,
   preheader,
+  mascotAppUrl,
 }: {
   /** Cuerpo ya armado y escapado por quien llama. */
   bodyHtml: string;
+  /** Origen público de la app: si viene, el cuerpo arranca con la mascota (URL absoluta, 160 px). */
+  mascotAppUrl?: string;
   /** Línea que algunos clientes muestran junto al asunto. Texto plano: se escapa acá. */
   preheader?: string;
 }): string {
@@ -47,6 +52,7 @@ export function brandedEmailHtml({
     `<span aria-hidden="true" style="font-weight:800;color:${BRAND_COLORS.accent};">.</span>`,
     `</td></tr>`,
     `<tr><td style="background:${BRAND_COLORS.white};border-radius:0 0 24px 24px;padding:28px;font-family:${FONT};font-size:15px;line-height:1.5;color:${BRAND_COLORS.ink};">`,
+    mascotAppUrl ? emailMascotaHtml(mascotAppUrl, BRAND.name) : "",
     bodyHtml,
     `</td></tr>`,
     `<tr><td style="padding:16px 8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${BRAND_COLORS.textMuted};text-align:center;">`,

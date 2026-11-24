@@ -144,6 +144,16 @@ function firstName(displayName: string): string {
   return name.slice(0, 40);
 }
 
+/** Origen (https://host) de una URL; undefined si no es una URL válida. Sirve para la imagen del email. */
+function originOf(url: string): string | undefined {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Texto simple del aviso, en español rioplatense. Dice hasta cuándo llega el acceso, cómo renovar y
  * qué pasa si no se renueva (pasa al plan gratis y no se pierde nada). No promete garantía ni
@@ -202,6 +212,7 @@ export function buildPlanNoticeEmail(input: PlanNoticeEmailInput): {
   // En el HTML el nombre ya va en el encabezado y el pie: el cuerpo termina en el aviso
   const html = brandedEmailHtml({
     preheader: subject,
+    mascotAppUrl: originOf(input.settingsUrl),
     bodyHtml: textToEmailHtml(lines.slice(0, -1).join("\n")),
   });
   return { subject, text, html };

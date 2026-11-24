@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 // R-1: import directo (el barril de `@/components/ui` arrastra el de pipeline al navegador)
+import { Afi } from "@/components/afi";
 import { buttonClasses } from "@/components/ui/button";
 import { submitWaitlist, trackAcceso, type WaitlistState } from "./actions";
 import { ShareButton } from "./share-button";
@@ -133,9 +134,13 @@ export function WaitlistFormFields({
           aria-labelledby="acceso-que-sigue"
           className="flex flex-col gap-2 rounded-card bg-surface p-4"
         >
-          <h2 id="acceso-que-sigue" className="text-base font-bold">
-            Qué sigue
-          </h2>
+          {/* R27-06: Afi trabajando mientras armamos el grupo; un solo Afi, quieto */}
+          <div className="flex items-center gap-3">
+            <Afi pose="trabajando" size={72} />
+            <h2 id="acceso-que-sigue" className="text-base font-bold">
+              Qué sigue
+            </h2>
+          </div>
           <ol className="m-0 flex list-decimal flex-col gap-1.5 pl-5 text-sm text-fg-muted">
             <li>
               Revisamos los pedidos y armamos el grupo de la beta, con lugar para cada carrera.
@@ -200,7 +205,7 @@ export function WaitlistFormFields({
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="lucia@gmail.com"
+            placeholder="nombre@example.com"
             required
             aria-required="true"
             maxLength={254}

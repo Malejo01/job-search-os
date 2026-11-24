@@ -89,6 +89,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): {
     html: brandedEmailHtml({
       bodyHtml: textToEmailHtml(text),
       preheader: "Qué hacer primero y cómo pedir ayuda",
+      mascotAppUrl: app,
     }),
   };
 }
