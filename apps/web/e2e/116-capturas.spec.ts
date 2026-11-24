@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { axeSummary, settleBrandMotion } from "./axe-helpers";
 import { createEvaluation, createJob, deleteJob, login } from "./helpers";
+import { ensureSeedPerson } from "./persona-qa";
 
 /**
  * Flujo 116 (C9-17): revisión del rediseño en las pantallas clave, a 390 y 1280 px, en claro y en
@@ -41,6 +42,8 @@ test.describe("Flujo 116: revisión del rediseño", () => {
   let far = "";
 
   test.beforeAll(async () => {
+    // La base local no trae al usuario del seed: la persona de prueba la crea el helper (R26-07)
+    await ensureSeedPerson();
     top = await createJob({ title: `Analista contable ficticia ${tag}`, status: "evaluada" });
     await createEvaluation(top, { score: 9.2 });
     far = await createJob({ title: `Puesto lejano ficticio ${tag}`, status: "evaluada" });

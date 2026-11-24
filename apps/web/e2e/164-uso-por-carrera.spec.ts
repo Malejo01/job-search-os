@@ -1,7 +1,8 @@
 import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { inArray } from "drizzle-orm";
-import { E2E_USER_ID, login, ownerDb } from "./helpers";
+import { login, ownerDb } from "./helpers";
+import { ensureSeedPerson } from "./persona-qa";
 
 /**
  * Flujo 164 (R22-04): «Uso por carrera y por semana» en `/admin/metricas` (solo admin). El spec crea sus
@@ -30,7 +31,6 @@ async function clean(): Promise<void> {
 async function seed(): Promise<void> {
   const { db, close } = ownerDb();
   try {
-    await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
     for (const [i, id] of PEOPLE.entries()) {
       await db
         .insert(s.users)
@@ -61,6 +61,8 @@ async function seed(): Promise<void> {
 test.describe("Flujo 164: uso por carrera", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
   test.beforeAll(async () => {
+    // La persona de prueba (admin) la crea el helper si la base local no trae al usuario del seed (R26-07)
+    await ensureSeedPerson();
     await clean();
     await seed();
   });
