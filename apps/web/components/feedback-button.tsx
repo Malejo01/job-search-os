@@ -12,7 +12,9 @@ import {
 } from "@job-search-os/pipeline";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
-import { sendFeedbackAction } from "@/app/(app)/feedback-actions";
+import { feedbackVoiceAction, sendFeedbackAction } from "@/app/(app)/feedback-actions";
+import { joinDictated } from "@/components/dictar-engine";
+import { VoiceInput } from "@/components/voice-input-lazy";
 import { collectFeedbackContext } from "@/lib/action-tracker";
 import {
   FEEDBACK_OPEN_EVENT,
@@ -45,6 +47,9 @@ export function FeedbackButton() {
   const [formKey, setFormKey] = useState(0);
   // R26-04: pantalla elegida de antemano («Comentar esta pantalla»); null = la pantalla actual
   const [target, setTarget] = useState<FeedbackOpenDetail | null>(null);
+  // Voz en el mensaje: se pregunta al abrir si puede transcribir en el servidor (null = todavía no se sabe)
+  const [serverTranscribe, setServerTranscribe] = useState<boolean | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (!thanks) return;
@@ -58,6 +63,25 @@ export function FeedbackButton() {
     setFormKey((k) => k + 1); // formulario limpio cada vez que se abre
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
+    if (serverTranscribe === null) {
+      void feedbackVoiceAction()
+        .then(setServerTranscribe)
+        .catch(() => setServerTranscribe(false));
+    }
+  }
+
+  // Suma lo dictado al final del mensaje, sin pasarse del tope. El campo no es controlado: se escribe el valor
+  // con el setter nativo y se avisa con un evento `input`, así el contador de caracteres se entera.
+  function appendDictated(spoken: string) {
+    const field = formRef.current?.elements.namedItem("message");
+    if (!(field instanceof HTMLTextAreaElement)) return;
+    const next = Array.from(joinDictated(field.value, spoken))
+      .slice(0, FEEDBACK_MESSAGE_MAX)
+      .join("");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    setter?.call(field, next);
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.focus();
   }
 
   function open() {
@@ -147,7 +171,7 @@ export function FeedbackButton() {
         aria-labelledby="feedback-title"
         className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-card bg-surface p-4 text-fg backdrop:bg-black/50"
       >
-        <form key={formKey} onSubmit={onSubmit} className="flex flex-col gap-3">
+        <form key={formKey} ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-3">
           <h2 id="feedback-title" className="text-lg font-semibold">
             Contanos qué pasó
           </h2>
@@ -180,6 +204,17 @@ export function FeedbackButton() {
               rows={5}
               className="w-full rounded-control border border-line-control bg-surface p-2 text-base"
             />
+            {/* Pedido de Ani (24/11): contar el problema hablando. Lo dictado cae en el mensaje para revisarlo
+                antes de enviar; nunca se manda solo. */}
+            {/* Se monta al abrir el modal por primera vez: el código de la voz no baja en cada pantalla */}
+            {serverTranscribe !== null ? (
+              <VoiceInput
+                serverTranscribe={serverTranscribe}
+                onText={appendDictated}
+                disabled={pending}
+                label="Dictar el mensaje"
+              />
+            ) : null}
           </div>
           <div className="flex flex-col gap-1">
             <label htmlFor="feedback-suggestion" className="text-sm font-medium">

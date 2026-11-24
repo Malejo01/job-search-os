@@ -12,6 +12,7 @@ import {
 import { after } from "next/server";
 import { saveFeedback } from "@/lib/beta-feedback";
 import { requireActiveUserId } from "@/lib/session";
+import { voiceServerAllowedFor } from "@/lib/voice/server";
 
 export type FeedbackResult = { ok: true } | { ok: false; field: FeedbackField | "_error" };
 
@@ -148,5 +149,18 @@ export async function sendFeedbackAction(formData: FormData): Promise<FeedbackRe
   } catch (error) {
     log.error({ category: checked.value.category, err: safeDbError(error) }, "feedback: falló");
     return { ok: false, field: "_error" };
+  }
+}
+
+/**
+ * ¿La voz del modal de feedback puede transcribir en el servidor (Opera, Brave, Firefox)? Se pregunta al abrir el
+ * modal, así el layout no suma una consulta en cada navegación. Solo decide qué camino ofrece el botón: la ruta
+ * `POST /api/transcribe` vuelve a comprobarlo. Falla cerrado: ante cualquier error, solo el dictado del navegador.
+ */
+export async function feedbackVoiceAction(): Promise<boolean> {
+  try {
+    return await voiceServerAllowedFor(await requireActiveUserId());
+  } catch {
+    return false;
   }
 }
