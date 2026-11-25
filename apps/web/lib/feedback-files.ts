@@ -140,7 +140,7 @@ export function downloadHeaders(att: {
     "Content-Length": String(att.size),
     "Content-Disposition": contentDisposition(att.kind, att.name),
     "X-Content-Type-Options": "nosniff",
-    "Content-Security-Policy": "sandbox",
+    "Content-Security-Policy": "sandbox; frame-ancestors 'none'",
     "Cross-Origin-Resource-Policy": "same-origin",
     "Referrer-Policy": "no-referrer",
     ...NO_STORE,

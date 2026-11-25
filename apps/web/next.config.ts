@@ -70,6 +70,12 @@ const nextConfig: NextConfig = {
         source: "/reset-password",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
+      // Descargas de adjuntos del informe (R29-04): la CSP global (`frame-ancestors`) pisaba la `sandbox` de la
+      // ruta. Esta va después y suma las dos, así un archivo abierto en el navegador nunca corre nada.
+      {
+        source: "/api/feedback-files/:path*",
+        headers: [{ key: "Content-Security-Policy", value: "sandbox; frame-ancestors 'none'" }],
+      },
     ];
   },
   transpilePackages: [

@@ -297,7 +297,7 @@ test("camino feliz: un WebP se guarda reescrito, sin EXIF, y se sirve con las ca
   const h = get.headers();
   expect(h["content-type"]).toBe("image/webp");
   expect(h["x-content-type-options"]).toBe("nosniff");
-  expect(h["content-security-policy"]).toBe("sandbox");
+  expect(h["content-security-policy"]).toBe("sandbox; frame-ancestors 'none'");
   expect(h["cache-control"]).toBe("private, no-store");
   expect(h["content-disposition"]).toMatch(/^inline;/);
   const body = await get.body();
@@ -409,7 +409,7 @@ test("PDF y DOCX limpios: se guardan, el nombre sale saneado y la descarga es at
     expect(get.status()).toBe(200);
     expect(get.headers()["content-disposition"]).toMatch(/^attachment;/);
     expect(get.headers()["x-content-type-options"]).toBe("nosniff");
-    expect(get.headers()["content-security-policy"]).toBe("sandbox");
+    expect(get.headers()["content-security-policy"]).toBe("sandbox; frame-ancestors 'none'");
   }
   await ctx.close();
 });

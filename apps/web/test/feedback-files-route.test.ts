@@ -207,7 +207,7 @@ describe("GET /api/feedback-files/[id]", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-disposition")).toMatch(/^attachment;/);
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(res.headers.get("content-security-policy")).toBe("sandbox");
+    expect(res.headers.get("content-security-policy")).toBe("sandbox; frame-ancestors 'none'");
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(res.headers.get("content-type")).toBe("application/pdf");
     expect(Array.from(new Uint8Array(await res.arrayBuffer()))).toEqual([37, 80, 68, 70]);

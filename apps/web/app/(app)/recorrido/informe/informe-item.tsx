@@ -101,9 +101,12 @@ export function InformeItem({
 
   async function addFiles(files: readonly File[]) {
     setNotice(null);
+    // Lo que ya tenía el ítem al empezar: `latest` se actualiza con cada adjunto que entra, así que sumarle
+    // `uploaded` contaba dos veces lo subido en esta tanda (con 10 archivos, cortaba en 6)
+    const before = latest.current.count;
     let uploaded = 0;
     for (const file of files) {
-      if (latest.current.count + uploaded >= ITEM_ATTACHMENTS_MAX) {
+      if (before + uploaded >= ITEM_ATTACHMENTS_MAX) {
         setNotice(llenarTexto(T.attachmentsFull, { max: ITEM_ATTACHMENTS_MAX }));
         break;
       }

@@ -112,7 +112,7 @@ describe("cabeceras de la descarga", () => {
   it("lleva nosniff, sandbox, sin caché y el tipo de la base", () => {
     const h = downloadHeaders({ kind: "pdf", mime: "application/pdf", name: "a.pdf", size: 12 });
     expect(h["X-Content-Type-Options"]).toBe("nosniff");
-    expect(h["Content-Security-Policy"]).toBe("sandbox");
+    expect(h["Content-Security-Policy"]).toBe("sandbox; frame-ancestors 'none'");
     expect(h["Cache-Control"]).toBe("private, no-store");
     expect(h["Content-Type"]).toBe("application/pdf");
     expect(h["Content-Length"]).toBe("12");
