@@ -1,6 +1,15 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import {
   INTERVIEW_ANSWER_MAX_CHARS,
@@ -256,7 +265,7 @@ export function Simulator({
         <div className="flex items-center justify-between gap-3">
           <p
             id={`${uid}-pregunta`}
-            className="text-sm font-extrabold text-brand"
+            className="shrink-0 text-sm font-extrabold whitespace-nowrap text-brand"
             data-testid="interview-progress-label"
           >
             Pregunta {current} de {TOTAL}

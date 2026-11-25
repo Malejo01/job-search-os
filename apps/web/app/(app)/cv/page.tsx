@@ -207,7 +207,10 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
                   <li key={m.key}>
                     {m.text}.{" "}
                     {m.href ? (
-                      <Link href={m.href} className="font-semibold underline underline-offset-2">
+                      <Link
+                        href={m.href}
+                        className="inline-flex min-h-11 items-center font-semibold underline underline-offset-2"
+                      >
                         {m.cta}
                       </Link>
                     ) : null}

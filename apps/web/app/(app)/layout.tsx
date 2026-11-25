@@ -126,15 +126,25 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {canAssist ? <AssistantMascot maxTurns={assistantLimits().maxTurnsPerConversation} /> : null}
       <MobileTabBar followUps={followUps} />
       <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
-        <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
+        {/* R28-09: área tocable de 44 px en el celular (min-h-11 y un poco de ancho) */}
+        <Link
+          href="/legal/privacidad"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 underline-offset-2 hover:underline"
+        >
           Privacidad
         </Link>
         <span aria-hidden="true"> · </span>
-        <Link href="/legal/terminos" className="underline-offset-2 hover:underline">
+        <Link
+          href="/legal/terminos"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 underline-offset-2 hover:underline"
+        >
           Términos
         </Link>
         <span aria-hidden="true"> · </span>
-        <Link href="/ayuda" className="underline-offset-2 hover:underline">
+        <Link
+          href="/ayuda"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 underline-offset-2 hover:underline"
+        >
           {AYUDA_TEXTOS.menuLink}
         </Link>
         <CopyrightNotice className="mt-1" />
