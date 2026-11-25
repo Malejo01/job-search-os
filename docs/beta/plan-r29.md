@@ -8,13 +8,13 @@ Ani quiere mandar toda su revisión de una sola vez, con mucho texto dictado, ca
 - **Tope:** 10 envíos por día (`FEEDBACK_DAILY_LIMIT`).
 - El 24/11 no quedó **ningún** comentario de ella guardado en la base: hay que ver además si algo falló al enviar (R29-01).
 
-## Decisiones (Mauro, 25/11)
+## Decisiones (del dueño del proyecto, 25/11)
 - **Solo testers y admins** (rol tester de `/admin/personas`, `ASSISTANT_TESTER_EMAILS` o `ADMIN_EMAILS`). El resto de la gente sigue con el modal de siempre (2.000 caracteres, sin adjuntos).
 - **Sin límite práctico de texto** para testers. Técnicamente, un tope alto para que la base no reciba cualquier cosa: **50.000 caracteres por ítem**.
 - **Voz:** varias grabaciones seguidas que se suman al texto, sin cortar lo ya dictado. Cada grabación sigue siendo de 2 minutos (costo y tiempo de respuesta), pero se puede grabar todas las veces que haga falta. Tope diario de minutos para testers: **60 minutos**.
 - **Adjuntos:** imágenes (capturas), PDF y Word.
 - **Ítem por ítem:** un informe con varios ítems; cada ítem lleva pantalla, texto o voz y adjuntos.
-- **Guardado de archivos (por defecto):** en **Postgres**, como `raw_blobs` (ADR-007, el adaptador `storage` sobre Postgres), con topes y compresión en el navegador. Sin servicios nuevos ni costo extra. Si después hace falta más espacio, se cambia el adaptador a Vercel Blob sin tocar la pantalla. *Si Mauro prefiere Vercel Blob desde el arranque, se cambia acá antes de lanzar.*
+- **Guardado de archivos (por defecto):** en **Postgres**, como `raw_blobs` (ADR-007, el adaptador `storage` sobre Postgres), con topes y compresión en el navegador. Sin servicios nuevos ni costo extra. Si después hace falta más espacio, se cambia el adaptador a Vercel Blob sin tocar la pantalla. *Si el dueño prefiere Vercel Blob desde el arranque, se cambia acá antes de lanzar.*
 
 ## Tickets
 
@@ -84,9 +84,9 @@ Ani quiere mandar toda su revisión de una sola vez, con mucho texto dictado, ca
 ## Fuera de esta tanda
 - Comentarios del admin dentro de cada ítem (responderle a Ani).
 - Pasar el informe directo a tickets del BACKLOG.
-- Vercel Blob, salvo que Mauro lo pida.
+- Vercel Blob, salvo que el dueño lo pida.
 
 ## Pasos manuales esperados
-- Aplicar la migración y la RLS nuevas en Neon, con el OK de Mauro.
+- Aplicar la migración y la RLS nuevas en Neon, con el OK del dueño.
 - `VOICE_TESTER_DAILY_MINUTES` en Vercel, si se quiere otro valor que 60.
 - Probar con Ani en su navegador real y en el celular.

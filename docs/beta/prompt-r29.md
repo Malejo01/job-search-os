@@ -4,7 +4,7 @@ Tanda R29 «Informe de revisión y Afi v2». Armá un **EQUIPO DE AGENTES** con 
 
 **Base:** `origin/ronda/r29-assets`. Es `main` (con la R27 y la R28 ya mergeadas y sus migraciones aplicadas) más **Afi v2**: las 9 poses nuevas (gato con anteojos, traje violeta y corbata lima), la cara y el favicon, **con los mismos nombres de archivo**, y `MASCOTA_ANCHOS`, los `alt` y el ancho del email ya actualizados. **Leé primero `docs/beta/mascota.md`.** El plan completo de la tanda está en `docs/beta/plan-r29.md`.
 
-Mauro puede no estar: **no pares a preguntar.** Ante la duda, lo más simple que falle cerrado, anotado en el informe.
+El dueño puede no estar: **no pares a preguntar.** Ante la duda, lo más simple que falle cerrado, anotado en el informe.
 
 ## Reglas propias de esta tanda
 - **USD 0 en modelos:**
@@ -140,5 +140,5 @@ Las imágenes ya están en la base con los mismos nombres, así que el código n
     - `VOICE_TESTER_DAILY_MINUTES`;
     - la prueba con Ani en su navegador real y en el celular.
 - **`ops/ESTADO.md`** actualizado.
-- **Mensaje final a Mauro, en 5 líneas.**
+- **Mensaje final al dueño, en 5 líneas.**
 - **No sigas con otra tanda.**
