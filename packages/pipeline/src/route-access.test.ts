@@ -154,8 +154,9 @@ describe("acceso a rutas sin sesión (R9-4)", () => {
   it("toda Server Action exportada de (app), onboarding y terminos-actualizados exige sesión", () => {
     const GUARD =
       /\b(requireUserId|requireActiveUserId|requireTermsAcceptedUserId|activeSessionUserId|sessionUserId)\(/;
-    // `run(...)` (inbox/actions.ts) es un helper local que llama a requireActiveUserId
-    const VIA_HELPER = /\brun\(/;
+    // Helpers locales que llaman a la guarda: `run(...)` (inbox/actions.ts, requireActiveUserId) y `gate()`
+    // (recorrido/informe/informe-actions.ts, activeSessionUserId + canViewRecorrido)
+    const VIA_HELPER = /\b(run|gate)\(/;
     // `logout` solo cierra la sesión propia (signOut): sin sesión no hace nada, no necesita guarda
     const SIN_GUARDA_A_PROPOSITO = new Set(["(app)/logout-action.ts: logout"]);
     const sinGuarda: string[] = [];
