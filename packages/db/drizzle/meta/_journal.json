@@ -575,6 +575,13 @@
       "when": 1795489047775,
       "tag": "0081_noisy_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1795560215723,
+      "tag": "0082_natural_mandarin",
+      "breakpoints": true
     }
   ]
 }

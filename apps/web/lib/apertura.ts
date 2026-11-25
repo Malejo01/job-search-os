@@ -16,7 +16,7 @@ import { join } from "node:path";
 import routingSeed from "../../../packages/db/seeds/model_routing.json";
 import { loadAcademyFichas, publishedFichas } from "./academy";
 import { canReadAdminData } from "./invitations";
-import { MASCOTA_IMAGENES } from "./mascota";
+import { MASCOTA_IMAGENES, mascotaArchivos } from "./mascota";
 import { textosRediseno } from "./textos-aprobacion";
 
 /**
@@ -38,12 +38,11 @@ function mascotaDirs(): string[] {
   ];
 }
 
-/** Imágenes de la mascota a las que les falta el PNG 1x o el 2x. */
+/** Imágenes de la mascota (poses y caras) a las que les falta algún archivo (WebP o PNG). */
 function missingMascota(): string[] {
   const dir = mascotaDirs().find((d) => existsSync(d));
   return MASCOTA_IMAGENES.filter(
-    (name) =>
-      !dir || !existsSync(join(dir, `${name}.png`)) || !existsSync(join(dir, `${name}@2x.png`)),
+    (name) => !dir || !mascotaArchivos(name).every((f) => existsSync(join(dir, f))),
   );
 }
 

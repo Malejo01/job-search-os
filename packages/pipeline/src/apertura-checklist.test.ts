@@ -111,6 +111,11 @@ describe("buildAperturaChecklist", () => {
     expect(m.ok).toBe(false);
     expect(m.detail).toMatch(/4 de 6/);
     expect(m.detail).toContain("quieta");
+    // R27-01: el pendiente habla de los archivos reales (WebP por pose, PNG de email y la cara)
+    expect(m.todo).toContain("-256|512|1024.webp");
+    expect(m.todo).toContain("-512.png");
+    expect(m.todo).toContain("cara-48|96|192|512");
+    expect(m.todo).not.toMatch(/1x|2x|bandera/);
   });
 
   it("model_routing: lista las tareas esperadas que faltan; las de más no molestan", () => {

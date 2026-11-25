@@ -5,6 +5,7 @@ import {
   type WeekFocus,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { AfiFestejo } from "@/components/afi-festejo";
 import { Alert, buttonClasses, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
 import { SKILL_CATEGORY_LABEL, safeHttpUrl } from "@/lib/labels";
 import { getTargetRoles } from "@/lib/onboarding";
@@ -165,6 +166,8 @@ export default async function PlanPage({
           las tuyas.
         </p>
       ) : null}
+      {/* R27-04: festeja una sola vez cuando el plan pasa de «sin arrancar» a tener una skill en curso */}
+      <AfiFestejo festejo="plan" modo="cambio" cumplido={groups.en_curso.length > 0} />
       <Link href="/encaje" className={textLinkClasses({ block: true, className: "text-sm" })}>
         Ver Tu encaje: qué piden tus ofertas y qué te falta
       </Link>

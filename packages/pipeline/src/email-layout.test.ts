@@ -20,6 +20,19 @@ describe("brandedEmailHtml (C7-2)", () => {
     expect(html).not.toMatch(/https?:\/\//);
   });
 
+  it("la mascota es opcional: con mascotAppUrl suma una sola imagen absoluta con alt", () => {
+    const withMascot = brandedEmailHtml({
+      bodyHtml: "<p>Hola</p>",
+      mascotAppUrl: "https://x.test",
+    });
+    expect(withMascot.match(/<img\b/g)).toHaveLength(1);
+    expect(withMascot).toContain("https://x.test/mascota/saludando-512.png");
+    expect(withMascot.indexOf("<img")).toBeLessThan(withMascot.indexOf("<p>Hola</p>"));
+    expect(brandedEmailHtml({ bodyHtml: "x", mascotAppUrl: "javascript:alert(1)" })).not.toMatch(
+      /<img\b/,
+    );
+  });
+
   it("el pie lleva el nombre y la bajada", () => {
     expect(html).toContain(BRAND.name);
     expect(html).toContain(BRAND.tagline);

@@ -81,7 +81,7 @@ async function loginAsCommonUser(page: Page): Promise<void> {
   await page.waitForURL("**/hoy**");
 }
 
-const mascot = (page: Page) => page.getByRole("button", { name: "Abrir asistente", exact: true });
+const mascot = (page: Page) => page.getByRole("button", { name: "Preguntale a Afi", exact: true });
 const chip = (page: Page) => page.getByRole("button", { name: "¿Algo no anduvo?" });
 
 test.describe("Flujo 123: asistente con acceso de prueba", () => {
@@ -173,7 +173,7 @@ test.describe("Flujo 123: asistente con acceso de prueba", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await loginAsSecondUser(page);
       await page.goto("/hoy");
-      await expect(page.getByRole("button", { name: "Abrir asistente" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Preguntale a Afi" })).toBeVisible();
       await expect(mascot(page)).not.toContainText("Asistente");
       const aviso = page.getByTestId("asistente-aviso-inicial");
       await expect(aviso).toBeVisible();

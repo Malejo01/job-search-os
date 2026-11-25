@@ -103,6 +103,7 @@ export * from "./brand";
 export * from "./illustrations";
 export * from "./help/ayuda-en-contexto";
 export * from "./email-layout";
+export * from "./mascota";
 export * from "./initials";
 export * from "./greeting";
 export * from "./score-display";

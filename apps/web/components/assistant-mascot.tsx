@@ -3,20 +3,19 @@
 import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { AssistantPanel } from "@/app/(app)/assistant-panel";
-import { Mascota } from "@/components/mascota";
+import { AfiCara } from "@/components/afi";
 import { Icon } from "@/components/ui/icons";
 import { claimAsistenteAviso } from "@/lib/asistente-aviso";
+import { MASCOTA_NOMBRE } from "@/lib/mascota";
 import { MASCOT_NAME } from "@/lib/textos-rediseno";
-import { MASCOTA_DISPONIBLE } from "@/lib/mascota";
-
-const FACE_READY = MASCOTA_DISPONIBLE["cara-48"];
 
 /**
- * La cara del botón es `<Mascota pose="cara-48">` (imágenes en `public/mascota/`, ver
- * `lib/mascota.ts`). Mientras no existan queda el marcador de siempre (el «?») del mismo tamaño.
+ * La cara del botón es `<AfiCara>` (`public/mascota/cara-*`, ver `lib/mascota.ts`) sobre el círculo
+ * lavanda: 48 px en el botón de 64 desde `sm`, y 40 px en el de 44 del celular.
  */
 const MASCOT_SIZE = 64;
 const MASCOT_FACE_SIZE = 48;
+const MASCOT_FACE_SIZE_MOBILE = 40;
 /** El aviso se esconde solo a los 6 s, para no quedar encima del contenido. */
 const HINT_MS = 6_000;
 
@@ -85,9 +84,11 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
     <>
       <LazyMotion features={domAnimation} strict>
         <m.div
-          initial={reduce ? false : { opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={reduce ? undefined : { scale: 1.06 }}
+          // Solo fundido al entrar: sin escala, el botón mide 44 px reales desde el primer cuadro
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          // Un solo Afi animado por pantalla: con el panel abierto (el de adentro se anima) el botón queda quieto
+          whileHover={reduce || open ? undefined : { scale: 1.06 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
           data-escribiendo={typing ? "si" : "no"}
           className="fixed right-[calc(1rem+env(safe-area-inset-right,0px))] bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] z-40 data-[escribiendo=si]:max-sm:hidden"
@@ -111,29 +112,26 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
           <button
             ref={buttonRef}
             type="button"
-            aria-label="Abrir asistente"
+            aria-label={`Preguntale a ${MASCOTA_NOMBRE}`}
             aria-haspopup="dialog"
             aria-expanded={open}
             data-testid="asistente-mascota"
-            data-mascota-estado={FACE_READY ? "lista" : "marcador"}
             title={MASCOT_NAME}
             onClick={() => {
               closeHint();
               setOpen(true);
             }}
             style={{ "--mascota": `${MASCOT_SIZE}px` } as CSSProperties}
-            className="inline-flex size-11 items-center justify-center overflow-hidden rounded-full border-2 border-line-strong bg-surface text-sm font-semibold text-fg shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:h-[var(--mascota)] sm:w-[var(--mascota)] sm:bg-illustration sm:text-fg-muted"
+            className="inline-flex size-11 items-center justify-center overflow-hidden rounded-full border-2 border-line-strong bg-illustration text-sm font-semibold text-fg shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:h-[var(--mascota)] sm:w-[var(--mascota)]"
           >
-            <span className="sm:hidden" aria-hidden="true">
-              <Icon name="charla" size={22} />
+            {/* Celular: la cara entra justo en los 44 px del botón (borde de 2 px incluido) */}
+            {/* Cada cara va en su propio span: el `hidden` no compite con el `inline-flex` de AfiCara */}
+            <span className="inline-flex sm:hidden">
+              <AfiCara size={MASCOT_FACE_SIZE_MOBILE} />
             </span>
-            {FACE_READY ? (
-              <Mascota pose="cara-48" size={MASCOT_FACE_SIZE} className="hidden sm:inline-flex" />
-            ) : (
-              <span className="hidden sm:inline-flex" aria-hidden="true">
-                <Icon name="pregunta" size={28} />
-              </span>
-            )}
+            <span className="hidden sm:inline-flex">
+              <AfiCara size={MASCOT_FACE_SIZE} />
+            </span>
           </button>
         </m.div>
       </LazyMotion>

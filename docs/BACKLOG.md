@@ -2170,3 +2170,28 @@ Informe de la tanda: [`docs/beta/informe-r26.md`](beta/informe-r26.md). Pasos ma
 
 ### R26 · Cierre de la tanda
 `estado:` en rama (24/11) · `ronda/r26-cierre`
+
+## Bloque 45 · Tanda R27 «Afi, la mascota» (24/11)
+
+Informe de la tanda: [`docs/beta/informe-r27.md`](beta/informe-r27.md). Pasos manuales: [`docs/beta/pasos-manuales-r27.md`](beta/pasos-manuales-r27.md). Inventario de imágenes: [`docs/beta/mascota.md`](beta/mascota.md). Cadena sobre `ronda/r27-assets`; ningún PR mergeado por agentes. Migración 0082 sin aplicar en Neon. USD 0, sin prompts.
+
+### Base
+- **R27-01** · `MASCOTA_NOMBRE` como única fuente del nombre, las 9 poses reales con `alt` y anchos reales, `<Afi>` estático sobre el círculo lavanda; tests de archivos y del nombre · `estado:` en rama (24/11) · `ronda/r27-01-base`
+- **R27-02** · `<AfiAnimado>`: entrada, flotar, festejo, hover y fundido entre poses; quieto con movimiento reducido; carga aparte · `estado:` en rama (24/11) · `ronda/r27-01-base`
+- **R27-03** · Asistente con la cara de Afi, `pensando`/`hablando-1` en el panel, «Preguntale a Afi» · `estado:` en rama (24/11) · `ronda/r27-01-base`
+
+### Momentos
+- **R27-04** · Saludo diario en la cuenta (`profiles.saludo_visto`, 0082), festejos, cargas de IA e Interview · `estado:` en rama (24/11) · `ronda/r27-04-momentos`
+- **R27-05** · Vacíos, errores, 404, Academy y «?» con la pose de cada caso · `estado:` en rama (24/11) · `ronda/r27-04-momentos`
+
+### Afuera y calidad
+- **R27-06** · Portada, lista de espera, emails de bienvenida y vencimiento, imagen para compartir; favicon preparado (copia manual) · `estado:` en rama (24/11) · `ronda/r27-06-afuera`
+- **R27-07** · First Load ≤ +2 kB en todas las rutas, axe sin violaciones serias, capturas a 390 y 1280 en claro y oscuro · `estado:` en rama (24/11) · `ronda/r27-06-afuera`
+
+### Pendientes que salen de la tanda
+- Copiar el favicon a `app/` y borrar `app/icon.svg` y `components/mascota.tsx` (pasos manuales §3).
+- `explicando` en el detalle del sello y en el diagnóstico del CV.
+- Capturas del festejo y de Hoy con el saludo; probar `global-error` y el LCP de la portada.
+
+### R27 · Cierre de la tanda
+`estado:` en rama (24/11) · `ronda/r27-cierre`

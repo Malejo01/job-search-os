@@ -91,7 +91,7 @@ const otherCountry = (current: string) =>
   current === "UY" ? { code: "CL", name: "Chile" } : { code: "UY", name: "Uruguay" };
 
 async function openAssistant(page: Page) {
-  const button = page.getByRole("button", { name: "Abrir asistente", exact: true });
+  const button = page.getByRole("button", { name: "Preguntale a Afi", exact: true });
   if ((await button.count()) === 0) {
     // En el CI el usuario e2e es admin y el flag está encendido: si falta la mascota, es un error
     expect(process.env.CI, "En el CI la mascota del asistente tiene que estar").toBeFalsy();

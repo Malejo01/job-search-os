@@ -1,4 +1,5 @@
 import { BRAND } from "@job-search-os/pipeline";
+import { MASCOTA_NOMBRE } from "./mascota";
 import { INTERVIEW_CLIENTE } from "./textos-interview";
 
 /**
@@ -34,8 +35,8 @@ export { INTERVIEW_SCORE_WORDS } from "./textos-interview";
 /** Título del diagnóstico del CV. */
 export const CV_DIAGNOSIS_TITLE = "Cómo lo leen los sistemas de selección";
 
-/** Nombre de la mascota hasta que se elija uno. */
-export const MASCOT_NAME = "Tu asistente";
+/** Nombre de la mascota (R27-01): sale de `MASCOTA_NOMBRE`, el único lugar donde está escrito. */
+export const MASCOT_NAME = MASCOTA_NOMBRE;
 
 /** Texto para un criterio sin datos: nunca se inventa un puntaje. */
 export const NO_DATA_LABEL = "Sin datos";

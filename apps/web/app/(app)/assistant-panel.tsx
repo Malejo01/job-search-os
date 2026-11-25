@@ -28,7 +28,8 @@ import {
 } from "@/components/assistant-proposal";
 import { AssistantActionCard, type ActionStatus } from "./assistant-action-card";
 import { AssistantProposalCard, type ProposalStatus } from "./assistant-proposal-card";
-import { Mascota } from "@/components/mascota";
+import { AfiAnimado } from "@/components/afi-animado";
+import { MASCOTA_NOMBRE } from "@/lib/mascota";
 import { buttonClasses } from "@/components/ui";
 
 const FOCUS_RING =
@@ -467,10 +468,22 @@ export function AssistantPanel({
           <div className="flex flex-col gap-1 border-b border-line px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                {/* «Pensando» mientras responde; «hablando» el resto del tiempo */}
-                <Mascota pose={pending ? "pensando" : "hablando"} size={32} />
+                {/* «Pensando» mientras responde, «hablando-1» al mostrar la respuesta, «quieto» antes de
+                    la primera. Fundido entre poses; es el único Afi animado mientras el panel está abierto. */}
+                <AfiAnimado
+                  pose={
+                    pending
+                      ? "pensando"
+                      : items.at(-1)?.kind === "assistant"
+                        ? "hablando-1"
+                        : "quieto"
+                  }
+                  size={40}
+                  variante="entrada"
+                  decorative
+                />
                 <h2 id={titleId} className="text-base font-bold">
-                  Asistente
+                  {MASCOTA_NOMBRE}
                 </h2>
               </div>
               <div className="flex items-center gap-2">
@@ -585,7 +598,7 @@ export function AssistantPanel({
               : null}
             {pending ? (
               <p className="text-sm text-fg-subtle" aria-hidden="true">
-                Pensando…
+                {MASCOTA_NOMBRE} está pensando…
               </p>
             ) : null}
           </div>

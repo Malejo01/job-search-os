@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: "Página no encontrada", robots: { in
 export default function PublicNotFound() {
   return (
     <FullScreenState
+      pose="quieto"
       title="No encontramos esta página"
       actions={
         <>
