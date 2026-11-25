@@ -26,6 +26,8 @@ const ATS_KINDS: ReadonlySet<string> = new Set([
   "ashby",
   "teamtailor",
   "workable",
+  "recruitee",
+  "smartrecruiters",
 ]);
 const ATS_NAME = "Sitios de empleos de las empresas";
 const OTHER_SOURCES = "Otras fuentes";

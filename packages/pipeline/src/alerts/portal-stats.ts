@@ -14,6 +14,8 @@ const POOL_LABELS: Record<string, string> = {
   ashby: "Ashby",
   teamtailor: "Teamtailor",
   workable: "Workable",
+  recruitee: "Recruitee",
+  smartrecruiters: "SmartRecruiters",
 };
 
 /** Grupo («portal») de una oferta según su primera fuente. Pura. */

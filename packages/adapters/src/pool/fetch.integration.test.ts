@@ -88,6 +88,12 @@ const downloaders: PoolDownloaders = {
   workable: async () => {
     throw new Error("no debería llamarse");
   },
+  recruitee: async () => {
+    throw new Error("no debería llamarse");
+  },
+  smartrecruiters: async () => {
+    throw new Error("no debería llamarse");
+  },
 };
 
 async function cleanup() {

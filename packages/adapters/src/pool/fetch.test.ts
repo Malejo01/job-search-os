@@ -68,6 +68,8 @@ function downloaders(partial: Partial<PoolDownloaders>): PoolDownloaders {
     jooble: none,
     careerjet: none,
     workable: none,
+    recruitee: none,
+    smartrecruiters: none,
     ...partial,
   };
 }
@@ -149,6 +151,8 @@ describe("POOL_SOURCE_KIND", () => {
       jooble: "other",
       careerjet: "other",
       workable: "workable",
+      recruitee: "recruitee",
+      smartrecruiters: "smartrecruiters",
     });
   });
 });
@@ -813,6 +817,17 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
     expect(POOL_RECOMMENDED_SOURCES).not.toContain("workable");
     expect(parsePoolSources("Workable").enabled).toEqual(["workable"]);
   });
+
+  it.each(["recruitee", "smartrecruiters"] as const)(
+    "%s (R28-05): apagada por defecto, intervalo de 5 h, se acepta en POOL_SOURCES y NO está recomendada",
+    (name) => {
+      expect(POOL_MIN_INTERVAL_MS[name]).toBe(5 * 3_600_000);
+      expect(POOL_RECOMMENDED_SOURCES).not.toContain(name);
+      expect(parsePoolSources(undefined).enabled).not.toContain(name);
+      expect(parsePoolSources("").enabled).not.toContain(name);
+      expect(parsePoolSources(name.toUpperCase()).enabled).toEqual([name]);
+    },
+  );
 
   it("teamtailor: JSON Feed y RSS de respaldo por board (máx. dos requests), con región na, y avisa si trae 100 items", async () => {
     const items = Array.from(

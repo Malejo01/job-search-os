@@ -34,6 +34,8 @@ export const SOURCE_ATTRIBUTION: Record<SourceKind, SourceAttribution | null> = 
   ashby: { name: "Sitio de empleos", text: ATS_TEXT },
   teamtailor: { name: "Sitio de empleos", text: ATS_TEXT },
   workable: { name: "Sitio de empleos", text: ATS_TEXT },
+  recruitee: { name: "Sitio de empleos", text: ATS_TEXT },
+  smartrecruiters: { name: "Sitio de empleos", text: ATS_TEXT },
   // Alertas por email de Computrabajo (ADR-024 §4, ADR-043): «vía Computrabajo» y el link al aviso original
   computrabajo_alerts: { name: "Computrabajo", text: "vía Computrabajo" },
 };
@@ -100,6 +102,8 @@ const ATS_KINDS: ReadonlySet<string> = new Set([
   "ashby",
   "teamtailor",
   "workable",
+  "recruitee",
+  "smartrecruiters",
 ]);
 const COMPANY_MAX = 80;
 

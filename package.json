@@ -41,6 +41,7 @@
     "applicant:sync": "pnpm --filter @job-search-os/adapters applicant:sync",
     "pool:fetch": "pnpm --filter @job-search-os/adapters pool:fetch",
     "pool:explain": "pnpm --filter @job-search-os/adapters pool:explain",
+    "pool:cobertura": "pnpm --filter @job-search-os/adapters pool:cobertura",
     "pool:backfill-language": "pnpm --filter @job-search-os/adapters pool:backfill-language",
     "pool:rehint": "pnpm --filter @job-search-os/adapters pool:rehint",
     "pool:reprocess": "pnpm --filter @job-search-os/adapters pool:reprocess",
