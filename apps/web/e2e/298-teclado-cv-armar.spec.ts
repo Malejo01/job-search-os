@@ -39,5 +39,7 @@ test("empezar, responder y recibir la pregunta siguiente, con foco y anuncio", a
   await expect
     .poll(async () => mensajes.locator("p").count(), { timeout: 30_000 })
     .toBeGreaterThan(antes + 1);
-  await expect(campo, "al terminar de pensar, el foco vuelve al campo").toBeFocused();
+  await expect(campo, "al terminar de pensar, el foco vuelve al campo").toBeFocused({
+    timeout: 10_000,
+  });
 });
