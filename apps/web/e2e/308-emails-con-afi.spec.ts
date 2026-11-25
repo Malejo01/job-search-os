@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { buildPlanNoticeEmail, buildWelcomeEmail } from "@job-search-os/pipeline";
+import { buildPlanNoticeEmail, buildWelcomeEmail, EMAIL_MASCOTA } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 
 /**
@@ -57,8 +57,8 @@ for (const [nombre, html] of Object.entries(EMAILS)) {
         const natural = await img.evaluate((el) => (el as HTMLImageElement).naturalWidth);
         expect(natural, "la imagen no cargó").toBeGreaterThan(0);
         const box = await img.boundingBox();
-        expect(Math.round(box!.height)).toBe(160);
-        expect(Math.round(box!.width)).toBe(94);
+        expect(Math.round(box!.height)).toBe(EMAIL_MASCOTA.height);
+        expect(Math.round(box!.width)).toBe(EMAIL_MASCOTA.width);
 
         const { sw, w } = await page.evaluate(() => ({
           sw: document.documentElement.scrollWidth,
