@@ -58,7 +58,10 @@ async function readDbCounts(): Promise<{
   textReviews: Map<string, RevisionDeTexto> | null;
   /** Fichas de Academy cuya revisión vigente es una aprobación (R26-01): slug → huella. */
   academyApproved: Map<string, string> | null;
+  /** ¿Existe `feedback_reports` (R29-02)? null si no se pudo leer. */
+  informesTabla: boolean | null;
 }> {
+  let informesTabla: boolean | null = null;
   let routing: string[] | null = null;
   let routingRows: RutaDeModelo[] | null = null;
   let invitations: number | null = null;
@@ -67,6 +70,20 @@ async function readDbCounts(): Promise<{
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
   try {
     await Promise.all([
+      db
+        .transaction(async (tx) => {
+          await tx.execute(sql`set local statement_timeout = '3s'`);
+          const rows = (await tx.execute(
+            sql`select (to_regclass('public.feedback_reports') is not null) as ok`,
+          )) as unknown as { ok: boolean }[];
+          informesTabla = rows[0]?.ok === true;
+        })
+        .catch((error: unknown) => {
+          log.warn(
+            { block: "feedback_reports", err: error instanceof Error ? error.name : "error" },
+            "apertura",
+          );
+        }),
       db
         .transaction(async (tx) => {
           await tx.execute(sql`set local statement_timeout = '3s'`);
@@ -140,7 +157,7 @@ async function readDbCounts(): Promise<{
   } finally {
     await close();
   }
-  return { routing, routingRows, invitations, textReviews, academyApproved };
+  return { routing, routingRows, invitations, textReviews, academyApproved, informesTabla };
 }
 
 /** Un ítem de la checklist; los de R28-03 llevan ids propios, por eso `id` es un texto. */
@@ -174,6 +191,8 @@ export type AperturaExtrasInput = {
   routingEsperado: readonly RutaDeModelo[];
   /** Lo que hay en la base; null si no se pudo leer. */
   routingActual: readonly RutaDeModelo[] | null;
+  /** ¿Existen las tablas de los informes de revisión (R29, migración 0084)? Ausente o null = no se pudo leer. */
+  informesTabla?: boolean | null;
 };
 
 /**
@@ -270,6 +289,31 @@ export function buildAperturaExtras(input: AperturaExtrasInput): AperturaItemWeb
     );
   }
 
+  // Informes de revisión de las testers (R29): migración 0084 y funciones admin en la base
+  items.push(
+    input.informesTabla === true
+      ? {
+          id: "informes_revision",
+          label: "Informes de revisión (/admin/informes)",
+          ok: true,
+          detail:
+            "Las tablas de los informes están en la base: las testers pueden enviarlos y se leen en /admin/informes.",
+          todo: null,
+          doc: null,
+        }
+      : {
+          id: "informes_revision",
+          label: "Informes de revisión (/admin/informes)",
+          ok: false,
+          detail:
+            input.informesTabla === false
+              ? "Las tablas de los informes todavía no están en la base."
+              : "No se pudo leer si las tablas de los informes están en la base.",
+          todo: "Quien administra la base aplica la migración 0084 y las políticas RLS 0069 y 0070 (y después, opcional, VOICE_TESTER_DAILY_MINUTES en Vercel). Los pasos están en el documento indicado.",
+          doc: "docs/beta/pasos-manuales-r29.md",
+        },
+  );
+
   // Fecha definitiva
   if (Number.isNaN(input.opensAt.getTime())) {
     items.push({
@@ -337,6 +381,7 @@ export async function getAperturaChecklist(userId: string): Promise<AperturaResu
     invitations: null,
     textReviews: null,
     academyApproved: null,
+    informesTabla: null,
   };
   try {
     counts = await readDbCounts();
@@ -379,6 +424,7 @@ export async function getAperturaChecklist(userId: string): Promise<AperturaResu
     env,
     routingEsperado: routingEsperadoClaude(routingSeed),
     routingActual: counts.routingRows,
+    informesTabla: counts.informesTabla,
   });
   const items: AperturaItemWeb[] = [...base.items, ...extras];
   const pending = items.filter((i) => !i.ok).length;

@@ -27,10 +27,13 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   "(app)/admin/costos/page.tsx",
   "(app)/admin/apertura/page.tsx",
   "(app)/admin/feedback/page.tsx",
+  "(app)/admin/informes/page.tsx",
+  "(app)/admin/informes/[id]/page.tsx",
   "(app)/ui/page.tsx",
   // Rutas de descarga y de vista previa
   "(app)/admin/invitations/export/route.ts",
   "(app)/admin/feedback/export/route.ts",
+  "(app)/admin/informes/[id]/export/route.ts",
   "(app)/admin/metricas/filtros-pool/route.ts",
   "(app)/admin/marca/email-bienvenida/route.ts",
   // Server Actions
@@ -38,6 +41,7 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   "(app)/admin/invitations/actions.ts",
   "(app)/admin/planes/actions.ts",
   "(app)/admin/feedback/actions.ts",
+  "(app)/admin/informes/actions.ts",
 ];
 
 /** Para cualquier cuenta con sesión (cada una opera solo sobre lo suyo, por RLS). */
