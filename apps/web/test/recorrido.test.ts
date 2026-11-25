@@ -54,6 +54,7 @@ describe("recorrido para revisar (R26-03)", () => {
       "plan",
       "primer-uso",
       "vacios",
+      "pruebas",
     ]);
     const ids = new Set<string>(RECORRIDO_GROUPS.map((g) => g.id));
     for (const s of RECORRIDO_SCREENS) expect(ids.has(s.group), s.id).toBe(true);

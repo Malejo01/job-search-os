@@ -9,7 +9,7 @@ import { E2E_B_USER_ID, ownerDb } from "./helpers";
  */
 
 /** Cantidad de pantallas de `lib/recorrido.ts`; si se suma o se saca una, este número y el de los specs cambian. */
-export const TOTAL_PANTALLAS = 18;
+export const TOTAL_PANTALLAS = 20;
 
 /** Un uuid de mentira para probar que la ruta guardada nunca lleva un id. */
 export const UUID_FICTICIO = "3f2b8c1e-9a4d-4e7b-8c21-5d6e7f8a9b0c";

@@ -19,6 +19,7 @@ export const RECORRIDO_GROUPS = [
   { id: "plan", label: "Plan" },
   { id: "primer-uso", label: "Primer uso" },
   { id: "vacios", label: "Pantallas vacías" },
+  { id: "pruebas", label: "Pruebas finales" },
 ] as const;
 
 export type RecorridoGroupId = (typeof RECORRIDO_GROUPS)[number]["id"];
@@ -325,6 +326,38 @@ export const RECORRIDO_SCREENS: readonly RecorridoScreen[] = [
     open: { kind: "route" },
     listRoute: "/jobs/pending-jd",
     howTo: "Si tenés avisos sin texto los vas a ver acá; si no, se muestra el estado vacío.",
+  },
+  {
+    id: "informe-prueba",
+    group: "pruebas",
+    title: "Tu informe de revisión",
+    what: "Donde juntás todo lo que viste, ítem por ítem, con texto, voz, capturas y documentos, y lo mandás de una vez.",
+    look: [
+      "Armá 2 o 3 ítems: uno con texto largo, otro dictado por voz y otro con una captura pegada con Ctrl+V.",
+      "Desde el celular, sumá una foto de la galería; en la computadora, probá «Capturar esta pantalla».",
+      "Cerrá la pestaña, volvé más tarde, fijate que siga todo y tocá «Enviar informe».",
+    ],
+    route: "/recorrido/informe",
+    open: { kind: "route" },
+    listRoute: "/recorrido/informe",
+    howTo:
+      "También se llega desde «¿Algo no anduvo?» → «Agregar al informe». Probalo en tu navegador de siempre y en el celular.",
+  },
+  {
+    id: "textos-aprobar",
+    group: "pruebas",
+    title: "Aprobar los textos nuevos",
+    what: "Los textos que dice Afi y los de la ayuda, para que los apruebes o propongas cómo decirlos.",
+    look: [
+      "Lo que dice Afi en el informe de revisión y cuando lo enviás.",
+      "Lo que dice Afi con su burbuja en Hoy, Match, Interview, CV y Academy.",
+      "Las preguntas frecuentes de /ayuda.",
+    ],
+    route: "/settings/textos",
+    open: { kind: "route" },
+    listRoute: "/settings/textos",
+    howTo:
+      "Cada texto tiene «Aprobar» o «Proponer otro». Lo que no apruebes queda pendiente en la checklist de apertura.",
   },
 ];
 
