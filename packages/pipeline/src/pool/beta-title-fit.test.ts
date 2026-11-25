@@ -66,7 +66,8 @@ describe("titleFit · categorías compartidas de las fuentes (C1-6)", () => {
     ["Sales Manager", "marketing_digital", 0],
     ["SEO Specialist", "marketing_digital", 2],
     ["Digital Marketing Manager", "marketing_digital", 2],
-    ["Marketing Specialist", "marketing_digital", 1],
+    // R28-06: «Marketing Specialist» ahora nombra el puesto (antes era solo la categoría: 1).
+    ["Marketing Specialist", "marketing_digital", 2],
   ] as [string, RoleKey, number][])("%s · %s → %i", (title, role, fit) => {
     expect(titleFit(title, role)).toBe(fit);
   });

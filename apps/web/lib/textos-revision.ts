@@ -20,6 +20,24 @@ export const ACADEMY_REVISION = {
   historialVacio: "Todavía nadie revisó una ficha desde la app.",
 } as const;
 
+/**
+ * Cómo se nombra a quien revisó en el historial (R28-10). Un admin ve el email; un tester ve «Vos» en lo suyo y
+ * «Otra persona del equipo» en lo de los demás: el email de otra cuenta no se muestra a quien no administra.
+ * Una cuenta borrada (sin email) se dice igual para todos.
+ */
+export function nombreDelRevisor(input: {
+  reviewerEmail: string | null;
+  viewerEmail: string | null;
+  viewerIsAdmin: boolean;
+}): string {
+  if (!input.reviewerEmail) return "Cuenta borrada";
+  if (input.viewerIsAdmin) return input.reviewerEmail;
+  const mine =
+    input.viewerEmail !== null &&
+    input.viewerEmail.trim().toLowerCase() === input.reviewerEmail.trim().toLowerCase();
+  return mine ? "Vos" : "Otra persona del equipo";
+}
+
 /** Textos de la revisión de los textos del rediseño (R26-02), en `/admin/textos` y `/settings/textos`. */
 export const TEXTOS_APROBACION = {
   titulo: "Textos del rediseño",

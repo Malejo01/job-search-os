@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Afi } from "@/components/afi";
+import { AfiDice } from "@/components/afi-dice";
 import { EstadoMarca } from "@/components/estado-marca";
 import { buttonClasses } from "@/components/ui";
-import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
+import { AFI_DICE, ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import { fichaBajada, fichaWordCount } from "@/lib/academy";
 import { readingMinutes } from "@/lib/academy-lectura";
 import { loadApprovedFichasFor } from "@/lib/academy-revisiones";
@@ -28,15 +28,17 @@ export default async function AcademyPage() {
   }));
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <div className="flex items-center gap-4">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col gap-3">
+        <div className="min-w-0">
           <h1 className="text-title font-bold">Academy</h1>
           <p className="text-fg-muted">
             Fichas cortas para entender mejor cada paso de tu búsqueda.
           </p>
         </div>
-        {/* R27-05: quien explica (decorativa: el título y la bajada de al lado lo dicen) */}
-        <Afi pose="explicando" size={88} decorative priority />
+        {/* R28-15: quien explica, ahora con su burbuja */}
+        {items.length > 0 ? (
+          <AfiDice pose="explicando" priority texto={AFI_DICE.academy} testId="afi-dice-academy" />
+        ) : null}
       </div>
       {items.length === 0 ? (
         <EstadoMarca

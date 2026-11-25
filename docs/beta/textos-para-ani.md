@@ -54,3 +54,52 @@ Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5
 - El 11/11 es el evento «Voces Jóvenes», no una charla.
 - Soporte de la beta: WhatsApp Business (lo crea y etiqueta tester A) y `contacto@afiniajobs.com.ar` (la crea Admin, la atiende tester A).
 - Los cobros van por una cuenta nueva de Mercado Pago compartida (hay que actualizar los links `MP_LINK_*`).
+
+## R28-12 · Preguntas frecuentes
+
+`/ayuda` ya traía 13 preguntas escritas en la página; estas son las 7 nuevas, en `apps/web/lib/textos-rediseno.ts` (`AYUDA_TEXTOS`), para aprobar desde `/settings/textos`. Voseo; sin prometer trabajo, sin «compatibilidad ATS» y sin decir que la app postula por vos. `{n}` lo completa la página.
+
+| Pregunta | Respuesta (borrador) |
+| --- | --- |
+| ¿Cómo se calcula la afinidad? | Leemos el aviso y lo comparamos con tu perfil: lo que pide, lo que ya tenés y lo que te falta. Con eso armamos un puntaje y te explicamos el porqué, punto por punto. Las cosas que pueden frenarte (por ejemplo, el país, el idioma o una condición del aviso) se muestran aparte del puntaje, para que no queden escondidas. Es una estimación para ayudarte a decidir; no garantiza que te llamen. |
+| ¿Cómo pago y cuándo se activa el plan? | Pagás con el link de Mercado Pago que te mandamos con la invitación. Después entrás a Ajustes, a «Tu plan», y tocás «Ya pagué» (el número de operación es opcional). Una persona del equipo confirma el pago a mano y activa tu plan por 30 días. No es automático: puede tardar un poco, y cuando se activa lo ves en «Tu plan». No guardamos datos de tu tarjeta. |
+| ¿Puedo hablar en vez de escribir? ¿Con qué navegadores? | Sí: donde ves el botón «Dictar» podés contar tu respuesta hablando y el texto aparece para que lo revises antes de enviarlo. Nunca se envía solo. En Chrome, Edge y Safari dictás directo con el navegador. En Opera, Brave y Firefox grabamos y transcribimos en nuestro servidor, y durante la beta puede tener un tope diario. Si no te funciona, podés escribir: todo se puede hacer sin voz. |
+| ¿Por qué veo pocas ofertas de mi carrera? | Las ofertas que traemos solas salen de las páginas de empleo de las propias empresas, y hoy son más de tecnología y remotas. Para otras carreras hay menos, y las vamos sumando de a poco. Mientras tanto no te quedás sin nada: podés cargar vos los avisos que ves en otros portales y los leemos igual contra tu perfil. |
+| ¿Cómo cargo una oferta que encontré? | En Match, tocá «+ Cargar oferta» y pegá el aviso completo (o el link, si lo tenés). Lo leemos, lo comparamos con tu perfil y te mostramos la afinidad y el porqué. También podés reenviar a tu dirección de la app las alertas que te llegan por email: la ves en Ajustes, en «Reenvío de emails». |
+| ¿Cuántas simulaciones de Interview puedo hacer por día? | Hasta {n} simulaciones completas cada 24 horas. Si llegás al tope, te avisamos cuándo podés empezar otra; mientras tanto podés repasar las que ya terminaste. |
+| ¿A quién le escribo si algo no anda o tengo una duda? | Desde la app, con el botón «¿Algo no anduvo?» que aparece en todas las pantallas: contanos qué pasó y leemos todo durante la beta. Podés dictar el mensaje si te resulta más cómodo. |
+
+Textos de interfaz del mismo bloque: Afi dice «Acá van las dudas que más nos hacen. Si no encontrás la tuya, escribinos desde la app.»; el link del menú, «Preguntas frecuentes» («Cómo se calcula la afinidad, pagos, voz, tus datos y a quién escribir.»); y en el asistente, «¿Una duda general sobre la beta?» con el link «Preguntas frecuentes».
+
+El email de bienvenida ya lleva el link a `/ayuda` («…mirá las preguntas frecuentes:» + el link), en `packages/pipeline/src/welcome-email.ts`; no hizo falta cambiarlo.
+
+## R28-15 · Lo que dice Afi (borrador para aprobar)
+
+Textos nuevos de la burbuja de Afi, en `apps/web/lib/textos-rediseno.ts` (`AFI_DICE`); se aprueban desde `/settings/textos`. Voseo y primera persona; `{nombre}` y `{n}` los completa la pantalla.
+
+| Pantalla | Texto |
+| --- | --- |
+| Hoy, primera vez del día | «¡Hola, {nombre}!» (o «¡Hola!») + «Hoy te traje {n} ofertas nuevas para mirar.» / «Hoy te traje 1 oferta nueva para mirar.» / «Hoy no hay ofertas nuevas, pero podés pegar una que te interese y te cuento qué tan bien te calza.» |
+| Hoy, el resto del día | «Seguimos: hay {n} ofertas nuevas para mirar.» / «Seguimos: hay 1 oferta nueva para mirar.» / el mismo «Hoy no hay ofertas nuevas…» |
+| Match, primeros pasos completos | «¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar cada día las ofertas con mejor puntaje (las verdes).» (mismo texto de antes, ahora lo dice Afi) |
+| Interview (portada) | «Soy Afi y te voy a entrevistar. Elegí una oferta y practicamos.» + botón «Empezar» |
+| Armá tu CV con IA | «Te ayudo a armar tu CV paso a paso. Vos revisás todo antes de usarlo.» |
+| Mejorá tu CV (coach) | «Vamos a mejorar tu CV juntos: te muestro qué se puede decir mejor y cómo.» |
+| «Cómo lo leen los sistemas de selección» | «Te muestro cómo lo leería un sistema de selección: qué entiende y qué se le escapa.» |
+| Postulaciones | «Acá seguimos tus postulaciones. Te aviso cuáles piden un seguimiento.» |
+| Preparar mi postulación | «Vamos a preparar tu postulación: te muestro qué conviene destacar. El envío lo hacés vos.» |
+| Academy | «Te explico las ideas clave de la búsqueda, una ficha por vez.» |
+
+## R28 · Ensayo del alta completa
+
+Cambio ya hecho (es código, no hace falta aprobarlo para que ande, pero tester A puede cambiar la redacción):
+
+| Pantalla | Archivo | Texto anterior | Texto nuevo | Por qué |
+| --- | --- | --- | --- | --- |
+| Email de bienvenida (al activar el plan) | `packages/pipeline/src/welcome-email.ts` | «Para empezar, en este orden:» | «Lo primero es el paso 1: sin tu perfil no podemos leer las ofertas por vos. / Los otros pasos pueden esperar:» | El email listaba 3 o 4 pasos con el mismo peso; ahora queda una sola acción principal arriba. Los pasos y sus links no cambiaron |
+
+Propuesta para decidir (no se cambió):
+
+| Pantalla | Texto actual | Propuesta | Por qué |
+| --- | --- | --- | --- |
+| Festejo al activar el plan | No hay festejo al activarse el plan (solo al marcar la primera postulación, terminar el CV con el coach y arrancar el plan de formación) | Dejarlo así, o sumar un festejo corto de bienvenida la primera vez que la persona entra con el plan activo | Decisión de producto: no se inventó un festejo nuevo en esta tanda |

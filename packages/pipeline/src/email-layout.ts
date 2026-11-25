@@ -40,18 +40,21 @@ export function brandedEmailHtml({
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeEmailHtml(preheader)}</div>`
     : "";
   return [
-    `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head>`,
-    `<body style="margin:0;padding:0;background:${BRAND_COLORS.canvas};">`,
+    // R28-11: esquema claro declarado de las dos formas (Apple Mail y Outlook leen `color-scheme` y
+    // `supported-color-schemes`; el `<style>` lo repite para quien ignora los meta). Todo el color va en línea y con
+    // `bgcolor` de respaldo: sin hojas externas, sin JavaScript.
+    `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><title>${escapeEmailHtml(BRAND.name)}</title><style>:root{color-scheme:light only;supported-color-schemes:light only;}</style></head>`,
+    `<body bgcolor="${BRAND_COLORS.canvas}" style="margin:0;padding:0;background:${BRAND_COLORS.canvas};">`,
     pre,
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND_COLORS.canvas};"><tr><td align="center" style="padding:24px 12px;">`,
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND_COLORS.canvas}" style="background:${BRAND_COLORS.canvas};"><tr><td align="center" style="padding:24px 12px;">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">`,
     // Encabezado (logo B2): AfinIA (800, lima) + Jobs (500, blanco) + el punto lima, sobre índigo
-    `<tr><td style="background:${BRAND_COLORS.ink};border-radius:24px 24px 0 0;padding:22px 28px;font-family:${LOGO_FONT};font-size:28px;line-height:1;letter-spacing:-1px;">`,
+    `<tr><td bgcolor="${BRAND_COLORS.ink}" style="background:${BRAND_COLORS.ink};border-radius:24px 24px 0 0;padding:22px 28px;font-family:${LOGO_FONT};font-size:28px;line-height:1;letter-spacing:-1px;">`,
     `<span style="font-weight:800;color:${BRAND_COLORS.accent};">${escapeEmailHtml(BRAND.wordmark.strong)}</span>`,
     `<span style="font-weight:500;color:${BRAND_COLORS.white};">${escapeEmailHtml(BRAND.wordmark.light)}</span>`,
     `<span aria-hidden="true" style="font-weight:800;color:${BRAND_COLORS.accent};">.</span>`,
     `</td></tr>`,
-    `<tr><td style="background:${BRAND_COLORS.white};border-radius:0 0 24px 24px;padding:28px;font-family:${FONT};font-size:15px;line-height:1.5;color:${BRAND_COLORS.ink};">`,
+    `<tr><td bgcolor="${BRAND_COLORS.white}" style="background:${BRAND_COLORS.white};border-radius:0 0 24px 24px;padding:28px;font-family:${FONT};font-size:15px;line-height:1.5;color:${BRAND_COLORS.ink};">`,
     mascotAppUrl ? emailMascotaHtml(mascotAppUrl, BRAND.name) : "",
     bodyHtml,
     `</td></tr>`,

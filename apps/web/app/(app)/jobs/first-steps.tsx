@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { EMAIL_NUDGE_COOKIE } from "@/app/components/email-nudge";
 import { getFirstStepsFacts } from "@/lib/first-steps";
-import { Afi } from "@/components/afi";
+import { AfiDice } from "@/components/afi-dice";
 import { CheckMark, Icon } from "@/components/ui";
+import { AFI_DICE } from "@/lib/textos-rediseno";
 import { requireActiveUserId } from "@/lib/session";
 
 /** Cookie de «Ocultar»: solo UX (httpOnly, un año), con el id del usuario como valor. */
@@ -64,19 +65,17 @@ export async function FirstSteps({ userId }: { userId: string }) {
         aria-labelledby="primeros-pasos-titulo"
         data-testid="first-steps"
         data-tour="jobs:primeros-pasos"
-        className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-success-soft px-3 py-2 text-sm text-success"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-card bg-surface-subtle px-3 py-3 text-sm"
       >
         <h2 id="primeros-pasos-titulo" className="sr-only">
           Primeros pasos
         </h2>
-        <p className="flex items-center gap-2">
-          <Afi pose="motivacion" size={32} decorative />
-          <CheckMark done className="size-5" />
-          <span>
-            ¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar cada día las ofertas con mejor
-            puntaje (las verdes).
-          </span>
-        </p>
+        {/* R28-15: Afi lo dice él, en una burbuja (antes era un Afi de 32 px al costado) */}
+        <AfiDice
+          pose="motivacion"
+          texto={AFI_DICE.primerosPasosListo}
+          testId="afi-dice-primeros-pasos"
+        />
         {hide}
       </section>
     );

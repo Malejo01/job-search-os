@@ -12,6 +12,8 @@ import { fetchHimalayasJobs } from "../sources/himalayas";
 import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
 import { fetchRemoteOkJobs } from "../sources/remoteok";
+import { fetchRecruiteeBoard } from "../sources/recruitee";
+import { fetchSmartRecruitersBoard } from "../sources/smartrecruiters";
 import { fetchTeamtailorBoard, parseTeamtailorFeed } from "../sources/teamtailor";
 import { fetchWorkableBoard } from "../sources/workable";
 import { describeFailure } from "../sources/error-code";
@@ -30,7 +32,7 @@ import {
 /**
  * Prueba en seco de una fuente del pool (JS-137):
  *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
- *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor|workable> <token> [--region eu|na] [--company "Nombre"] --dry-run
+ *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor|workable|recruitee|smartrecruiters> <token> [--region eu|na] [--company "Nombre"] --dry-run
  * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (los ATS no tienen ventana:
  * traen todo lo abierto, hasta ATS_MAX_JOBS_PER_BOARD por board), y reporta conteos y qué campos
  * trae la respuesta real contra los que lee el mapper. Los ATS consultan ese board SIN leer `ats_boards`. No escribe en ninguna base
@@ -194,6 +196,38 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "locations",
     "description",
   ],
+  // R28-05: Careers Site API de Recruitee (forma a verificar con este --dry-run)
+  recruitee: [
+    "id",
+    "guid",
+    "status",
+    "title",
+    "description",
+    "requirements",
+    "location",
+    "city",
+    "country",
+    "remote",
+    "hybrid",
+    "on_site",
+    "department",
+    "employment_type_code",
+    "careers_url",
+    "careers_apply_url",
+    "published_at",
+    "created_at",
+    "tags",
+  ],
+  // R28-05: lista de la Posting API de SmartRecruiters (el detalle trae `postingUrl` y `jobAd`)
+  smartrecruiters: [
+    "id",
+    "name",
+    "releasedDate",
+    "location",
+    "department",
+    "function",
+    "typeOfEmployment",
+  ],
 };
 
 /** Items crudos de una respuesta JSON, según la forma de cada fuente. */
@@ -201,6 +235,14 @@ function rawItemsOf(source: SourceName, body: unknown): unknown[] {
   if (source === "remoteok") return Array.isArray(body) ? body.slice(1) : [];
   if (source === "lever") return Array.isArray(body) ? body : [];
   if (body === null || typeof body !== "object") return [];
+  if (source === "recruitee") {
+    const offers = (body as { offers?: unknown }).offers;
+    return Array.isArray(offers) ? offers : [];
+  }
+  if (source === "smartrecruiters") {
+    const content = (body as { content?: unknown }).content;
+    return Array.isArray(content) ? content : [];
+  }
   if (source === "getonboard") {
     const data = (body as { data?: unknown }).data;
     return Array.isArray(data)
@@ -243,6 +285,8 @@ const ATS_FETCHERS = {
   ashby: fetchAshbyBoard,
   teamtailor: fetchTeamtailorBoard,
   workable: fetchWorkableBoard,
+  recruitee: fetchRecruiteeBoard,
+  smartrecruiters: fetchSmartRecruitersBoard,
 } satisfies Record<AtsProvider, unknown>;
 
 /** Los N slugs más frecuentes de la taxonomía de la fuente, normalizados, con su conteo. */

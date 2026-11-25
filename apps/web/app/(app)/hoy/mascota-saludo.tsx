@@ -1,24 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AfiAnimadoLazy } from "@/components/afi-animado-lazy";
+import { useEffect, useState, type ReactNode } from "react";
 import { debeSaludar } from "@/lib/momentos";
 import { SALUDO_STORAGE_KEY } from "@/lib/mascota";
 
 /**
- * Saludo de la mascota en Hoy, una vez por día (R27-04). El día de hoy (`today`, en la zona de la persona)
- * y el último día saludado de la cuenta (`accountDay`) vienen del servidor, sin consulta nueva: el perfil
- * ya se leía. El navegador guarda además lo suyo por si la cuenta no se pudo leer o guardar. Aparece
- * después de montar, en la esquina de la cabecera (posición absoluta, así no mueve nada).
+ * Afi en la cabecera de Hoy (R27-04, reescrito en R28-15). Hoy siempre tiene a Afi hablando; lo que decide el
+ * navegador es si es la primera vez del día. El servidor arma las dos versiones ya hechas (`<AfiDice>`) y esto
+ * solo elige cuál mostrar:
+ *
+ * - `quieto`: el resto del día. Afi quieto, sin animar. Es lo que sale en el HTML del servidor.
+ * - `saludo`: la primera vez del día, con la entrada `saludando` animada y el saludo en la burbuja.
+ *
+ * Cuándo es la primera vez: el día de hoy (`today`, en la zona de la persona) y el último día saludado de la
+ * cuenta (`accountDay`) vienen del servidor, sin consulta nueva. El navegador guarda además lo suyo por si la
+ * cuenta no se pudo leer o guardar. Sin almacenamiento (modo privado) no se saluda: queda `quieto`.
  */
 export function MascotaSaludo({
   today,
   accountDay,
   action,
+  quieto,
+  saludo,
 }: {
   today: string;
   accountDay: string | null;
   action: (day: string) => Promise<void>;
+  quieto: ReactNode;
+  saludo: ReactNode;
 }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
@@ -37,10 +46,11 @@ export function MascotaSaludo({
     }, 400);
     return () => window.clearTimeout(timer);
   }, [today, accountDay, action]);
-  if (!show) return null;
-  return (
-    <div data-testid="mascota-saludo" className="absolute top-2 right-4 sm:top-4 sm:right-12">
-      <AfiAnimadoLazy pose="saludando" size={56} variante="entrada" />
+  return show ? (
+    <div data-testid="mascota-saludo" data-saludo="primera-vez">
+      {saludo}
     </div>
+  ) : (
+    <div data-testid="mascota-quieto">{quieto}</div>
   );
 }

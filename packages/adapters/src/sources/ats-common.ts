@@ -11,10 +11,18 @@ import { withSignal } from "./with-signal";
 /**
  * Piezas comunes de los ATS públicos (Greenhouse, Lever, Ashby; ronda 47). Cada proveedor tiene
  * una API de lectura sin credenciales por board (la empresa publica sus avisos ahí). La lista de
- * boards la mantiene Mauro en `ats_boards`; acá solo se valida el token, se arma la URL y se
+ * boards la mantiene el dueño del proyecto en `ats_boards`; acá solo se valida el token, se arma la URL y se
  * hace el GET con tope de tamaño, timeout y un reintento. Ver docs/adr/018-fuentes-pool-ats.md.
  */
-export const ATS_PROVIDERS = ["greenhouse", "lever", "ashby", "teamtailor", "workable"] as const;
+export const ATS_PROVIDERS = [
+  "greenhouse",
+  "lever",
+  "ashby",
+  "teamtailor",
+  "workable",
+  "recruitee",
+  "smartrecruiters",
+] as const;
 export type AtsProvider = (typeof ATS_PROVIDERS)[number];
 
 /** Estado cerrado de un board: lo que se guarda en `ats_boards.last_status`. */
@@ -55,8 +63,12 @@ export function atsBoardUrl(provider: AtsProvider, token: string, region?: strin
   ) {
     throw new AtsBoardError("invalid_token", "región inválida");
   }
-  // Workable usa la cuenta como subdominio/ruta: misma etiqueta DNS estricta que Teamtailor
-  if ((provider === "teamtailor" || provider === "workable") && !DNS_LABEL_RE.test(token)) {
+  // Workable usa la cuenta como subdominio/ruta y Recruitee como subdominio: misma etiqueta DNS estricta
+  // que Teamtailor
+  if (
+    (provider === "teamtailor" || provider === "workable" || provider === "recruitee") &&
+    !DNS_LABEL_RE.test(token)
+  ) {
     throw new AtsBoardError("invalid_token", "token inválido");
   }
   const t = encodeURIComponent(token);
@@ -74,6 +86,12 @@ export function atsBoardUrl(provider: AtsProvider, token: string, region?: strin
       // La URL pública `workable.com/api/accounts/<slug>` redirige a esta; se usa directo la final y
       // `atsGetBody` no sigue redirecciones (`redirect: "error"`), así que nunca sale a otro host.
       return `https://apply.workable.com/api/v1/widget/accounts/${t}?details=true`;
+    case "recruitee":
+      // R28-05 (ADR-046): Careers Site API de la empresa, sin paginación. El token va en el subdominio.
+      return `https://${t}.recruitee.com/api/offers/`;
+    case "smartrecruiters":
+      // R28-05 (ADR-046): Posting API, paginada con `offset`; `smartrecruiters.ts` agrega `&offset=`.
+      return `https://api.smartrecruiters.com/v1/companies/${t}/postings?limit=${SMARTRECRUITERS_PAGE_LIMIT}`;
     default:
       throw new AtsBoardError("invalid_token", "proveedor inválido");
   }
@@ -270,6 +288,9 @@ export const ATS_MAX_JOBS_PER_BOARD = 200;
 
 /** `limit` del pedido a Lever (la API lo soporta; Greenhouse y Ashby no): igual al tope por board. */
 export const LEVER_API_LIMIT = ATS_MAX_JOBS_PER_BOARD;
+
+/** `limit` por página de la Posting API de SmartRecruiters (su máximo es 100). */
+export const SMARTRECRUITERS_PAGE_LIMIT = 100;
 
 export const emptyBoardResult = (status: "ok" | "not_found"): AtsBoardResult => ({
   jobs: [],

@@ -110,7 +110,8 @@ describe("inferRoleHints · título", () => {
   it("atención al cliente no es soporte de IT: desde la 107 es atencion_cliente", () => {
     expect(hints("Customer Support Representative")).toEqual(["atencion_cliente"]);
     expect(hints("Support Specialist")).toEqual(["atencion_cliente"]);
-    expect(hints("Soporte al cliente")).toEqual([]);
+    // R28-06: «soporte al cliente» en castellano es atención (antes quedaba sin señal).
+    expect(hints("Soporte al cliente")).toEqual(["atencion_cliente"]);
     expect(hints("Technical Support Engineer")).toEqual(["soporte_it"]);
     expect(hints("Analista de Soporte IT")).toEqual(["soporte_it"]);
   });

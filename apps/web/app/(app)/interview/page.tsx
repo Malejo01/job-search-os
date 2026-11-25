@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ContextHelp } from "@/components/context-help";
-import { EstadoMarca } from "@/components/estado-marca";
-import { Card, textLinkClasses } from "@/components/ui";
-import { AYUDAS_ACADEMY, INTERVIEW_TEXTOS } from "@/lib/textos-rediseno";
+import { Card, EmptyState, textLinkClasses } from "@/components/ui";
+import { AfiDice } from "@/components/afi-dice";
+import { AFI_DICE, AYUDAS_ACADEMY, INTERVIEW_TEXTOS } from "@/lib/textos-rediseno";
 import { requireActiveUserId } from "@/lib/session";
 import { DeleteSessionButton } from "./delete-session-button";
 import { ProgressTable } from "./progress-table";
@@ -12,6 +12,7 @@ import { StartForm } from "./start-form";
 export const metadata = { title: "Interview" };
 export const dynamic = "force-dynamic";
 
+const INTERVIEW_AFI = AFI_DICE.interview;
 const dateFormat = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" });
 
 /**
@@ -40,6 +41,15 @@ export default async function InterviewPage() {
         </p>
       </div>
 
+      {/* R28-15: Afi te recibe en la portada; el botón de la burbuja lleva al formulario de inicio */}
+      <AfiDice
+        pose="hablando-1"
+        priority
+        texto={INTERVIEW_AFI.texto}
+        accion={{ label: INTERVIEW_AFI.accion, href: "#interview-empezar" }}
+        testId="afi-dice-interview"
+      />
+
       <StartForm
         offers={data.offers}
         suggestedCareer={data.suggestedCareer}
@@ -64,8 +74,9 @@ export default async function InterviewPage() {
         </h2>
         <ProgressTable progress={data.progress} />
         {data.sessions.length === 0 ? (
-          <EstadoMarca
-            tipo="lista-vacia"
+          // R28-15: sin figura propia: la portada ya tiene a Afi hablando (un solo Afi por pantalla)
+          <EmptyState
+            variant="boxed"
             title={INTERVIEW_TEXTOS.vacio.title}
             data-testid="interview-vacio"
             action={
@@ -75,7 +86,7 @@ export default async function InterviewPage() {
             }
           >
             {INTERVIEW_TEXTOS.vacio.text}
-          </EstadoMarca>
+          </EmptyState>
         ) : (
           <ul className="flex flex-col gap-3" data-testid="interview-history">
             {data.sessions.map((s) => (

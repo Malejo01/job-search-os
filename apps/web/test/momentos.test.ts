@@ -30,6 +30,15 @@ describe("esDiaValido", () => {
     expect(esDiaValido(null)).toBe(false);
     expect(esDiaValido("2026-03-05 y algo más")).toBe(false);
   });
+
+  it("R28-10: rechaza fechas que no existen o fuera de rango", () => {
+    expect(esDiaValido("2026-99-99")).toBe(false);
+    expect(esDiaValido("2026-02-31")).toBe(false);
+    expect(esDiaValido("0000-00-00")).toBe(false);
+    expect(esDiaValido("9999-12-31")).toBe(false);
+    expect(esDiaValido("2028-02-29")).toBe(true);
+    expect(esDiaValido("2026-02-29")).toBe(false);
+  });
 });
 
 describe("debeSaludar (una vez por día)", () => {

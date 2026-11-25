@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { publicOpenGraph } from "@/lib/public-og";
 import {
+  INTERVIEW_MAX_SIMULATIONS_PER_DAY,
   isAutomaticPortal,
   isRecommendedPortal,
   portalsForRoles,
@@ -8,6 +9,8 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AfiDice } from "@/components/afi-dice";
+import { AYUDA_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
 import { Glosario } from "./glosario";
 
 export const revalidate = 3600;
@@ -22,6 +25,8 @@ export const metadata: Metadata = {
 
 type FaqItem = {
   q: string;
+  /** Identificador estable (para el e2e y los enlaces a una pregunta). */
+  id?: string;
   a: ReactNode;
 };
 
@@ -236,24 +241,45 @@ const FAQS: FaqItem[] = [
       </p>
     ),
   },
+  // R28-12: las que faltaban (textos en `AYUDA_TEXTOS`, para que Ani los apruebe)
+  ...AYUDA_TEXTOS.faqs.map((faq): FaqItem => ({
+    q: faq.q,
+    id: faq.id,
+    a: (
+      <div className="flex flex-col gap-2">
+        {faq.a.map((parrafo) => (
+          <p key={parrafo}>{llenarTexto(parrafo, { n: INTERVIEW_MAX_SIMULATIONS_PER_DAY })}</p>
+        ))}
+      </div>
+    ),
+  })),
 ];
 
 export default function AyudaPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 py-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-          Preguntas frecuentes
-        </h1>
-        <p className="text-base text-fg-muted sm:text-lg">
-          Respuestas simples sobre la beta cerrada, las carreras habilitadas y el funcionamiento de
-          la app.
-        </p>
+      <header className="flex flex-col gap-4">
+        {/* R28-12: un solo Afi en la página (el que explica); estática, la página sigue en ISR */}
+        <AfiDice pose="explicando" priority texto={AYUDA_TEXTOS.afiDice} testId="afi-dice-ayuda" />
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+            Preguntas frecuentes
+          </h1>
+          <p className="text-base text-fg-muted sm:text-lg">
+            Respuestas simples sobre la beta cerrada, las carreras habilitadas y el funcionamiento
+            de la app.
+          </p>
+        </div>
       </header>
 
       <section className="flex flex-col gap-4" aria-label="Lista de preguntas frecuentes">
         {FAQS.map((faq, idx) => (
-          <article key={idx} className="flex flex-col gap-2 rounded-card bg-surface p-5">
+          <article
+            key={idx}
+            id={faq.id}
+            data-testid={faq.id ? `ayuda-faq-${faq.id}` : undefined}
+            className="flex scroll-mt-20 flex-col gap-2 rounded-card bg-surface p-5"
+          >
             <h2 className="text-lg font-semibold text-fg">{faq.q}</h2>
             <div className="text-base leading-relaxed text-fg-muted">{faq.a}</div>
           </article>
