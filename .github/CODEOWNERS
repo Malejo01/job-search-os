@@ -206,3 +206,4 @@
 /apps/web/lib/feedback-report.ts @Malejo01
 /apps/web/lib/feedback-files.ts @Malejo01
 /apps/web/lib/admin-feedback-reports.ts @Malejo01
+/apps/web/lib/feedback-report-email.ts @Malejo01

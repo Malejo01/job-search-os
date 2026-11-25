@@ -209,3 +209,4 @@ apps/web/lib/saludo-actions.ts
 apps/web/lib/feedback-report.ts
 apps/web/lib/feedback-files.ts
 apps/web/lib/admin-feedback-reports.ts
+apps/web/lib/feedback-report-email.ts
