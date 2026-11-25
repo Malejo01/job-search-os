@@ -52,10 +52,10 @@ describe("poses de Afi", () => {
     const { src, srcSet } = mascotaSrc("saludando");
     expect(src).toBe("/mascota/saludando-512.webp");
     expect(srcSet).toBe(
-      "/mascota/saludando-256.webp 150w, /mascota/saludando-512.webp 301w, /mascota/saludando-1024.webp 602w",
+      "/mascota/saludando-256.webp 183w, /mascota/saludando-512.webp 366w, /mascota/saludando-1024.webp 733w",
     );
-    expect(mascotaAncho("quieto", 100)).toBe(56);
-    expect(mascotaSizes("quieto", 100)).toBe("56px");
+    expect(mascotaAncho("quieto", 100)).toBe(44);
+    expect(mascotaSizes("quieto", 100)).toBe("44px");
   });
 
   it("PNG para emails y srcSet de la cara", () => {

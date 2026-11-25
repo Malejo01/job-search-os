@@ -11,10 +11,13 @@ import {
 } from "@job-search-os/pipeline";
 import { after } from "next/server";
 import { saveFeedback } from "@/lib/beta-feedback";
-import { requireActiveUserId } from "@/lib/session";
+import { canViewRecorrido } from "@/lib/recorrido-access";
+import { activeSessionUserId, requireActiveUserId } from "@/lib/session";
 import { voiceServerAllowedFor } from "@/lib/voice/server";
 
-export type FeedbackResult = { ok: true } | { ok: false; field: FeedbackField | "_error" };
+/** `session`: la sesión venció (o falta aceptar términos); el modal conserva el texto y lo dice (R29-01). */
+export type FeedbackResult =
+  { ok: true } | { ok: false; field: FeedbackField | "_error" | "session" };
 
 function escapeHtml(s: string): string {
   return s
@@ -118,7 +121,10 @@ async function notifyFeedbackAdmins(
  * Notifica por email a ADMIN_EMAILS en `after()`.
  */
 export async function sendFeedbackAction(formData: FormData): Promise<FeedbackResult> {
-  const userId = await requireActiveUserId();
+  // R29-01: sin sesión vigente NO se redirige a /login (se perdía lo escrito, sin aviso): se contesta
+  // `session` y el modal muestra el aviso conservando el texto.
+  const userId = await activeSessionUserId();
+  if (!userId) return { ok: false, field: "session" };
   const checked = validateFeedback({
     category: formData.get("category"),
     message: formData.get("message"),
@@ -149,6 +155,20 @@ export async function sendFeedbackAction(formData: FormData): Promise<FeedbackRe
   } catch (error) {
     log.error({ category: checked.value.category, err: safeDbError(error) }, "feedback: falló");
     return { ok: false, field: "_error" };
+  }
+}
+
+/**
+ * ¿Esta persona ve «Agregar al informe» en el modal (R29-03)? Solo testers y admins. Se pregunta al abrir el modal,
+ * como la voz, así el layout no suma una consulta en cada navegación. Falla cerrado: ante cualquier error, el modal
+ * queda idéntico al de siempre. La acción que suma el ítem vuelve a comprobarlo.
+ */
+export async function feedbackReportAccessAction(): Promise<boolean> {
+  try {
+    const userId = await activeSessionUserId();
+    return userId ? await canViewRecorrido(userId) : false;
+  } catch {
+    return false;
   }
 }
 

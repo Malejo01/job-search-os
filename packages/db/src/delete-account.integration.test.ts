@@ -108,6 +108,16 @@ async function seed(id: string, tag: string): Promise<void> {
                values (${"hash-" + tag}, ${id})`;
   await owner`insert into beta_feedback (user_id, category, message, path)
                values (${id}, 'idea', 'Mensaje ficticio', '/hoy')`;
+  // R29-02: informe de revisión con un ítem, un adjunto y su archivo (caen por cascade con la cuenta)
+  const [report] = await owner<{ id: string }[]>`
+    insert into feedback_reports (user_id, status) values (${id}, 'borrador') returning id`;
+  const [reportItem] = await owner<{ id: string }[]>`
+    insert into feedback_items (report_id, user_id, position, path, category, message)
+    values (${report!.id}, ${id}, 0, '/hoy', 'idea', 'Ítem ficticio') returning id`;
+  await owner`insert into feedback_attachments (user_id, item_id, original_name, kind, mime, bytes, sha256, width, height)
+               values (${id}, ${reportItem!.id}, 'captura.webp', 'image', 'image/webp', 4, ${"a".repeat(64)}, 10, 10)`;
+  await owner`insert into blob_files (user_id, content_type, bytes, sha256, data)
+               values (${id}, 'image/webp', 4, ${"a".repeat(64)}, decode('01020304', 'hex'))`;
   await owner`insert into career_history (user_id, kind, organization, title)
                values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio')`;
   await owner`insert into market_candidates (user_id, term, count) values (${id}, 'termino ficticio', 2)`;
@@ -175,6 +185,11 @@ describe("borrado de cuenta (JS-092)", () => {
     // Los comentarios de la beta caen por cascade (la app no tiene DELETE sobre la tabla):
     // rowsOf(A) ya comprobó 0 filas; acá, que el conteo previo los vio
     expect(counts["beta_feedback.user_id"]).toBe(1);
+    // R29-02: el informe, su ítem, su adjunto y el archivo también
+    expect(counts["feedback_reports.user_id"]).toBe(1);
+    expect(counts["feedback_items.user_id"]).toBe(1);
+    expect(counts["feedback_attachments.user_id"]).toBe(1);
+    expect(counts["blob_files.user_id"]).toBe(1);
     expect(counts["career_history.user_id"]).toBe(1);
     expect(counts["market_candidates.user_id"]).toBe(1);
     expect(counts["interview_sessions.user_id"]).toBe(1);

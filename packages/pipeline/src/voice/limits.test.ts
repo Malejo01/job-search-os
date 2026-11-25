@@ -3,7 +3,10 @@ import {
   VOICE_DEFAULT_DAILY_SECONDS,
   VOICE_MAX_BYTES,
   VOICE_MAX_SECONDS,
+  VOICE_TESTER_DEFAULT_DAILY_MINUTES,
   VOICE_WARN_SECONDS,
+  voiceDailySecondsForRole,
+  voiceTesterDailySeconds,
   normalizeAudioType,
   parseVoiceLabel,
   voiceDailySeconds,
@@ -35,6 +38,40 @@ describe("constantes", () => {
     expect(VOICE_MAX_SECONDS).toBe(120);
     expect(VOICE_WARN_SECONDS).toBe(105);
     expect(VOICE_DEFAULT_DAILY_SECONDS).toBe(1200);
+  });
+});
+
+describe("cupo de voz según el rol (R29-06)", () => {
+  it("el tester tiene 60 minutos por defecto y el resto 20", () => {
+    expect(VOICE_TESTER_DEFAULT_DAILY_MINUTES).toBe(60);
+    expect(voiceTesterDailySeconds({})).toBe(3600);
+    expect(voiceDailySecondsForRole({}, true)).toBe(3600);
+    expect(voiceDailySecondsForRole({}, false)).toBe(1200);
+  });
+  it("lee VOICE_TESTER_DAILY_MINUTES de 1 a 1.440", () => {
+    expect(voiceTesterDailySeconds({ VOICE_TESTER_DAILY_MINUTES: "90" })).toBe(5400);
+    expect(voiceTesterDailySeconds({ VOICE_TESTER_DAILY_MINUTES: "1" })).toBe(60);
+    expect(voiceTesterDailySeconds({ VOICE_TESTER_DAILY_MINUTES: "1440" })).toBe(86_400);
+  });
+  it("inválido, cero, negativo, decimal o fuera de rango vuelve a 60", () => {
+    for (const v of ["", "0", "-3", "1.5", "abc", "1e3", "1441", "99999"]) {
+      expect(voiceTesterDailySeconds({ VOICE_TESTER_DAILY_MINUTES: v })).toBe(3600);
+    }
+  });
+  it("el cupo de los demás no cambia con la variable del tester", () => {
+    const env = { VOICE_TESTER_DAILY_MINUTES: "120", VOICE_DAILY_MINUTES: "5" };
+    expect(voiceDailySecondsForRole(env, false)).toBe(300);
+    expect(voiceDailySecondsForRole(env, true)).toBe(7200);
+  });
+  it("con el cupo del tester, 25 minutos entran para el tester y no para el resto", () => {
+    const used = 25 * 60 - 60;
+    const base = { usedSeconds: used, reservedSeconds: 0, requestSeconds: 60 };
+    expect(
+      voiceQuotaDecision({ ...base, dailySeconds: voiceDailySecondsForRole({}, true) }).ok,
+    ).toBe(true);
+    expect(
+      voiceQuotaDecision({ ...base, dailySeconds: voiceDailySecondsForRole({}, false) }).ok,
+    ).toBe(false);
   });
 });
 

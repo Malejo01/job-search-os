@@ -113,7 +113,7 @@ export async function cleanB(): Promise<void> {
   }
 }
 
-/** Le gasta a B todo el cupo del día (1200 s por defecto) con una llamada inventada. Lo borra `cleanB`. */
+/** Le gasta a B todo el cupo del día (3600 s: el de una tester, R29-06; el común es de 1200 s) con una llamada inventada. Lo borra `cleanB`. */
 export async function seedFullDailyCap(): Promise<void> {
   const { db, close } = ownerDb();
   try {
@@ -122,7 +122,7 @@ export async function seedFullDailyCap(): Promise<void> {
       task: "transcribe_audio",
       model: "fake",
       promptVersion: "transcribe_audio@v1",
-      label: "voice:1200:seed1",
+      label: "voice:3600:seed1",
       costUsd: 0,
       latencyMs: 0,
       ok: true,

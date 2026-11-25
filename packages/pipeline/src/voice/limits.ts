@@ -37,6 +37,27 @@ export function voiceDailySeconds(env: Record<string, string | undefined>): numb
   );
 }
 
+/** Cupo diario de las testers (R29-06): 60 minutos. El de las demás personas sigue en 20. */
+export const VOICE_TESTER_DEFAULT_DAILY_MINUTES = 60;
+
+/** Cupo diario de las testers en segundos desde `VOICE_TESTER_DAILY_MINUTES` (entero de 1 a 1.440; inválido = 60). */
+export function voiceTesterDailySeconds(env: Record<string, string | undefined>): number {
+  return (
+    readCap(env, "VOICE_TESTER_DAILY_MINUTES", VOICE_TESTER_DEFAULT_DAILY_MINUTES, {
+      kind: "int",
+      max: 1440,
+    }) * 60
+  );
+}
+
+/** El cupo que le toca a la persona según su rol. El rol lo decide el servidor, nunca el cliente. */
+export function voiceDailySecondsForRole(
+  env: Record<string, string | undefined>,
+  isTester: boolean,
+): number {
+  return isTester ? voiceTesterDailySeconds(env) : voiceDailySeconds(env);
+}
+
 /** `audio/webm;codecs=opus` → `audio/webm`. `null` si no es uno de los tres tipos permitidos. */
 export function normalizeAudioType(raw: string | null | undefined): VoiceAudioType | null {
   const base = (raw ?? "").split(";")[0]!.trim().toLowerCase();

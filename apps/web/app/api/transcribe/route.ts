@@ -10,14 +10,13 @@ import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
   VOICE_MAX_BYTES,
   validateVoiceUpload,
-  voiceDailySeconds,
   type VoiceUploadReject,
 } from "@job-search-os/pipeline";
 import { serviceLlm } from "@/lib/llm-service";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { needsTermsAcceptance } from "@/lib/terms-status";
-import { readBytesLimited, voiceServerAllowedFor } from "@/lib/voice/server";
+import { readBytesLimited, voiceDailySecondsFor, voiceServerAllowedFor } from "@/lib/voice/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,7 +62,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   unsupported_type: "Ese formato de audio no está permitido. Escribí tu respuesta.",
   duration: "La grabación es muy corta o su duración no es válida. Probá de nuevo.",
   too_long: "La grabación pasa los 2 minutos. Grabá en partes más cortas.",
-  daily_limit: "Llegaste al tope de voz de hoy. Podés seguir escribiendo.",
+  daily_limit: "Por hoy llegaste al tope de voz: podés seguir escribiendo.",
   model: "Ahora no pudimos transcribir. Escribí tu respuesta o probá de nuevo en un rato.",
 };
 
@@ -164,7 +163,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
     const db = conn.db;
-    const dailySeconds = voiceDailySeconds(process.env);
+    // El rol se decide acá, con la sesión: el cliente no puede pedir el cupo de tester (R29-06)
+    const dailySeconds = await voiceDailySecondsFor(userId);
     const out = await transcribeAudio(
       {
         llm: serviceLlm(db, logger),

@@ -25,6 +25,7 @@ export * from "./market/plan";
 export * from "./market/recompute";
 export * from "./skills/sync";
 export * from "./storage/blob";
+export * from "./storage/binary";
 export * from "./inbound/svix";
 export * from "./inbound/parsers";
 export * from "./inbound/resend";

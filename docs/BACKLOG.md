@@ -2227,3 +2227,28 @@ Informe de la tanda: [`docs/beta/informe-r28.md`](beta/informe-r28.md). Pasos ma
 
 ### R28 · Cierre de la tanda
 `estado:` en rama (25/11) · `ronda/r28-cierre`
+
+## Bloque 47 · Tanda R29 «Informe de revisión y Afi v2» (25/11)
+
+Informe de la tanda: [`docs/beta/informe-r29.md`](beta/informe-r29.md). Pasos manuales: [`docs/beta/pasos-manuales-r29.md`](beta/pasos-manuales-r29.md). Cadena sobre `ronda/r29-assets` (`main` + Afi v2); ningún PR mergeado por agentes. Migraciones 0084 y 0085 y RLS 0069 y 0070 sin aplicar en Neon. USD 0, sin prompts.
+
+### Pedido
+- **R29-01** · El modal de comentarios avisa cada error (sesión vencida, tope, validación, servidor) y conserva el texto en un borrador · `estado:` en rama (25/11) · `ronda/r29-01-envio`
+- **R29-02** · Informes, ítems y adjuntos en Postgres (`blob_files`), adaptador binario, topes en pipeline, ADR-047 · `estado:` en rama (25/11) · `ronda/r29-02-datos`
+- **R29-03** · `/recorrido/informe` para testers y admins: ítems con texto largo, voz, capturas y documentos; borrador y envío con aviso a los admins · `estado:` en rama (25/11) · `ronda/r29-03-informe`
+- **R29-04** · Adjuntos por magic bytes, WebP reescrito sin metadatos, descarga con sesión y ritmo; red team · `estado:` en rama (25/11) · `ronda/r29-04-adjuntos`
+- **R29-05** · `/admin/informes` con estado por ítem y «Exportar para Claude» · `estado:` en rama (25/11) · `ronda/r29-05-admin`
+- **R29-06** · Cupo de voz por rol (`VOICE_TESTER_DAILY_MINUTES`, 60) y aviso al tope · `estado:` en rama (25/11) · `ronda/r29-04-adjuntos`
+- **R29-07** · e2e del informe de punta a punta (331), escrito y sin correr en local · `estado:` en rama (25/11) · `ronda/r29-08-afi`
+- **R29-08** · Afi v2 revisada en toda la app, OG, emails y favicon; LCP igual o mejor · `estado:` en rama (25/11) · `ronda/r29-08-afi`
+
+### Cola extra
+- **R29-09** · Limpieza de adjuntos de ítems resueltos hace 30 días (texto intacto, registro en `admin_events`, cron apagado, migración 0085) · `estado:` en rama (25/11) · `ronda/r29-05-admin`
+
+### Pendientes que salen de la tanda
+- e2e 311–323 y 331 sin correr en local (el sistema frenó el lote por memoria).
+- Subida en partes o Vercel Blob para documentos de más de 4 MB; ritmo propio al guardar ítems; PDF con `/ObjStm`.
+- Responderle a la tester por ítem; pasar el informe a tickets; `.zip` de adjuntos.
+
+### R29 · Cierre de la tanda
+`estado:` en rama (25/11) · `ronda/r29-cierre`

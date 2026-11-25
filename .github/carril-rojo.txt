@@ -205,3 +205,8 @@ apps/web/next.config.ts
 apps/web/lib/primer-uso-actions.ts
 # R27-04: server action del saludo diario guardado en la cuenta
 apps/web/lib/saludo-actions.ts
+# R29: informe de revisión (escritura del informe, adjuntos con sesión y lectura del admin)
+apps/web/lib/feedback-report.ts
+apps/web/lib/feedback-files.ts
+apps/web/lib/admin-feedback-reports.ts
+apps/web/lib/feedback-report-email.ts

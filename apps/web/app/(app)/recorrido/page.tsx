@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { buttonClasses } from "@/components/ui";
 import { canViewRecorrido } from "@/lib/recorrido-access";
 import { loadRecorridoTargets } from "@/lib/recorrido-targets";
 import { RECORRIDO_SCREENS, resolveOpen } from "@/lib/recorrido";
 import { requireUserId } from "@/lib/session";
+import { INFORME_TEXTOS } from "@/lib/textos-rediseno";
 import { RECORRIDO_TEXTOS as T } from "@/lib/textos-recorrido";
 import { RecorridoList, type RecorridoItem } from "./recorrido-list";
 
@@ -36,6 +39,17 @@ export default async function RecorridoPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-title font-bold">{T.title}</h1>
         <p className="text-fg-muted">{T.intro}</p>
+        {/* R29-03: el informe largo (testers y admins; esta página ya es solo para ellos) */}
+        <div className="flex flex-col items-start gap-1">
+          <Link
+            href="/recorrido/informe"
+            data-testid="recorrido-informe-link"
+            className={buttonClasses({ variant: "secondary" })}
+          >
+            {INFORME_TEXTOS.recorridoLink}
+          </Link>
+          <p className="text-sm text-fg-muted">{INFORME_TEXTOS.recorridoHint}</p>
+        </div>
       </div>
       <RecorridoList userId={userId} items={items} />
     </div>

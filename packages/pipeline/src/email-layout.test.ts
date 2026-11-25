@@ -75,7 +75,7 @@ describe("compatibilidad con clientes de correo (R28-11)", () => {
 
   it("la mascota: imagen con tamaño, alt y estilo de respaldo, sobre una celda con fondo propio", () => {
     const img = html.match(/<img\b[^>]*>/)?.[0] ?? "";
-    expect(img).toMatch(/width="94"/);
+    expect(img).toMatch(/width="114"/);
     expect(img).toMatch(/height="160"/);
     expect(img).toMatch(/alt="[^"]{5,}"/);
     expect(img).toContain('border="0"');
@@ -86,7 +86,7 @@ describe("compatibilidad con clientes de correo (R28-11)", () => {
 
   it("el HTML de la mascota no cambia sin que alguien lo note (snapshot)", () => {
     expect(emailMascotaHtml("https://x.test/", "Marca X")).toMatchInlineSnapshot(
-      `"<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td align="center" bgcolor="#EEEDF9" style="background-color:#EEEDF9;border-radius:20px;padding:12px 20px;"><img src="https://x.test/mascota/saludando-512.png" alt="Afi, la mascota de Marca X, saluda con la mano" width="94" height="160" border="0" style="display:block;border:0;outline:none;text-decoration:none;width:94px;height:160px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.3;color:#1E1B4B;"></td></tr></table>"`,
+      `"<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td align="center" bgcolor="#EEEDF9" style="background-color:#EEEDF9;border-radius:20px;padding:12px 20px;"><img src="https://x.test/mascota/saludando-512.png" alt="Afi, la mascota de Marca X, saluda con la mano" width="114" height="160" border="0" style="display:block;border:0;outline:none;text-decoration:none;width:114px;height:160px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.3;color:#1E1B4B;"></td></tr></table>"`,
     );
   });
 });

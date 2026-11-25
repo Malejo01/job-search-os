@@ -1,0 +1,2 @@
+ALTER TABLE "admin_events" DROP CONSTRAINT "admin_events_action";--> statement-breakpoint
+ALTER TABLE "admin_events" ADD CONSTRAINT "admin_events_action" CHECK ("admin_events"."action" in ('tester_si', 'tester_no', 'bloquear', 'desbloquear', 'prueba_si', 'prueba_no', 'adjuntos_purga', 'adjuntos_purga_item'));
