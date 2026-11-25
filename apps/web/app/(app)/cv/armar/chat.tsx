@@ -94,6 +94,16 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
     else if (phase !== "intro") headingRef.current?.focus();
   }, [phase]);
 
+  // R28-08: mientras piensa, el campo está deshabilitado y no admite foco; se vuelve a él recién cuando
+  // se habilita (después del render), no en la misma función que apaga `busy`
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!busy && refocus.current && phase === "chat") {
+      refocus.current = false;
+      answerRef.current?.focus();
+    }
+  }, [busy, phase]);
+
   function fail(r: ApiErr) {
     setNotice({ message: r.message, links: r.links });
   }
@@ -128,7 +138,7 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
     setBusy(false);
     if (!r.ok) {
       fail(r);
-      answerRef.current?.focus();
+      refocus.current = true;
       return;
     }
     const added: Msg[] = [
@@ -142,7 +152,7 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
     setProgress(r.progress as { done: number; total: number });
     setDraft("");
     if (r.closed) setPhase("review");
-    else answerRef.current?.focus();
+    else refocus.current = true;
   }
 
   async function write() {

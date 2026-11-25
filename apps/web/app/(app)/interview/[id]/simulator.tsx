@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useId, useRef, useState, useTransition, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import {
   INTERVIEW_ANSWER_MAX_CHARS,
@@ -126,6 +126,10 @@ export function Simulator({
   const [truncated, setTruncated] = useState(false);
   const [pending, startTransition] = useTransition();
   const fieldRef = useRef<HTMLTextAreaElement>(null);
+  // R28-08: al evaluar, el formulario se desmonta y el foco se perdía; ahora va a la devolución, y al
+  // terminar, al resumen
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLElement>(null);
 
   const answered = answers.length;
   const done = answered >= TOTAL && !reviewing;
@@ -163,11 +167,16 @@ export function Simulator({
     });
   }
 
+  // La devolución aparece sola: el foco va a ella (la transición termina después del `await`, por eso un efecto)
+  useEffect(() => {
+    if (reviewing) feedbackRef.current?.focus();
+  }, [reviewing]);
+
   function next() {
     setReviewing(false);
     setTruncated(false);
-    // Foco al campo de la pregunta siguiente
-    requestAnimationFrame(() => fieldRef.current?.focus());
+    // Foco al campo de la pregunta siguiente, o al resumen si era la última
+    requestAnimationFrame(() => (summaryRef.current ?? fieldRef.current)?.focus());
   }
 
   if (done) {
@@ -177,8 +186,10 @@ export function Simulator({
     return (
       <div className="interview-report flex flex-col gap-5" data-testid="interview-summary">
         <section
+          ref={summaryRef}
+          tabIndex={-1}
           aria-labelledby={`${uid}-resumen`}
-          className="rounded-card bg-ink p-5 text-on-ink sm:p-6"
+          className="rounded-card bg-ink p-5 text-on-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:p-6"
         >
           <div className="flex items-center gap-3">
             <Afi pose="hablando-2" size={56} decorative />
@@ -281,7 +292,12 @@ export function Simulator({
 
       {reviewing && last ? (
         <Card as="section" aria-label="Devolución de tu respuesta" level="featured" padding="md">
-          <div className="flex flex-col gap-4">
+          <div
+            ref={feedbackRef}
+            tabIndex={-1}
+            data-testid="interview-feedback-foco"
+            className="flex flex-col gap-4 outline-none"
+          >
             {/* R27-04: la devolución (decorativa: el texto del puntaje y el consejo va al lado) */}
             <Afi pose="hablando-2" size={56} decorative />
             {truncated ? (
