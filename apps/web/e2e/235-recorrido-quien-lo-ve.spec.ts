@@ -28,6 +28,7 @@ const GRUPOS = [
   "Plan",
   "Primer uso",
   "Pantallas vacías",
+  "Pruebas finales",
 ];
 
 test("una tester ve la lista agrupada, con qué es y tres cosas para mirar en cada pantalla", async ({

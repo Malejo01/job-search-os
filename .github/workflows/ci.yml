@@ -172,13 +172,20 @@ jobs:
           GEMINI_API_KEY: ${{ env.HAS_GEMINI_KEY == 'true' && secrets.GEMINI_API_KEY || '' }}
         run: pnpm evals run --prompt "$EVALS_PROMPT" --subset --runs 1 --concurrency 1 --db none --yes --max-usd 0.5 --max-minutes 20
 
-  e2e:
+  e2e-shard:
     # Playwright: los 4 flujos de docs/TESTING_STRATEGY.md contra Postgres + worker en modo demo (sin LLM)
     # Es el job más pesado: solo en PRs hacia main. En push a main no se repite (ya corrió en el PR)
     # y los PRs entre ramas de trabajo no lo disparan. Un job salteado por `if` cuenta como verde.
+    # Partido en 4 máquinas (por archivo de spec, fullyParallel: false): cada una con su Postgres y su seed,
+    # así ningún spec ve datos de otro. Bajó de ~60 a ~15-20 minutos. El job `e2e` de abajo junta el resultado.
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    name: e2e (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     permissions:
       contents: read
     services:
@@ -214,7 +221,7 @@ jobs:
       - run: pnpm --filter @job-search-os/web exec playwright install --with-deps chromium
       - run: pnpm --filter @job-search-os/web build
       # CAPTURAS=1: el flujo 116 guarda capturas de las pantallas clave (C9-17, rediseño)
-      - run: pnpm --filter @job-search-os/web e2e
+      - run: pnpm --filter @job-search-os/web e2e --shard=${{ matrix.shard }}/4
         env:
           CAPTURAS: "1"
       # El guard local no deja bajar artefactos: el contexto de cada falla (árbol de la página y error) va al log
@@ -229,14 +236,14 @@ jobs:
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.shard }}
           path: apps/web/test-results/
           retention-days: 7
       # Capturas del rediseño (390 y 1280 px, claro y oscuro, datos inventados): artefacto, nunca al repo
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: capturas
+          name: capturas-${{ matrix.shard }}
           path: apps/web/test-results/capturas/
           if-no-files-found: ignore
           retention-days: 14
@@ -244,7 +251,22 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: comparaciones
+          name: comparaciones-${{ matrix.shard }}
           path: apps/web/e2e/__comparaciones__/
           if-no-files-found: ignore
           retention-days: 14
+
+  e2e:
+    # Junta las 4 partes con el mismo nombre de siempre («e2e»), así la protección de la rama y los avisos no
+    # cambian. Verde si las 4 pasaron o si se saltearon (push a main, PRs entre ramas de trabajo).
+    if: always()
+    needs: e2e-shard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - env:
+          RESULT: ${{ needs.e2e-shard.result }}
+        run: |
+          echo "e2e (4 partes): $RESULT"
+          [ "$RESULT" = "success" ] || [ "$RESULT" = "skipped" ]
