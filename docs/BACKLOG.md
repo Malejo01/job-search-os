@@ -2195,3 +2195,35 @@ Informe de la tanda: [`docs/beta/informe-r27.md`](beta/informe-r27.md). Pasos ma
 
 ### R27 · Cierre de la tanda
 `estado:` en rama (24/11) · `ronda/r27-cierre`
+
+## Bloque 46 · Tanda R28 «Lista para abrir» (25/11)
+
+Informe de la tanda: [`docs/beta/informe-r28.md`](beta/informe-r28.md). Pasos manuales: [`docs/beta/pasos-manuales-r28.md`](beta/pasos-manuales-r28.md). Cadena sobre `ronda/r27-integracion`; ningún PR mergeado por agentes. Migración 0083 y RLS 0068 sin aplicar en Neon. USD 0, sin prompts.
+
+### Pedido
+- **R28-01** · Pendientes de Afi: `global-error` con estilos propios, capturas del festejo y de Hoy con el saludo, festejo a 390 px sin tapar nada, LCP de la portada (Afi sin prioridad alta) · `estado:` en rama (25/11) · `ronda/r28-01-afi-pendientes`
+- **R28-02** · e2e `86-cv-chat-repreguntas` estable (3/3; no se reproduce) · `estado:` en rama (25/11) · `ronda/r28-01-afi-pendientes`
+- **R28-03** · Checklist de apertura: términos del PR legal, voz en `all`, ruteo a Claude y fecha definitiva · `estado:` en rama (25/11) · `ronda/r28-03-apertura`
+- **R28-04** · Ensayo del alta completa (e2e 278) y email de bienvenida con una acción principal · `estado:` en rama (25/11) · `ronda/r28-03-apertura`
+- **R28-05** · Recruitee y SmartRecruiters apagadas por defecto, ADR-046, migración 0083 · `estado:` en rama (25/11) · `ronda/r28-05-fuentes`
+- **R28-06** · `role_hints` de 8 carreras no técnicas con regresión técnica; `pnpm pool:cobertura` · `estado:` en rama (25/11) · `ronda/r28-05-fuentes`
+- **R28-07** · Boards candidatos: 3 verificados de 22, SQL comentado · `estado:` en rama (25/11) · `ronda/r28-05-fuentes`
+
+### Cola extra
+- **R28-15** · `<AfiDice>`: Afi que habla en Hoy, Match, Interview, CV, Tracker, Preparar y Academy · `estado:` en rama (25/11) · `ronda/r28-15-afi-dice`
+- **R28-10** · Seguridad de lo nuevo de R25 a R27: 2 hallazgos (1 baja, 1 informativa) arreglados · `estado:` en rama (25/11) · `ronda/r28-10-seguridad`
+- **R28-08** · Teclado y lector en los flujos principales (e2e 294–299) · `estado:` en rama (25/11) · `ronda/r28-08-teclado`
+- **R28-11** · Emails con Afi en los clientes de correo · `estado:` en rama (25/11) · `ronda/r28-11-emails`
+- **R28-12** · Preguntas frecuentes en `/ayuda` · `estado:` en rama (25/11) · `ronda/r28-12-ayuda`
+- **R28-14** · Inventario de código muerto (borrado manual) · `estado:` en rama (25/11) · `ronda/r28-14-limpieza`
+- **R28-09** · Celular a 360 px: 0 controles de menos de 44 px · `estado:` en rama (25/11) · `ronda/r28-09-celular`
+- **R28-13** · Consultas con volumen; `admin_beta_metrics()` de 71 a 4 ms (RLS 0068) · `estado:` en rama (25/11) · `ronda/r28-13-consultas`
+
+### Pendientes que salen de la tanda
+- Foco inicial del modal de comentarios con Enter (e2e 295:19 en `fixme`).
+- Probar Recruitee, SmartRecruiters, Workable y Teamtailor contra la API real; más boards candidatos con tokens reales.
+- Emails en Gmail, Outlook y Apple Mail reales; NVDA en Interview y el asistente.
+- Spec de teclado de `/cv/coach`; LCP de Hoy medido aparte.
+
+### R28 · Cierre de la tanda
+`estado:` en rama (25/11) · `ronda/r28-cierre`

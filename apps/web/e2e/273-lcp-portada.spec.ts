@@ -35,8 +35,7 @@ async function medir(browser: Browser, conAfi: boolean): Promise<Lcp> {
       const w = window as unknown as { __lcp?: Record<string, unknown> };
       new PerformanceObserver((lista) => {
         const e = lista.getEntries().at(-1) as
-          | (PerformanceEntry & { element?: Element | null; url?: string })
-          | undefined;
+          (PerformanceEntry & { element?: Element | null; url?: string }) | undefined;
         if (!e) return;
         w.__lcp = {
           ms: e.startTime,

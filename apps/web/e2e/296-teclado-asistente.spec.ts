@@ -31,9 +31,9 @@ test.describe("Flujo 296: asistente con teclado (R28-08)", () => {
     // Al abrir, el foco va al campo de la pregunta
     await expect(panel.locator("textarea")).toBeFocused();
     // Anuncios: hay una región en vivo dentro del panel
-    expect(await panel.locator("[aria-live], [role='status'], [role='log']").count()).toBeGreaterThan(
-      0,
-    );
+    expect(
+      await panel.locator("[aria-live], [role='status'], [role='log']").count(),
+    ).toBeGreaterThan(0);
     await expectFocusTrapped(page, panel);
 
     await page.keyboard.press("Escape");
