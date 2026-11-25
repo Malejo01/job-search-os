@@ -21,7 +21,12 @@ export function dayKeyIn(d: Date, timeZone: string): string {
 
 /** Forma válida de un día guardado: así la cuenta no recibe cualquier texto del navegador. */
 export function esDiaValido(day: unknown): day is string {
-  return typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day);
+  if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  // R28-10: tiene que ser un día del calendario (no «2026-99-99» ni «2026-02-31») y de este siglo
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+  if (y < 2000 || y > 2100) return false;
+  const t = new Date(Date.UTC(y, m - 1, d));
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
 }
 
 /**
