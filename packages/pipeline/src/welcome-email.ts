@@ -60,7 +60,9 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): {
   lines.push("");
   lines.push(`Ya tenés tu lugar en la Beta de ${PRODUCT_NAME}. Gracias por sumarte.`);
   lines.push("");
-  lines.push("Para empezar, en este orden:");
+  // R28-04: una sola acción principal arriba; el resto puede esperar
+  lines.push("Lo primero es el paso 1: sin tu perfil no podemos leer las ofertas por vos.");
+  lines.push("Los otros pasos pueden esperar:");
   lines.push("");
   steps.forEach((s, i) => {
     lines.push(`${i + 1}. ${s}`);

@@ -44,6 +44,14 @@ describe("buildWelcomeEmail", () => {
     expect(text).toContain("https://ejemplo.test/ayuda");
   });
 
+  it("R28-04: marca una sola acción principal antes de la lista", () => {
+    const { text } = buildWelcomeEmail(base);
+    const intro = text.indexOf("Lo primero es el paso 1");
+    expect(intro).toBeGreaterThan(-1);
+    expect(intro).toBeLessThan(text.indexOf("1. Completá tu perfil"));
+    expect(text).not.toContain("en este orden");
+  });
+
   it("sin el chat de CV, tres pasos; sin contacto, no inventa un email", () => {
     const { text } = buildWelcomeEmail({ ...base, cvEnabled: false, contactEmail: null });
     expect(text).not.toContain("Armá tu CV");
