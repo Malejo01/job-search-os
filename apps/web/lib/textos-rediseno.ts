@@ -224,6 +224,73 @@ export const AYUDA_TEXTOS = {
   ],
 } as const;
 
+/**
+ * «Mi informe de revisión» (R29-03), borrador para que lo apruebe Ani. Solo lo ven testers y admins. Voseo; sin
+ * nombres escritos a mano (`MASCOTA_NOMBRE` y `BRAND` salen de su lugar). `{n}`, `{max}` y similares los completa
+ * la pantalla (`llenarTexto`). Los errores de los adjuntos salen de `ATTACHMENT_ERROR_TEXTS` (pipeline).
+ */
+export const INFORME_TEXTOS = {
+  title: "Mi informe de revisión",
+  intro:
+    "Armá acá todo lo que viste mientras recorrías la app. Se guarda solo y lo podés seguir otro día. Cuando termines, lo enviás y lo leemos.",
+  recorridoLink: "Mi informe de revisión",
+  recorridoHint: "Juntá en un solo lugar todo lo que viste, con capturas y documentos.",
+  afiExplicando: "Contame todo lo que viste: podés escribir, dictar y sumar capturas",
+  afiEnviado: "¡Gracias! Lo voy a leer con mucha atención.",
+  empty: "Todavía no sumaste nada. Empezá con tu primer ítem.",
+  addItem: "Agregar ítem",
+  addItemFull: "Llegaste al máximo de {max} ítems por informe.",
+  itemTitle: "Ítem {n}",
+  removeItem: "Quitar ítem",
+  removeItemConfirm: "¿Quitar este ítem con sus capturas y documentos? No se puede deshacer.",
+  screenLabel: "Pantalla",
+  screenGeneral: "Toda la app (en general)",
+  categoryLabel: "Tipo de comentario",
+  messageLabel: "Qué viste",
+  messageHint: "Podés escribir todo lo que quieras, hasta {max} caracteres.",
+  messageCounter: "{n} de {max} caracteres",
+  messageTrimmed: "Se cortó el final de lo dictado: un ítem llega hasta {max} caracteres.",
+  attachments: "Capturas y documentos",
+  attachmentsHint:
+    "Soltá archivos acá, elegilos o pegá una captura con Ctrl+V. PDF y Word (.docx) de hasta 4 MB.",
+  attachmentsChoose: "Elegir archivos",
+  attachmentsCapture: "Capturar esta pantalla",
+  attachmentsCaptureHint: "Elegí la ventana o pestaña; sacamos la captura y la sumamos acá.",
+  attachmentsUploading: "Subiendo {name}…",
+  attachmentsPreparing: "Preparando {name}…",
+  attachmentsFull: "Este ítem ya tiene el máximo de {max} adjuntos.",
+  attachmentRemove: "Quitar {name}",
+  attachmentOpen: "Abrir {name}",
+  attachmentsCaptureFailed:
+    "No pudimos sacar la captura. Probá con otra ventana o pegá una con Ctrl+V.",
+  attachmentsNoWebp: "Tu navegador no puede preparar la imagen. Probá con Chrome o Edge.",
+  savedNow: "Guardado",
+  savedAgo: "Guardado a las {hora}",
+  saving: "Guardando…",
+  unsaved: "Cambios sin guardar",
+  saveError: "No pudimos guardar los cambios. Tu texto sigue acá: probá de nuevo.",
+  saveSession: "Se venció tu sesión. Tu texto sigue acá: iniciá sesión en otra pestaña y volvé.",
+  saveLocked: "Este informe ya no se puede editar.",
+  send: "Enviar informe",
+  sendConfirmTitle: "¿Enviar el informe?",
+  sendConfirmBody: "Vas a enviar {resumen}. Después no se puede cambiar.",
+  sendConfirmYes: "Sí, enviar",
+  sendConfirmNo: "Volver",
+  sendEmpty: "Sumá al menos un ítem antes de enviar.",
+  sendItemEmpty: "El ítem {n} no tiene texto ni adjuntos: escribí algo o quitalo.",
+  sendError: "No pudimos enviar el informe. Tus ítems siguen guardados: probá de nuevo.",
+  sentTitle: "¡Informe enviado!",
+  sentBody: "Mandaste {resumen}. Gracias por mirar con tanto detalle.",
+  newReport: "Armar otro informe",
+  sentListTitle: "Informes que ya enviaste",
+  sentItem: "{fecha} · {resumen}",
+  addToReport: "Agregar al informe",
+  addToReportDone: "Lo sumamos a tu informe.",
+  addToReportLink: "Ver mi informe",
+  addToReportError: "No pudimos sumarlo al informe. Probá de nuevo.",
+  addToReportFull: "Tu informe ya tiene el máximo de {max} ítems.",
+} as const;
+
 /** Interview pulido (R23-08): espera, vacío, 404 propio. «analizando» y «retry» viajan al cliente: están en `textos-interview.ts` (R23-09). */
 export const INTERVIEW_TEXTOS = {
   ...INTERVIEW_CLIENTE,

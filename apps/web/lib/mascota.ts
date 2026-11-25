@@ -31,15 +31,15 @@ export type MascotaAlto = (typeof MASCOTA_ALTOS)[number];
 /** Ancho intrínseco (px) de cada WebP, leído de los archivos reales (un test lo verifica). */
 export const MASCOTA_ANCHOS: Readonly<Record<MascotaPose, Readonly<Record<MascotaAlto, number>>>> =
   {
-    saludando: { 256: 150, 512: 301, 1024: 602 },
-    trabajando: { 256: 199, 512: 399, 1024: 798 },
-    pensando: { 256: 143, 512: 287, 1024: 574 },
-    explicando: { 256: 171, 512: 341, 1024: 682 },
-    quieto: { 256: 143, 512: 287, 1024: 574 },
-    "hablando-1": { 256: 156, 512: 312, 1024: 625 },
-    "hablando-2": { 256: 149, 512: 299, 1024: 597 },
-    motivacion: { 256: 150, 512: 299, 1024: 598 },
-    analizando: { 256: 178, 512: 357, 1024: 714 },
+    saludando: { 256: 183, 512: 366, 1024: 733 },
+    trabajando: { 256: 219, 512: 437, 1024: 875 },
+    pensando: { 256: 137, 512: 274, 1024: 549 },
+    explicando: { 256: 170, 512: 340, 1024: 679 },
+    quieto: { 256: 113, 512: 226, 1024: 452 },
+    "hablando-1": { 256: 169, 512: 338, 1024: 676 },
+    "hablando-2": { 256: 150, 512: 300, 1024: 599 },
+    motivacion: { 256: 146, 512: 293, 1024: 585 },
+    analizando: { 256: 145, 512: 289, 1024: 578 },
   };
 
 /** Para qué se usa cada pose (resumen de `docs/beta/mascota.md`). */
@@ -61,11 +61,11 @@ export const MASCOTA_ALT: Readonly<Record<MascotaPose, string>> = {
   trabajando: `${MASCOTA_NOMBRE} trabaja en su laptop`,
   pensando: `${MASCOTA_NOMBRE} piensa con la mano en el mentón`,
   explicando: `${MASCOTA_NOMBRE} te explica con un gráfico holográfico`,
-  quieto: `${MASCOTA_NOMBRE} te espera con las manos en los bolsillos`,
+  quieto: `${MASCOTA_NOMBRE} te espera con su tablet y una mano en el bolsillo`,
   "hablando-1": `${MASCOTA_NOMBRE} te habla`,
-  "hablando-2": `${MASCOTA_NOMBRE} te sonríe con la mano abierta`,
+  "hablando-2": `${MASCOTA_NOMBRE} te sonríe con las manos abiertas`,
   motivacion: `${MASCOTA_NOMBRE} festeja con el puño en alto`,
-  analizando: `${MASCOTA_NOMBRE} analiza datos en una tablet holográfica`,
+  analizando: `${MASCOTA_NOMBRE} analiza datos en su tablet`,
 };
 
 /** La cara del botón del asistente: cuadrada, tamaños 48, 96, 192 y 512. */

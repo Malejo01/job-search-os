@@ -10,6 +10,7 @@ describe("normalizeScreenPath (R26-04)", () => {
     expect(normalizeScreenPath(`/interview/${UUID}`)).toBe("/interview/[id]");
     expect(normalizeScreenPath(`/inbox/${UUID}`)).toBe("/inbox/[id]");
     expect(normalizeScreenPath(`/admin/personas/${UUID}`)).toBe("/admin/personas/[id]");
+    expect(normalizeScreenPath(`/admin/informes/${UUID}`)).toBe("/admin/informes/[id]");
   });
 
   it("el segmento dinámico no tiene que parecer un id: también los slugs", () => {

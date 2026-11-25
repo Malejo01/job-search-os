@@ -34,6 +34,12 @@ export const ADMIN_SECTIONS = [
     hint: "Lo que escriben las personas",
   },
   {
+    id: "informes",
+    href: "/admin/informes",
+    label: "Informes",
+    hint: "Informes de revisión de las testers",
+  },
+  {
     id: "apertura",
     href: "/admin/apertura",
     label: "Apertura",

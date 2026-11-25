@@ -166,7 +166,7 @@ export function voiceErrorMessage(
     case "insecure-context":
       return "El micrófono solo funciona en páginas seguras (https). Abrí la app desde su dirección con https, o escribí la respuesta.";
     case "daily-limit":
-      return "Llegaste al tope de dictado de hoy. Podés seguir escribiendo y mañana vuelve a estar disponible.";
+      return "Por hoy llegaste al tope de voz: podés seguir escribiendo";
     case "server-off":
       return "Dictar por voz todavía no está disponible en este navegador. Probá con Chrome, Edge o Safari, o escribí la respuesta.";
     case "transcription-failed":

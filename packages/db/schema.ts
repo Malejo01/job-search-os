@@ -2,8 +2,16 @@ import { sql } from "drizzle-orm";
 import type { FeedbackContext } from "@job-search-os/pipeline";
 import {
   pgTable, pgEnum, uuid, text, integer, smallint, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey, check,
+  customType,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
+
+// bytea de Postgres como Buffer (adjuntos del informe, ADR-047). Con postgres-js llega y sale como Buffer.
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 // ─────────────────────────────────────────────────────────────
 // Enums
@@ -497,7 +505,7 @@ export const adminEvents = pgTable("admin_events", {
   index("admin_events_user").on(t.userId, t.createdAt.desc()),
   check(
     "admin_events_action",
-    sql`${t.action} in ('tester_si', 'tester_no', 'bloquear', 'desbloquear', 'prueba_si', 'prueba_no')`,
+    sql`${t.action} in ('tester_si', 'tester_no', 'bloquear', 'desbloquear', 'prueba_si', 'prueba_no', 'adjuntos_purga', 'adjuntos_purga_item')`,
   ),
 ]);
 
@@ -719,6 +727,100 @@ export const betaFeedback = pgTable("beta_feedback", {
   check("beta_feedback_message_length", sql`char_length(${t.message}) between 1 and 2000`),
   check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),
   check("beta_feedback_context_size", sql`${t.context} is null or octet_length(${t.context}::text) <= 4096`),
+]);
+
+// «Mi informe de revisión» (R29-02, ADR-047): el informe largo de testers y admins. Cuatro tablas, todas con
+// `user_id` y RLS con FORCE (rls/0069): `feedback_reports` (un borrador por persona a la vez), `feedback_items`
+// (pantalla, categoría y hasta 50.000 caracteres), `feedback_attachments` (metadatos de capturas y documentos) y
+// `blob_files` (los bytes, aparte para no inflar las consultas). Los límites de forma se repiten como CHECK; los
+// topes que dependen de la suma (100 MB por persona, 400 MB globales, 10 adjuntos por ítem) se validan en código.
+// La persona edita solo mientras el informe es borrador; el estado lo cambia el admin por funciones definer. Todo
+// cae con la cuenta (cascade).
+export const feedbackReports = pgTable("feedback_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  // borrador | enviado | visto | resuelto
+  status: text("status").notNull().default("borrador"),
+  statusChangedAt: timestamp("status_changed_at", { withTimezone: true }),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("feedback_reports_user_created").on(t.userId, t.createdAt),
+  index("feedback_reports_sent").on(t.sentAt.desc()).where(sql`${t.status} <> 'borrador'`),
+  // una persona arma un solo informe a la vez
+  uniqueIndex("feedback_reports_one_draft").on(t.userId).where(sql`${t.status} = 'borrador'`),
+  check("feedback_reports_status_check", sql`${t.status} in ('borrador', 'enviado', 'visto', 'resuelto')`),
+  check("feedback_reports_sent_check", sql`${t.status} = 'borrador' or ${t.sentAt} is not null`),
+]);
+
+export const feedbackItems = pgTable("feedback_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  reportId: uuid("report_id").notNull().references(() => feedbackReports.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  // 0 a 29: el orden en el informe y, con el índice único, el tope de 30 ítems
+  position: smallint("position").notNull(),
+  path: text("path").notNull(),
+  category: text("category").notNull(),
+  message: text("message").notNull().default(""),
+  // nuevo | visto | resuelto: lo cambia el admin (función definer)
+  status: text("status").notNull().default("nuevo"),
+  statusChangedAt: timestamp("status_changed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("feedback_items_report_position").on(t.reportId, t.position),
+  index("feedback_items_user").on(t.userId),
+  check("feedback_items_status_check", sql`${t.status} in ('nuevo', 'visto', 'resuelto')`),
+  check("feedback_items_category_check", sql`${t.category} in ('algo_no_anduvo', 'idea', 'confuso')`),
+  check("feedback_items_message_length", sql`char_length(${t.message}) between 0 and 50000`),
+  check("feedback_items_path_length", sql`char_length(${t.path}) between 1 and 200`),
+  check("feedback_items_position_range", sql`${t.position} between 0 and 29`),
+]);
+
+export const feedbackAttachments = pgTable("feedback_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  itemId: uuid("item_id").notNull().references(() => feedbackItems.id, { onDelete: "cascade" }),
+  // nombre ya saneado (sin rutas ni caracteres de control)
+  originalName: text("original_name").notNull(),
+  // tipo detectado por los bytes, no por la extensión: image | pdf | docx
+  kind: text("kind").notNull(),
+  mime: text("mime").notNull(),
+  bytes: integer("bytes").notNull(),
+  sha256: text("sha256").notNull(),
+  // referencia opaca del adaptador de almacenamiento (`pgb:<uuid>`); null cuando el archivo se limpió (R29-09)
+  blobRef: text("blob_ref"),
+  width: integer("width"),
+  height: integer("height"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+}, (t) => [
+  index("feedback_attachments_item").on(t.itemId),
+  index("feedback_attachments_user").on(t.userId),
+  check("feedback_attachments_kind_check", sql`${t.kind} in ('image', 'pdf', 'docx')`),
+  check("feedback_attachments_bytes_range", sql`${t.bytes} between 1 and 10485760`),
+  check("feedback_attachments_name_length", sql`char_length(${t.originalName}) between 1 and 200`),
+  check("feedback_attachments_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
+  check("feedback_attachments_size_check", sql`(${t.width} is null) = (${t.height} is null) and (${t.width} is null or (${t.width} > 0 and ${t.height} > 0))`),
+]);
+
+// Los bytes de los adjuntos (adaptador `BinaryStorage`, refs `pgb:<uuid>`). Aparte de `feedback_attachments` para
+// que listar adjuntos nunca traiga los archivos. El tope por archivo (10 MB) y la igualdad `bytes = octet_length`
+// los garantiza la base.
+export const blobFiles = pgTable("blob_files", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  bytes: integer("bytes").notNull(),
+  sha256: text("sha256").notNull(),
+  data: bytea("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("blob_files_user").on(t.userId),
+  check("blob_files_bytes_range", sql`${t.bytes} between 1 and 10485760`),
+  check("blob_files_bytes_match", sql`${t.bytes} = octet_length(${t.data})`),
+  check("blob_files_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
 ]);
 
 // Historial laboral, de estudios, certificaciones y proyectos confirmado por la persona (C-25, CVC-0;
