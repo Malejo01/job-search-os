@@ -12,6 +12,7 @@
  */
 export const SCREEN_ROUTE_PATTERNS: readonly string[] = [
   "/academy/[slug]",
+  "/admin/informes/[id]",
   "/admin/personas/[id]",
   "/demo/[perfil]",
   "/demo/contaduria",

@@ -217,7 +217,9 @@ describe("voiceErrorMessage", () => {
   it("sin micrófono, página no segura y tope del día dicen lo que pasó", () => {
     expect(voiceErrorMessage("no-microphone", UA.chrome)).toMatch(/micr[óo]fono/i);
     expect(voiceErrorMessage("insecure-context", UA.chrome)).toMatch(/https|segur/i);
-    expect(voiceErrorMessage("daily-limit", UA.chrome)).toMatch(/hoy|d[íi]a/i);
+    expect(voiceErrorMessage("daily-limit", UA.chrome)).toBe(
+      "Por hoy llegaste al tope de voz: podés seguir escribiendo",
+    );
     expect(voiceErrorMessage("server-off", UA.firefox)).toMatch(/escrib/i);
   });
 });

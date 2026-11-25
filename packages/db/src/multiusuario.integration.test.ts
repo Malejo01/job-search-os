@@ -175,6 +175,16 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into invitations (code_hash, created_by_user_id) values (${"hash-creada-" + tag}, ${id})`;
   await owner`insert into beta_feedback (user_id, category, message, path)
                values (${id}, 'idea', 'Mensaje ficticio', '/hoy')`;
+  // R29-02: informe de revisión con un ítem, un adjunto y su archivo
+  const [report] = await owner<{ id: string }[]>`
+    insert into feedback_reports (user_id, status) values (${id}, 'borrador') returning id`;
+  const [reportItem] = await owner<{ id: string }[]>`
+    insert into feedback_items (report_id, user_id, position, path, category, message)
+    values (${report!.id}, ${id}, 0, '/hoy', 'idea', 'Ítem ficticio') returning id`;
+  await owner`insert into feedback_attachments (user_id, item_id, original_name, kind, mime, bytes, sha256, width, height)
+               values (${id}, ${reportItem!.id}, 'captura.webp', 'image', 'image/webp', 4, ${"a".repeat(64)}, 10, 10)`;
+  await owner`insert into blob_files (user_id, content_type, bytes, sha256, data)
+               values (${id}, 'image/webp', 4, ${"a".repeat(64)}, decode('01020304', 'hex'))`;
   await owner`insert into career_history (user_id, kind, organization, title, start_month, bullets)
                values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio', '2022-03', '{"Viñeta ficticia"}')`;
   await owner`insert into market_candidates (user_id, term, count) values (${id}, 'termino ficticio', 3)`;
@@ -847,6 +857,58 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       await expect(
         asUser(A, (tx) => tx`select * from admin_beta_feedback_triage(10)`),
       ).rejects.toThrow(/admin_beta_feedback: no autorizado/);
+    },
+    // R29-02: informes de revisión, solo app_admins (rls/0069)
+    admin_feedback_reports: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_feedback_reports(10)`)).rejects.toThrow(
+        /admin_feedback_reports: no autorizado/,
+      );
+    },
+    admin_feedback_report: async () => {
+      const [r] = await owner<
+        { id: string }[]
+      >`select id from feedback_reports where user_id = ${B}`;
+      await expect(
+        asUser(A, (tx) => tx`select * from admin_feedback_report(${r!.id}::uuid)`),
+      ).rejects.toThrow(/admin_feedback_report: no autorizado/);
+    },
+    // R29-04/05: adjuntos y estado de ítems (rls/0070)
+    admin_feedback_attachment: async () => {
+      await expect(
+        asUser(
+          A,
+          (tx) =>
+            tx`select * from admin_feedback_attachment('d8000000-0000-4000-8000-0000000000fe'::uuid)`,
+        ),
+      ).rejects.toThrow(/admin_feedback_attachment: no autorizado/);
+    },
+    admin_feedback_item_set_status: async () => {
+      await expect(
+        asUser(
+          A,
+          (tx) =>
+            tx`select admin_feedback_item_set_status('d8000000-0000-4000-8000-0000000000fe'::uuid, 'visto')`,
+        ),
+      ).rejects.toThrow(/admin_feedback_item_set_status: no autorizado/);
+    },
+    // R29-09: limpieza de adjuntos y lista de borrados (rls/0070)
+    admin_feedback_deleted_attachments: async () => {
+      const [r] = await owner<
+        { id: string }[]
+      >`select id from feedback_reports where user_id = ${B}`;
+      await expect(
+        asUser(A, (tx) => tx`select * from admin_feedback_deleted_attachments(${r!.id}::uuid)`),
+      ).rejects.toThrow(/admin_feedback_deleted_attachments: no autorizado/);
+    },
+    purge_resolved_attachments: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select * from purge_resolved_attachments(30, null, false)`),
+      ).rejects.toThrow(/purge_resolved_attachments: no autorizado/);
+    },
+    feedback_files_global_bytes: async () => {
+      // Devuelve solo un número (sin filas ni dueños): la persona común puede llamarla
+      const [row] = await asUser(A, (tx) => tx`select feedback_files_global_bytes() as n`);
+      expect(typeof Number(row!.n)).toBe("number");
     },
     admin_beta_feedback_set_status: async () => {
       await expect(
