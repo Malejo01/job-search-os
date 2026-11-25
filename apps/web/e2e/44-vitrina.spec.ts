@@ -221,7 +221,7 @@ test.describe("Flujo 44: vitrina pública", () => {
       expect(res.status(), icon.src).toBe(200);
       expect(res.headers()["content-type"], icon.src).toContain("image/png");
     }
-    for (const path of ["/icon.svg", "/apple-icon.png"]) {
+    for (const path of ["/icon.png", "/favicon.ico", "/apple-icon.png"]) {
       const res = await request.get(path, { maxRedirects: 0 });
       expect(res.status(), path).toBe(200);
     }

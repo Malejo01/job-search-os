@@ -51,8 +51,8 @@ test.describe("Flujo 161: checklist de apertura (R22-05)", () => {
         await expect(row).toContainText("Qué hacer:");
       }
     }
-    // La mascota todavía no tiene imágenes en el repo: tiene que figurar como pendiente
-    await expect(page.getByTestId("apertura-mascota")).toHaveAttribute("data-estado", "pendiente");
+    // Las imágenes de Afi ya están en el repo (R27): la mascota figura como lista
+    await expect(page.getByTestId("apertura-mascota")).toHaveAttribute("data-estado", "listo");
     // Solo presencia: nunca el valor de una variable ni un link de pago
     await expect(page.locator("main")).not.toContainText(/mpago\.la|re_[A-Za-z0-9]{8}|@example\./);
   });
