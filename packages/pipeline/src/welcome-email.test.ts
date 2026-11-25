@@ -90,4 +90,48 @@ describe("buildWelcomeEmail", () => {
   it("el texto plano no lleva la imagen", () => {
     expect(buildWelcomeEmail(base).text).not.toMatch(/<img|mascota\//);
   });
+
+  it("R28-11: el texto plano no lleva etiquetas y se entiende sin imágenes", () => {
+    const { text } = buildWelcomeEmail(base);
+    expect(text).not.toMatch(/<[a-z!/][^>]*>/i);
+    expect(text).toContain("Lo primero es el paso 1");
+    expect(text).toContain("26 de diciembre");
+  });
+
+  it("R28-11: el HTML lleva el esquema claro, bgcolor de respaldo y la imagen sobre su fondo", () => {
+    const { html } = buildWelcomeEmail(base);
+    expect(html).toContain('<meta name="color-scheme" content="light only">');
+    expect(html).toContain('bgcolor="#EEEDF9"');
+    expect(html).not.toMatch(/<script\b|<link\b|url\(/i);
+  });
+
+  it("R28-11: el texto plano no cambia sin que alguien lo note (snapshot)", () => {
+    expect(buildWelcomeEmail({ ...base, contactEmail: null }).text).toMatchInlineSnapshot(`
+      "Hola Ana:
+
+      Ya tenés tu lugar en la Beta de AfinIAJobs. Gracias por sumarte.
+
+      Lo primero es el paso 1: sin tu perfil no podemos leer las ofertas por vos.
+      Los otros pasos pueden esperar:
+
+      1. Completá tu perfil: contanos qué hiciste y qué sabés hacer. Con eso leemos cada oferta.
+      https://ejemplo.test/settings/perfil
+
+      2. Elegí tus áreas dentro de tu carrera (si te sirven todas, dejalas todas).
+      https://ejemplo.test/settings#puesto
+
+      3. Pegá una oferta que te interese, o esperá: todos los días sumamos ofertas de tu carrera.
+      https://ejemplo.test/jobs/new
+
+      4. Armá tu CV respondiendo preguntas simples. Lo revisás antes de usarlo.
+      https://ejemplo.test/cv/armar
+
+      Tu acceso llega hasta el 26 de diciembre. Unos días antes te avisamos por email.
+
+      ¿Dudas o algo que no anda? Adentro de la app tocá «Contanos qué pasó» o mirá las preguntas frecuentes:
+      https://ejemplo.test/ayuda
+
+      La decisión es siempre tuya: nunca postulamos por vos."
+    `);
+  });
 });
