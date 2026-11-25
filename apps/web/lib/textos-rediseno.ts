@@ -116,6 +116,44 @@ export const AYUDAS_ACADEMY = {
   seguimiento: { slug: "despues-de-postularte", term: "qué hacer después de postularte" },
 } as const;
 
+/**
+ * Lo que dice Afi en su burbuja (R28-15), borrador para que lo apruebe quien define la marca. Voseo, primera
+ * persona y 1 o 2 líneas. `{nombre}` y `{n}` los completa la pantalla (`llenarTexto`, en `afi-dice.tsx`).
+ */
+export const AFI_DICE = {
+  hoy: {
+    saludoConNombre: "¡Hola, {nombre}!",
+    saludoSinNombre: "¡Hola!",
+    conOfertas: "Hoy te traje {n} ofertas nuevas para mirar.",
+    unaOferta: "Hoy te traje 1 oferta nueva para mirar.",
+    sinOfertas:
+      "Hoy no hay ofertas nuevas, pero podés pegar una que te interese y te cuento qué tan bien te calza.",
+    seguimosConOfertas: "Seguimos: hay {n} ofertas nuevas para mirar.",
+    seguimosUnaOferta: "Seguimos: hay 1 oferta nueva para mirar.",
+  },
+  primerosPasosListo:
+    "¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar cada día las ofertas con mejor puntaje (las verdes).",
+  interview: {
+    texto: `Soy ${MASCOTA_NOMBRE} y te voy a entrevistar. Elegí una oferta y practicamos.`,
+    accion: "Empezar",
+  },
+  cvArmar: "Te ayudo a armar tu CV paso a paso. Vos revisás todo antes de usarlo.",
+  cvCoach: "Vamos a mejorar tu CV juntos: te muestro qué se puede decir mejor y cómo.",
+  cvDiagnostico:
+    "Te muestro cómo lo leería un sistema de selección: qué entiende y qué se le escapa.",
+  tracker: "Acá seguimos tus postulaciones. Te aviso cuáles piden un seguimiento.",
+  preparar:
+    "Vamos a preparar tu postulación: te muestro qué conviene destacar. El envío lo hacés vos.",
+  academy: "Te explico las ideas clave de la búsqueda, una ficha por vez.",
+} as const;
+
+/** Completa `{nombre}` y `{n}` de un texto de `AFI_DICE`. Los valores se insertan como texto, nunca como HTML. */
+export function llenarTexto(texto: string, valores: Record<string, string | number>): string {
+  return texto.replace(/\{(\w+)\}/g, (todo, clave: string) =>
+    clave in valores ? String(valores[clave]) : todo,
+  );
+}
+
 /** Interview pulido (R23-08): espera, vacío, 404 propio. «analizando» y «retry» viajan al cliente: están en `textos-interview.ts` (R23-09). */
 export const INTERVIEW_TEXTOS = {
   ...INTERVIEW_CLIENTE,

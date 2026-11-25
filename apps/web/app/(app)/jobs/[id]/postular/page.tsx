@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AfiDice } from "@/components/afi-dice";
 import { EstadoMarca } from "@/components/estado-marca";
 import { buttonClasses } from "@/components/ui";
-import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
+import { AFI_DICE, ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import { isUuid } from "@/lib/ids";
 import { requireUserId } from "@/lib/session";
 import { cvForOffer } from "@job-search-os/pipeline";
@@ -67,6 +68,10 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
           la hacés vos en el sitio del aviso.
         </p>
       </div>
+      {/* R28-15: Afi habla acá; si el CV no se puede cruzar, el estado vacío de abajo ya trae a Afi (un solo Afi) */}
+      {forOffer !== null && forOffer.ok ? (
+        <AfiDice pose="analizando" priority texto={AFI_DICE.preparar} testId="afi-dice-preparar" />
+      ) : null}
 
       <section
         aria-labelledby="postular-respuestas"

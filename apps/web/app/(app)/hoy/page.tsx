@@ -16,16 +16,16 @@ import { getDisplayName } from "@/lib/display-name";
 import { getHoyData, type HoyData } from "@/lib/hoy";
 import { parseJobFilters, reviewProgressFor } from "@/lib/jobs";
 import { listPendingJd } from "@/lib/pending-jd";
-import { Card as UiCard, cardClasses, textLinkClasses } from "@/components/ui";
+import { Card as UiCard, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
 import { EstadoMarca } from "@/components/estado-marca";
 import { requireActiveUserId } from "@/lib/session";
 import { dayKeyIn } from "@/lib/momentos";
 import { getHeaderProfile } from "@/lib/primer-uso-cuenta";
 import { markSaludoAction } from "@/lib/saludo-actions";
 import { getUserPlan } from "@/lib/user-plan";
-import { Illustration } from "@/components/brand/illustration";
+import { AfiDice } from "@/components/afi-dice";
 import { ContextHelp } from "@/components/context-help";
-import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
+import { AFI_DICE, AYUDAS_ACADEMY, llenarTexto } from "@/lib/textos-rediseno";
 import { PlanVencido } from "./plan-vencido";
 import { MascotaSaludo } from "./mascota-saludo";
 import { MarkVisit } from "./mark-visit";
@@ -99,6 +99,22 @@ export default async function HoyPage() {
   ]);
   const name = firstName(displayName);
   const highScore = data.jobs.filter((j) => j.score !== null && j.score >= 7).length;
+  // R28-15: lo que dice Afi sale de lo que la página ya consultó (las ofertas nuevas y el nombre)
+  const nuevas = data.jobs.length;
+  const hoyTextos = AFI_DICE.hoy;
+  const textoQuieto =
+    nuevas === 0
+      ? hoyTextos.sinOfertas
+      : nuevas === 1
+        ? hoyTextos.seguimosUnaOferta
+        : llenarTexto(hoyTextos.seguimosConOfertas, { n: nuevas });
+  const textoSaludo = `${name ? llenarTexto(hoyTextos.saludoConNombre, { nombre: name }) : hoyTextos.saludoSinNombre} ${
+    nuevas === 0
+      ? hoyTextos.sinOfertas
+      : nuevas === 1
+        ? hoyTextos.unaOferta
+        : llenarTexto(hoyTextos.conOfertas, { n: nuevas })
+  }`;
   return (
     <div data-ancho="completo" className="flex flex-col pb-10">
       {/* Cabecera índigo curva (decisión 6): continúa la barra de arriba, sin costura. La onda va
@@ -111,13 +127,8 @@ export default async function HoyPage() {
           aria-labelledby="hoy-saludo"
           className="relative rounded-b-[40px] bg-ink text-on-ink sm:rounded-b-[56px]"
         >
-          <MascotaSaludo
-            today={dayKeyIn(now, data.timeZone)}
-            accountDay={headerProfile.saludoVisto}
-            action={markSaludoAction}
-          />
           <div className="mx-auto mt-2.5 flex max-w-[1280px] items-end gap-1.5 px-5 sm:mt-0 sm:gap-6 sm:px-12">
-            <div className="min-w-0 flex-[1_1_55%] pb-[26px] sm:flex-auto sm:pb-14">
+            <div className="min-w-0 flex-1 pb-4 sm:pb-6 sm:pt-10">
               <h1
                 id="hoy-saludo"
                 className="text-[28px] leading-[1.06] font-extrabold text-on-ink sm:text-5xl sm:leading-[1.05] sm:tracking-[-1.4px]"
@@ -136,8 +147,18 @@ export default async function HoyPage() {
                     : "No hay ofertas nuevas evaluadas para mirar."}
               </p>
             </div>
-            {/* Ilustración de Hoy (C9-12): sobre el índigo, sin recuadro, apoyada en el borde */}
-            <Illustration escena="hoy" priority className="w-40 sm:w-[400px]" />
+          </div>
+          {/* R28-15: Afi habla siempre en Hoy (reemplaza la ilustración y el saludo de 56 px). Un solo Afi:
+              la primera vez del día saluda animado; el resto del día, quieto. Sin consultas nuevas: sale de
+              lo que la página ya leyó. */}
+          <div className="mx-auto max-w-[1280px] px-5 pb-8 sm:px-12 sm:pb-12">
+            <MascotaSaludo
+              today={dayKeyIn(now, data.timeZone)}
+              accountDay={headerProfile.saludoVisto}
+              action={markSaludoAction}
+              quieto={<AfiDice pose="quieto" priority texto={textoQuieto} />}
+              saludo={<AfiDice pose="saludando" animar texto={textoSaludo} />}
+            />
           </div>
         </section>
 
@@ -343,8 +364,8 @@ function NewCard({ data }: { data: HoyData }) {
   return (
     <Card id="hoy-nuevo-titulo" testId="hoy-nuevo" title={title}>
       {empty && empty.counts.total === 0 ? (
-        <EstadoMarca
-          tipo="lista-vacia"
+        // R28-15: sin figura propia: la cabecera ya tiene a Afi hablando (un solo Afi por pantalla)
+        <EmptyState
           variant="inline"
           data-testid="hoy-vacio-sin-ofertas"
           action={
@@ -364,10 +385,9 @@ function NewCard({ data }: { data: HoyData }) {
           }
         >
           Todavía no llegaron ofertas para vos: las buscamos todos los días.
-        </EstadoMarca>
+        </EmptyState>
       ) : empty && empty.counts.porEvaluar > 0 ? (
-        <EstadoMarca
-          tipo="sin-datos"
+        <EmptyState
           variant="inline"
           data-testid="hoy-vacio-en-cola"
           action={
@@ -379,10 +399,9 @@ function NewCard({ data }: { data: HoyData }) {
           {empty.counts.porEvaluar === 1
             ? "Estamos evaluando 1 oferta: volvé en un rato."
             : `Estamos evaluando ${empty.counts.porEvaluar} ofertas: volvé en un rato.`}
-        </EstadoMarca>
+        </EmptyState>
       ) : (
-        <EstadoMarca
-          tipo="sin-resultados"
+        <EmptyState
           variant="inline"
           data-testid="hoy-vacio-nada-nuevo"
           action={
@@ -394,7 +413,7 @@ function NewCard({ data }: { data: HoyData }) {
           {since
             ? `Nada nuevo desde tu última visita (${formatDate(since, data.timeZone)}).`
             : "Nada nuevo en la última semana."}
-        </EstadoMarca>
+        </EmptyState>
       )}
     </Card>
   );

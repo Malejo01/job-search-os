@@ -54,3 +54,34 @@ Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5
 - El 11/11 es el evento «Voces Jóvenes», no una charla.
 - Soporte de la beta: WhatsApp Business (lo crea y etiqueta tester A) y `contacto@afiniajobs.com.ar` (la crea Admin, la atiende tester A).
 - Los cobros van por una cuenta nueva de Mercado Pago compartida (hay que actualizar los links `MP_LINK_*`).
+
+## R28-15 · Lo que dice Afi (borrador para aprobar)
+
+Textos nuevos de la burbuja de Afi, en `apps/web/lib/textos-rediseno.ts` (`AFI_DICE`); se aprueban desde `/settings/textos`. Voseo y primera persona; `{nombre}` y `{n}` los completa la pantalla.
+
+| Pantalla | Texto |
+| --- | --- |
+| Hoy, primera vez del día | «¡Hola, {nombre}!» (o «¡Hola!») + «Hoy te traje {n} ofertas nuevas para mirar.» / «Hoy te traje 1 oferta nueva para mirar.» / «Hoy no hay ofertas nuevas, pero podés pegar una que te interese y te cuento qué tan bien te calza.» |
+| Hoy, el resto del día | «Seguimos: hay {n} ofertas nuevas para mirar.» / «Seguimos: hay 1 oferta nueva para mirar.» / el mismo «Hoy no hay ofertas nuevas…» |
+| Match, primeros pasos completos | «¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar cada día las ofertas con mejor puntaje (las verdes).» (mismo texto de antes, ahora lo dice Afi) |
+| Interview (portada) | «Soy Afi y te voy a entrevistar. Elegí una oferta y practicamos.» + botón «Empezar» |
+| Armá tu CV con IA | «Te ayudo a armar tu CV paso a paso. Vos revisás todo antes de usarlo.» |
+| Mejorá tu CV (coach) | «Vamos a mejorar tu CV juntos: te muestro qué se puede decir mejor y cómo.» |
+| «Cómo lo leen los sistemas de selección» | «Te muestro cómo lo leería un sistema de selección: qué entiende y qué se le escapa.» |
+| Postulaciones | «Acá seguimos tus postulaciones. Te aviso cuáles piden un seguimiento.» |
+| Preparar mi postulación | «Vamos a preparar tu postulación: te muestro qué conviene destacar. El envío lo hacés vos.» |
+| Academy | «Te explico las ideas clave de la búsqueda, una ficha por vez.» |
+
+## R28 · Ensayo del alta completa
+
+Cambio ya hecho (es código, no hace falta aprobarlo para que ande, pero tester A puede cambiar la redacción):
+
+| Pantalla | Archivo | Texto anterior | Texto nuevo | Por qué |
+| --- | --- | --- | --- | --- |
+| Email de bienvenida (al activar el plan) | `packages/pipeline/src/welcome-email.ts` | «Para empezar, en este orden:» | «Lo primero es el paso 1: sin tu perfil no podemos leer las ofertas por vos. / Los otros pasos pueden esperar:» | El email listaba 3 o 4 pasos con el mismo peso; ahora queda una sola acción principal arriba. Los pasos y sus links no cambiaron |
+
+Propuesta para decidir (no se cambió):
+
+| Pantalla | Texto actual | Propuesta | Por qué |
+| --- | --- | --- | --- |
+| Festejo al activar el plan | No hay festejo al activarse el plan (solo al marcar la primera postulación, terminar el CV con el coach y arrancar el plan de formación) | Dejarlo así, o sumar un festejo corto de bienvenida la primera vez que la persona entra con el plan activo | Decisión de producto: no se inventó un festejo nuevo en esta tanda |
