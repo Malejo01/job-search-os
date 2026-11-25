@@ -18,7 +18,8 @@ test.describe("Flujo 263: portada, favicon e imagen para compartir", () => {
       await page.goto("/");
       const afi = page.getByRole("img", { name: MASCOTA_ALT.saludando });
       await expect(afi).toBeVisible();
-      await expect(afi).toHaveAttribute("fetchpriority", "high");
+      // R28-01: sin prioridad alta, porque el LCP es el título y Afi en alta lo empeoraba (rendimiento.md)
+      await expect(afi).not.toHaveAttribute("fetchpriority", "high");
       await expect(afi).toHaveAttribute("width", /^\d+$/);
       await expect(afi).toHaveAttribute("height", /^\d+$/);
       // La imagen cargó de verdad
