@@ -1,5 +1,6 @@
 import { schema as s } from "@job-search-os/db";
 import { eq } from "drizzle-orm";
+import { cache } from "react";
 import { withUser } from "@/lib/db";
 
 /**
@@ -11,18 +12,35 @@ import { withUser } from "@/lib/db";
  * recorrido se muestra de nuevo (el navegador igual guarda lo suyo). Si la columna todavía no existe (la
  * migración se aplica después del deploy), se cae a leer solo el nombre y el layout no se rompe.
  */
-export type HeaderProfile = { name: string | null; primerUsoVisto: string | null };
+export type HeaderProfile = {
+  name: string | null;
+  primerUsoVisto: string | null;
+  /** Último día en que Hoy saludó con la mascota (R27-04); null = nunca, o la columna todavía no existe. */
+  saludoVisto: string | null;
+};
 
-export async function getHeaderProfile(userId: string): Promise<HeaderProfile> {
+/**
+ * `cache` de React: el layout y «Hoy» piden lo mismo en el mismo pedido y la consulta corre una sola vez
+ * (R27-04: el saludo de la mascota se lee acá, sin consulta nueva).
+ */
+export const getHeaderProfile = cache(async (userId: string): Promise<HeaderProfile> => {
   try {
     const [row] = await withUser(userId, (tx) =>
       tx
-        .select({ name: s.profiles.displayName, primerUsoVisto: s.profiles.primerUsoVisto })
+        .select({
+          name: s.profiles.displayName,
+          primerUsoVisto: s.profiles.primerUsoVisto,
+          saludoVisto: s.profiles.saludoVisto,
+        })
         .from(s.profiles)
         .where(eq(s.profiles.userId, userId))
         .limit(1),
     );
-    return { name: row?.name ?? null, primerUsoVisto: row?.primerUsoVisto ?? null };
+    return {
+      name: row?.name ?? null,
+      primerUsoVisto: row?.primerUsoVisto ?? null,
+      saludoVisto: row?.saludoVisto ?? null,
+    };
   } catch {
     try {
       const [row] = await withUser(userId, (tx) =>
@@ -32,11 +50,26 @@ export async function getHeaderProfile(userId: string): Promise<HeaderProfile> {
           .where(eq(s.profiles.userId, userId))
           .limit(1),
       );
-      return { name: row?.name ?? null, primerUsoVisto: null };
+      return { name: row?.name ?? null, primerUsoVisto: null, saludoVisto: null };
     } catch {
-      return { name: null, primerUsoVisto: null };
+      return { name: null, primerUsoVisto: null, saludoVisto: null };
     }
   }
+});
+
+/**
+ * Deja guardado en la cuenta el día en que Hoy saludó (R27-04). Solo la propia fila; sin perfil devuelve
+ * `false` y el navegador es el que recuerda.
+ */
+export async function saveSaludoVisto(userId: string, day: string): Promise<boolean> {
+  const rows = await withUser(userId, (tx) =>
+    tx
+      .update(s.profiles)
+      .set({ saludoVisto: day })
+      .where(eq(s.profiles.userId, userId))
+      .returning({ userId: s.profiles.userId }),
+  );
+  return rows.length > 0;
 }
 
 /**

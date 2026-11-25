@@ -1,33 +1,120 @@
 /**
- * Base de la mascota (sin la imagen final). Las imágenes viven en `public/mascota/<nombre>.png` (1x) y
- * `public/mascota/<nombre>@2x.png` (2x); las hace quien define la marca. Mientras no existan, el
- * componente `<Mascota>` muestra un marcador neutro del mismo tamaño.
+ * Afi, la mascota (R27-01). Módulo puro, sin I/O: lo leen componentes de servidor y de cliente.
  *
- * Qué imagen existe se declara acá, como en el manifiesto de ilustraciones: un test compara estas
- * banderas con los archivos reales, así que al sumar los PNG el test avisa que hay que pasar la
- * bandera a `true`. Módulo puro: sin I/O, lo leen componentes de servidor y de cliente.
+ * Las imágenes viven en `public/mascota/`. Cada pose tiene `<pose>-256|512|1024.webp` (el número es el
+ * alto en px, fondo transparente) y `<pose>-512.png` (solo para emails). La cara del botón del
+ * asistente son `cara-48|96|192|512` (`.webp` y `.png`). El círculo lavanda no está en la imagen: lo
+ * pone el componente con CSS. La carpeta `favicon/` la maneja la parte de «afuera» (R27-06): no se
+ * declara acá.
+ *
+ * El nombre vive en una sola constante, como `BRAND.name`: un test impide escribirlo a mano en la UI.
  */
-export const MASCOTA_POSES = ["quieta", "hablando", "pensando", "saludo", "festejo"] as const;
+export const MASCOTA_NOMBRE = "Afi";
+
+export const MASCOTA_POSES = [
+  "saludando",
+  "trabajando",
+  "pensando",
+  "explicando",
+  "quieto",
+  "hablando-1",
+  "hablando-2",
+  "motivacion",
+  "analizando",
+] as const;
 export type MascotaPose = (typeof MASCOTA_POSES)[number];
 
-/** Las cinco poses y la cara de 48 px del botón del asistente. */
-export type MascotaImagen = MascotaPose | "cara-48";
-export const MASCOTA_IMAGENES: readonly MascotaImagen[] = [...MASCOTA_POSES, "cara-48"];
+/** Los tres altos (px) en que existe cada pose en WebP. */
+export const MASCOTA_ALTOS = [256, 512, 1024] as const;
+export type MascotaAlto = (typeof MASCOTA_ALTOS)[number];
 
-/** `true` solo cuando los PNG (1x y 2x) ya están en `public/mascota/`. */
-export const MASCOTA_DISPONIBLE: Record<MascotaImagen, boolean> = {
-  quieta: false,
-  hablando: false,
-  pensando: false,
-  saludo: false,
-  festejo: false,
-  "cara-48": false,
+/** Ancho intrínseco (px) de cada WebP, leído de los archivos reales (un test lo verifica). */
+export const MASCOTA_ANCHOS: Readonly<Record<MascotaPose, Readonly<Record<MascotaAlto, number>>>> =
+  {
+    saludando: { 256: 150, 512: 301, 1024: 602 },
+    trabajando: { 256: 199, 512: 399, 1024: 798 },
+    pensando: { 256: 143, 512: 287, 1024: 574 },
+    explicando: { 256: 171, 512: 341, 1024: 682 },
+    quieto: { 256: 143, 512: 287, 1024: 574 },
+    "hablando-1": { 256: 156, 512: 312, 1024: 625 },
+    "hablando-2": { 256: 149, 512: 299, 1024: 597 },
+    motivacion: { 256: 150, 512: 299, 1024: 598 },
+    analizando: { 256: 178, 512: 357, 1024: 714 },
+  };
+
+/** Para qué se usa cada pose (resumen de `docs/beta/mascota.md`). */
+export const MASCOTA_USOS: Readonly<Record<MascotaPose, string>> = {
+  saludando: "Hoy (primera vez del día), bienvenida, portada, email de bienvenida",
+  trabajando: "Evaluando ofertas, Match vacío, lista de espera",
+  pensando: "Asistente pensando, transcribiendo, cargas de IA",
+  explicando: "Academy, diagnóstico del CV, ayudas «?», detalle del sello",
+  quieto: "Vacíos genéricos, 404",
+  "hablando-1": "Interview: la pregunta; asistente hablando",
+  "hablando-2": "Interview: devolución e informe; voz",
+  motivacion: "Logros: postulación enviada, CV mejorado, plan activado",
+  analizando: "Tracker, Preparar mi postulación, errores «lo estamos revisando»",
 };
 
-/** Rutas 1x y 2x de una imagen, listas para `src` y `srcSet`. */
-export function mascotaSrc(imagen: MascotaImagen): { src: string; srcSet: string } {
-  const base = `/mascota/${imagen}`;
-  return { src: `${base}.png`, srcSet: `${base}.png 1x, ${base}@2x.png 2x` };
+/** `alt` descriptivo, en voseo y con el nombre sacado de la constante. */
+export const MASCOTA_ALT: Readonly<Record<MascotaPose, string>> = {
+  saludando: `${MASCOTA_NOMBRE} te saluda con la mano`,
+  trabajando: `${MASCOTA_NOMBRE} trabaja en su laptop`,
+  pensando: `${MASCOTA_NOMBRE} piensa con la mano en el mentón`,
+  explicando: `${MASCOTA_NOMBRE} te explica con un gráfico holográfico`,
+  quieto: `${MASCOTA_NOMBRE} te espera con las manos en los bolsillos`,
+  "hablando-1": `${MASCOTA_NOMBRE} te habla`,
+  "hablando-2": `${MASCOTA_NOMBRE} te sonríe con la mano abierta`,
+  motivacion: `${MASCOTA_NOMBRE} festeja con el puño en alto`,
+  analizando: `${MASCOTA_NOMBRE} analiza datos en una tablet holográfica`,
+};
+
+/** La cara del botón del asistente: cuadrada, tamaños 48, 96, 192 y 512. */
+export const MASCOTA_CARAS = ["cara-48", "cara-96", "cara-192", "cara-512"] as const;
+export type MascotaCara = (typeof MASCOTA_CARAS)[number];
+
+/** Todo lo que se declara en `public/mascota/` (primer nivel): las poses y las caras. */
+export type MascotaImagen = MascotaPose | MascotaCara;
+export const MASCOTA_IMAGENES: readonly MascotaImagen[] = [...MASCOTA_POSES, ...MASCOTA_CARAS];
+
+/** Nombres de archivo (sin carpeta) que tiene que haber para una imagen. */
+export function mascotaArchivos(imagen: MascotaImagen): string[] {
+  if ((MASCOTA_CARAS as readonly string[]).includes(imagen)) {
+    return [`${imagen}.webp`, `${imagen}.png`];
+  }
+  return [...MASCOTA_ALTOS.map((alto) => `${imagen}-${alto}.webp`), `${imagen}-512.png`];
+}
+
+/** Ancho (px) de la pose cuando se la dibuja con `alto` px de alto (por la proporción real). */
+export function mascotaAncho(pose: MascotaPose, alto: number): number {
+  return Math.round((MASCOTA_ANCHOS[pose][1024] / 1024) * alto);
+}
+
+/** `src` de respaldo (el WebP de 512) y `srcSet` por ancho con los tres tamaños. */
+export function mascotaSrc(pose: MascotaPose): { src: string; srcSet: string } {
+  return {
+    src: `/mascota/${pose}-512.webp`,
+    srcSet: MASCOTA_ALTOS.map(
+      (alto) => `/mascota/${pose}-${alto}.webp ${MASCOTA_ANCHOS[pose][alto]}w`,
+    ).join(", "),
+  };
+}
+
+/** `sizes` para una pose dibujada con `alto` px de alto: el ancho que ocupa en pantalla. */
+export function mascotaSizes(pose: MascotaPose, alto: number): string {
+  return `${mascotaAncho(pose, alto)}px`;
+}
+
+/** Ruta relativa del PNG de 512 px para emails (el email le antepone `APP_URL`). */
+export function mascotaEmailPng(pose: MascotaPose): string {
+  return `/mascota/${pose}-512.png`;
+}
+
+/** `src` y `srcSet` por ancho de la cara (48, 96, 192 y 512 px de lado). */
+export function caraSrc(): { src: string; srcSet: string } {
+  return {
+    src: "/mascota/cara-96.webp",
+    srcSet: MASCOTA_CARAS.map((c) => `/mascota/${c}.webp ${c.slice("cara-".length)}w`).join(", "),
+  };
 }
 
 /** Clave del navegador con el último día que se mostró el saludo. Solo UX, sin datos personales. */

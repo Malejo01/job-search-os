@@ -116,7 +116,7 @@ test.describe("Flujo 131: accesibilidad con sesión", () => {
       await login(page);
       await page.goto("/hoy");
       await esperarTema(page, tema);
-      const boton = page.getByRole("button", { name: "Abrir asistente", exact: true });
+      const boton = page.getByRole("button", { name: "Preguntale a Afi", exact: true });
       if ((await boton.count()) === 0) {
         // En el CI el usuario e2e es admin y el flag está encendido: si falta la mascota, es un error
         expect(process.env.CI, "En el CI la mascota del asistente tiene que estar").toBeFalsy();

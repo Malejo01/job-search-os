@@ -170,7 +170,7 @@ export function buildAperturaChecklist(input: AperturaInput): AperturaChecklist 
           "mascota",
           "Imágenes de la mascota",
           `${present} de ${input.mascota.total} presentes; faltan: ${input.mascota.missing.join(", ")}.`,
-          "Poné los PNG (1x y 2x) en public/mascota/ y pasá la bandera a true en apps/web/lib/mascota.ts.",
+          "Poné en public/mascota/ los 4 archivos de cada pose (<pose>-256|512|1024.webp y <pose>-512.png) y la cara (cara-48|96|192|512, .webp y .png), y declaralos en apps/web/lib/mascota.ts.",
           "docs/MARCA.md",
         ),
   );

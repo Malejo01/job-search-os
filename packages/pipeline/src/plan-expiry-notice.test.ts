@@ -320,6 +320,19 @@ describe("buildPlanNoticeEmail: versión HTML con la marca (C7-2)", () => {
     expect(text).toContain("https://mpago.la/abc");
   });
 
+  it("R27-06: lleva la mascota con URL absoluta (origen de settingsUrl), alt y 160 px", () => {
+    const { html } = buildPlanNoticeEmail(base);
+    const img = html.match(/<img\b[^>]*>/)?.[0] ?? "";
+    expect(img).toContain('src="https://app.example.com/mascota/saludando-512.png"');
+    expect(img).toMatch(/alt="[^"]+"/);
+    expect(img).toContain('height="160"');
+  });
+
+  it("R27-06: sin una URL absoluta válida no pone una imagen rota", () => {
+    const { html } = buildPlanNoticeEmail({ ...base, settingsUrl: "/settings#tu-plan" });
+    expect(html).not.toMatch(/<img\b/);
+  });
+
   it("escapa el nombre de la persona", () => {
     const { html } = buildPlanNoticeEmail({ ...base, displayName: "<script>x" });
     expect(html).not.toContain("<script>");

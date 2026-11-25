@@ -1,3 +1,4 @@
+import { AfiEspera } from "@/components/afi-espera";
 import { INTERVIEW_CLIENTE as INTERVIEW_TEXTOS } from "@/lib/textos-interview";
 
 const BARS = ["w-11/12", "w-4/5", "w-3/5"] as const;
@@ -16,7 +17,9 @@ export function AnswerSkeleton() {
       data-testid="interview-skeleton"
       className="flex min-h-40 flex-col gap-3 rounded-control bg-surface-muted p-4"
     >
-      <p className="text-sm font-bold text-fg">{INTERVIEW_TEXTOS.analizando}</p>
+      <AfiEspera pose="pensando" size={44} className="text-sm font-bold text-fg">
+        {INTERVIEW_TEXTOS.analizando}
+      </AfiEspera>
       {BARS.map((width) => (
         <span
           key={width}

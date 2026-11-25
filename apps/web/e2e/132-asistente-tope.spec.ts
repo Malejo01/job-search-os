@@ -16,7 +16,7 @@ import { login } from "./helpers";
 const TOTAL = 20;
 
 async function openAssistant(page: Page) {
-  const button = page.getByRole("button", { name: "Abrir asistente", exact: true });
+  const button = page.getByRole("button", { name: "Preguntale a Afi", exact: true });
   if ((await button.count()) === 0) {
     expect(process.env.CI, "En el CI la mascota del asistente tiene que estar").toBeFalsy();
     test.skip(true, "El asistente no está encendido para el usuario e2e");

@@ -19,6 +19,9 @@ import { listPendingJd } from "@/lib/pending-jd";
 import { Card as UiCard, cardClasses, textLinkClasses } from "@/components/ui";
 import { EstadoMarca } from "@/components/estado-marca";
 import { requireActiveUserId } from "@/lib/session";
+import { dayKeyIn } from "@/lib/momentos";
+import { getHeaderProfile } from "@/lib/primer-uso-cuenta";
+import { markSaludoAction } from "@/lib/saludo-actions";
 import { getUserPlan } from "@/lib/user-plan";
 import { Illustration } from "@/components/brand/illustration";
 import { ContextHelp } from "@/components/context-help";
@@ -79,7 +82,7 @@ export default async function HoyPage() {
   const userId = await requireActiveUserId();
   const jar = await cookies();
   const now = new Date();
-  const [data, displayName, pending, week, expired] = await Promise.all([
+  const [data, displayName, pending, week, expired, headerProfile] = await Promise.all([
     getHoyData(userId, now, jar.get(VISIT_COOKIE)?.value),
     // Lo que no es central no rompe la pantalla: sin nombre, sin pendientes o sin semana, se omite
     getDisplayName(userId).catch(() => null),
@@ -91,6 +94,8 @@ export default async function HoyPage() {
           .then((p) => (p.access.status === "vencido" ? p.access : null))
           .catch(() => null)
       : Promise.resolve(null),
+    // R27-04: la misma lectura del perfil que hace el layout (cacheada por pedido): cero consultas nuevas
+    getHeaderProfile(userId),
   ]);
   const name = firstName(displayName);
   const highScore = data.jobs.filter((j) => j.score !== null && j.score >= 7).length;
@@ -106,7 +111,11 @@ export default async function HoyPage() {
           aria-labelledby="hoy-saludo"
           className="relative rounded-b-[40px] bg-ink text-on-ink sm:rounded-b-[56px]"
         >
-          <MascotaSaludo />
+          <MascotaSaludo
+            today={dayKeyIn(now, data.timeZone)}
+            accountDay={headerProfile.saludoVisto}
+            action={markSaludoAction}
+          />
           <div className="mx-auto mt-2.5 flex max-w-[1280px] items-end gap-1.5 px-5 sm:mt-0 sm:gap-6 sm:px-12">
             <div className="min-w-0 flex-[1_1_55%] pb-[26px] sm:flex-auto sm:pb-14">
               <h1

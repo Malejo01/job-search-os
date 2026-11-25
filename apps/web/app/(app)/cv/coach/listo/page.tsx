@@ -1,5 +1,6 @@
 import { profileAgentNextSteps, type CvDiffItem } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
+import { AfiFestejo } from "@/components/afi-festejo";
 import { CvCoachImproved } from "@/components/cv-coach/improved";
 import { ProfileAgentClose } from "@/components/profile-agent/close";
 import { cvCoachAllowedFor } from "@/lib/cv-coach/access";
@@ -35,6 +36,8 @@ export default async function CvCoachDonePage() {
     .map((t) => ({ slug: t.slug, name: t.name }));
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
+      {/* R27-04: el coach deja la marca al terminar; se festeja una sola vez y recargar no lo repite */}
+      <AfiFestejo festejo="cv" modo="pendiente" />
       <h1 className="no-print text-title font-bold">Tu CV mejorado</h1>
       <CvCoachImproved after={after} target={ctx.target} skills={skills} />
       <ProfileAgentClose base="app" nextSteps={profileAgentNextSteps("app")} />

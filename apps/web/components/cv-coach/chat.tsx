@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { AfiEspera } from "@/components/afi-espera";
 import { joinDictated } from "@/components/dictar-engine";
 import { VoiceInput } from "@/components/voice-input-lazy";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
@@ -21,6 +22,7 @@ import {
   useCoachSnapshot,
   writeProfileTicket,
 } from "@/lib/cv-coach/storage";
+import { marcarFestejoPendiente } from "@/lib/festejo-pendiente";
 import { isInternalPath } from "@/lib/internal-path";
 
 type Notice = { message: string; links: { label: string; href: string }[] };
@@ -182,6 +184,7 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
     saveCoachState(s);
     setState(s);
     if (data.finished === true) {
+      marcarFestejoPendiente("cv");
       router.push(CV_COACH_PAGES.done);
       return;
     }
@@ -358,6 +361,12 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
         </div>
       ) : null}
 
+      {busy ? (
+        <p role="status" data-testid="coach-espera" className="text-sm text-fg-muted">
+          <AfiEspera pose="pensando">Pensando tu respuesta…</AfiEspera>
+        </p>
+      ) : null}
+
       {!done && question ? (
         <form
           className="flex flex-col gap-2"
@@ -420,7 +429,10 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
           disabled={busy}
           onClick={() => {
             if (!done && state?.stage === "chat") void answer({ kind: "finish" }, null);
-            else router.push(CV_COACH_PAGES.done);
+            else {
+              marcarFestejoPendiente("cv");
+              router.push(CV_COACH_PAGES.done);
+            }
           }}
           data-testid="coach-chat-finish"
         >

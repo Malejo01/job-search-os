@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Afi } from "@/components/afi";
 import { EstadoMarca } from "@/components/estado-marca";
 import { buttonClasses } from "@/components/ui";
 import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
@@ -27,8 +28,16 @@ export default async function AcademyPage() {
   }));
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <h1 className="text-title font-bold">Academy</h1>
-      <p className="text-fg-muted">Fichas cortas para entender mejor cada paso de tu búsqueda.</p>
+      <div className="flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-title font-bold">Academy</h1>
+          <p className="text-fg-muted">
+            Fichas cortas para entender mejor cada paso de tu búsqueda.
+          </p>
+        </div>
+        {/* R27-05: quien explica (decorativa: el título y la bajada de al lado lo dicen) */}
+        <Afi pose="explicando" size={88} decorative priority />
+      </div>
       {items.length === 0 ? (
         <EstadoMarca
           tipo="lista-vacia"

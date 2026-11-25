@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { AfiEspera } from "@/components/afi-espera";
 import { buttonClasses } from "@/components/ui";
 import { useVoiceInput } from "@/lib/voice/use-voice-input";
 import {
@@ -221,7 +222,9 @@ export function VoiceInput({
       {transcribing ? (
         <div data-testid="voice-transcribiendo" className="flex flex-col gap-2">
           <span aria-hidden="true" className="text-sm text-fg">
-            Transcribiendo…
+            <AfiEspera pose="pensando" size={36}>
+              Transcribiendo…
+            </AfiEspera>
           </span>
           <span
             aria-hidden="true"

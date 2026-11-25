@@ -45,6 +45,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
+import { AfiFestejo } from "@/components/afi-festejo";
 import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
 import { AffinityDetail } from "./affinity-detail";
@@ -324,6 +325,12 @@ export default async function JobDetailPage({
           </p>
         ) : null}
       </section>
+      {/* R27-04: festeja una sola vez cuando la postulación pasa a enviada con la pantalla abierta */}
+      <AfiFestejo
+        festejo="postulacion"
+        modo="cambio"
+        cumplido={Boolean(job.application?.appliedAt)}
+      />
       {/* Atribución exigida por las fuentes públicas: mención + enlace al aviso original */}
       <SourceAttribution sources={job.sources} company={job.company} jdText={job.jdText} />
       {job.corrections.length ? (

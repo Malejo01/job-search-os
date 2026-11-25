@@ -108,9 +108,10 @@ describe("runPlanExpiryNotices (C4-1)", () => {
     const [params, apiKey] = send.mock.calls[0]!;
     expect(apiKey).toBe("re_test");
     expect(params).toMatchObject({ to: "b@ejemplo.test", from: ENV.EMAIL_FROM });
-    // C7-2: además del texto, la versión HTML con el encabezado de marca (sin imágenes remotas)
+    // C7-2: además del texto, la versión HTML con el encabezado de marca. R27-06: una sola imagen, la mascota
     expect(params.html).toContain('<a href="https://mpago.la/abc"');
-    expect(params.html).not.toMatch(/<img\b/i);
+    expect(params.html.match(/<img\b/gi)).toHaveLength(1);
+    expect(params.html).toContain('src="https://app.example.test/mascota/saludando-512.png"');
     expect(params.text).toContain("https://mpago.la/abc");
     expect(params.text).toContain("11 de diciembre");
     expect(params.text).toContain("https://app.example.test/settings#tu-plan");

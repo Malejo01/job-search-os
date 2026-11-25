@@ -13,6 +13,7 @@ export default function InterviewNotFound() {
   const t = INTERVIEW_TEXTOS.noEncontrada;
   return (
     <FullScreenState
+      pose="quieto"
       title={t.title}
       actions={
         <Link href="/interview" className={buttonClasses()}>

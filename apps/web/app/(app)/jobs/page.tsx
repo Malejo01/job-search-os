@@ -17,6 +17,7 @@ import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
+import { AfiEspera } from "@/components/afi-espera";
 import { EstadoMarca } from "@/components/estado-marca";
 import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import {
@@ -212,6 +213,18 @@ export default async function JobsPage({
                 />
               ) : (
                 <>
+                  {/* R27-04: una sola figura para toda la lista, no una por fila */}
+                  {rows.some((r) => r.evaluating) ? (
+                    <p
+                      role="status"
+                      data-testid="jobs-evaluando"
+                      className="text-sm font-semibold text-fg-muted"
+                    >
+                      <AfiEspera pose="trabajando" size={40}>
+                        Evaluando ofertas…
+                      </AfiEspera>
+                    </p>
+                  ) : null}
                   {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
                     <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
                       {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
@@ -382,6 +395,7 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
     return (
       <EstadoMarca
         tipo="sin-resultados"
+        pose="trabajando"
         data-testid="jobs-empty-unevaluated"
         title={ESTADOS_TEXTOS.matchSinResultados.title}
         action={null}
@@ -424,6 +438,7 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
       // V3 (C9-13): figura de la marca, qué hacer mientras como checklist y una sola acción principal
       <EstadoMarca
         tipo="lista-vacia"
+        pose="trabajando"
         data-testid="jobs-empty-none"
         title="Todavía no tenés ofertas"
         action={
