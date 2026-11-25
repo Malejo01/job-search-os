@@ -11,7 +11,7 @@ export const EMAIL_MASCOTA = {
   /** Alto fijo en el email, en px. */
   height: 160,
   /** Ancho que sale de proporcionar el PNG de 512 px de alto a 160 px de alto. */
-  width: 94,
+  width: 114,
   /** Lavanda de respaldo detrás de la mascota (el círculo de la app) y color del texto alternativo. */
   fondo: "#EEEDF9",
   fondoTexto: "#1E1B4B",
