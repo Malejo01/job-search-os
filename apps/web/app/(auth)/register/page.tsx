@@ -222,13 +222,13 @@ export default async function RegisterPage({
           </div>
         </details>
         <div>
-          <label className="flex items-start gap-2 text-sm">
+          <label className="flex min-h-11 items-start gap-3 py-1 text-sm">
             <input
               name="terms"
               type="checkbox"
               required
               {...invalidProps("terminos")}
-              className="mt-1 h-4 w-4"
+              className="mt-0.5 h-6 w-6 shrink-0"
             />
             <span>
               Leí y acepto los{" "}
@@ -262,10 +262,10 @@ export default async function RegisterPage({
         </SubmitButton>
       </form>
       <div className="flex flex-col gap-2 text-sm text-fg-subtle">
-        <a href="/login" className="underline">
+        <a href="/login" className="inline-flex min-h-11 items-center underline">
           Ya tengo cuenta
         </a>
-        <Link href="/" className="underline">
+        <Link href="/" className="inline-flex min-h-11 items-center underline">
           Volver al inicio
         </Link>
       </div>

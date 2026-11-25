@@ -337,4 +337,33 @@ describe("buildPlanNoticeEmail: versión HTML con la marca (C7-2)", () => {
     const { html } = buildPlanNoticeEmail({ ...base, displayName: "<script>x" });
     expect(html).not.toContain("<script>");
   });
+
+  it("R28-11: la versión de texto plano no lleva etiquetas ni la imagen y dice lo mismo que el HTML", () => {
+    const { text, html } = buildPlanNoticeEmail(base);
+    expect(text).not.toMatch(/<[a-z!/][^>]*>/i);
+    expect(text).not.toMatch(/mascota\//);
+    expect(text).toContain("https://mpago.la/abc");
+    expect(html).toContain("https://mpago.la/abc");
+    // Si la imagen no carga, el mensaje se entiende igual: la fecha está en el texto, no solo en la imagen
+    expect(text).toContain("10 de diciembre");
+  });
+
+  it("R28-11: el texto plano no cambia sin que alguien lo note (snapshot)", () => {
+    expect(buildPlanNoticeEmail(base).text).toMatchInlineSnapshot(`
+      "Hola Ana:
+
+      Tu acceso a la Beta de AfinIAJobs vence el 10 de diciembre.
+
+      Si querés seguir con el plan completo, pagá el mes con Mercado Pago:
+      https://mpago.la/abc
+      Cuando se acredite el pago lo activamos a mano y se suman 30 días a lo que te queda.
+
+      Si no lo renovás, tu cuenta pasa al plan gratis. No perdés nada: tu perfil, tus ofertas y tus postulaciones siguen guardados; solo cambian los topes de uso.
+
+      Tu plan, en cualquier momento: https://app.example.com/settings#tu-plan
+
+      Te avisamos 7 días antes, 1 día antes y el día del vencimiento; cada aviso llega una sola vez.
+      AfinIAJobs"
+    `);
+  });
 });

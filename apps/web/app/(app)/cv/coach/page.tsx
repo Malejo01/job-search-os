@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { AfiDice } from "@/components/afi-dice";
 import { CvCoachDiagnosis } from "@/components/cv-coach/diagnosis";
+import { AFI_DICE } from "@/lib/textos-rediseno";
 import { cvCoachAllowedFor } from "@/lib/cv-coach/access";
 import { requireActiveUserId } from "@/lib/session";
 
@@ -17,6 +19,7 @@ export default async function CvCoachPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="text-title font-bold">Mejorá tu CV</h1>
+      <AfiDice pose="analizando" priority texto={AFI_DICE.cvCoach} testId="afi-dice-cv-coach" />
       <CvCoachDiagnosis />
     </div>
   );

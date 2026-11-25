@@ -135,6 +135,8 @@ const SOURCE_KINDS = [
   "ashby",
   "teamtailor",
   "workable",
+  "recruitee",
+  "smartrecruiters",
   "computrabajo_alerts",
 ] as const;
 

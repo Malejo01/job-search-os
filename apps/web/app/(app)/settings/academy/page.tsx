@@ -1,12 +1,21 @@
+import { schema as s } from "@job-search-os/db";
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import { canReviewAcademy } from "@/lib/academy-access";
+import { isAdminUser } from "@/lib/admin-guard";
+import { withUser } from "@/lib/db";
 import { fichaWordCount, loadAcademyFichas } from "@/lib/academy";
 import { reviewHistory, reviewLatestBySlug } from "@/lib/academy-revisiones";
 import { renderLegalBlocks } from "@/lib/legal";
 import { requireUserId } from "@/lib/session";
-import { ACADEMY_REVISION, estadoDeRevision, TEXTOS_APROBACION } from "@/lib/textos-revision";
+import {
+  ACADEMY_REVISION,
+  estadoDeRevision,
+  nombreDelRevisor,
+  TEXTOS_APROBACION,
+} from "@/lib/textos-revision";
 import { reviewFichaAction } from "./actions";
 
 export const metadata = { title: "Revisar Academy" };
@@ -35,6 +44,13 @@ export default async function AcademyReviewPage() {
     reviewHistory(userId).catch(() => null),
   ]);
   const titulos = new Map(fichas.map((f) => [f.slug, f.titulo]));
+  // R28-10: quien no administra no ve el email de otra cuenta en el historial
+  const viewerIsAdmin = await isAdminUser(userId);
+  const viewerEmail = await withUser(userId, (tx) =>
+    tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
+  )
+    .then((rows) => rows[0]?.email ?? null)
+    .catch(() => null);
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <h1 className="text-title font-bold">{ACADEMY_REVISION.titulo}</h1>
@@ -144,7 +160,12 @@ export default async function AcademyReviewPage() {
                 </span>
                 {h.comment ? <span>{h.comment}</span> : null}
                 <span className="text-xs text-fg-subtle">
-                  {h.reviewerEmail ?? "Cuenta borrada"} · {DATE.format(h.createdAt)}
+                  {nombreDelRevisor({
+                    reviewerEmail: h.reviewerEmail,
+                    viewerEmail,
+                    viewerIsAdmin,
+                  })}{" "}
+                  · {DATE.format(h.createdAt)}
                 </span>
               </li>
             ))}

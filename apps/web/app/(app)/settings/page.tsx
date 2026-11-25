@@ -23,6 +23,7 @@ import { canCreateInvitations } from "@/lib/invitations";
 import { canUseMcpTokens } from "@/lib/mcp-tokens";
 import { canViewRecorrido } from "@/lib/recorrido-access";
 import { RECORRIDO_TEXTOS } from "@/lib/textos-recorrido";
+import { AYUDA_TEXTOS } from "@/lib/textos-rediseno";
 import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
 import { getPlanOverride, getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
@@ -165,6 +166,19 @@ export default async function SettingsPage({
           </span>
         </Link>
       ) : null}
+
+      {/* R28-12: las dudas frecuentes de la beta, siempre a mano */}
+      <Link href="/ayuda" className={NAV_CARD} data-testid="ajustes-ayuda">
+        <span className="flex flex-col">
+          <span className="font-bold text-fg underline underline-offset-2">
+            {AYUDA_TEXTOS.menuLink}
+          </span>
+          <span className="text-fg-muted">{AYUDA_TEXTOS.menuHint}</span>
+        </span>
+        <span aria-hidden="true" className="text-lg text-fg-subtle">
+          ›
+        </span>
+      </Link>
 
       <section className={SECTION}>
         <h2 className={H2}>Cuenta</h2>

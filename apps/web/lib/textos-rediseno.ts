@@ -116,6 +116,114 @@ export const AYUDAS_ACADEMY = {
   seguimiento: { slug: "despues-de-postularte", term: "qué hacer después de postularte" },
 } as const;
 
+/**
+ * Lo que dice Afi en su burbuja (R28-15), borrador para que lo apruebe quien define la marca. Voseo, primera
+ * persona y 1 o 2 líneas. `{nombre}` y `{n}` los completa la pantalla (`llenarTexto`, en `afi-dice.tsx`).
+ */
+export const AFI_DICE = {
+  hoy: {
+    saludoConNombre: "¡Hola, {nombre}!",
+    saludoSinNombre: "¡Hola!",
+    conOfertas: "Hoy te traje {n} ofertas nuevas para mirar.",
+    unaOferta: "Hoy te traje 1 oferta nueva para mirar.",
+    sinOfertas:
+      "Hoy no hay ofertas nuevas, pero podés pegar una que te interese y te cuento qué tan bien te calza.",
+    seguimosConOfertas: "Seguimos: hay {n} ofertas nuevas para mirar.",
+    seguimosUnaOferta: "Seguimos: hay 1 oferta nueva para mirar.",
+  },
+  primerosPasosListo:
+    "¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar cada día las ofertas con mejor puntaje (las verdes).",
+  interview: {
+    texto: `Soy ${MASCOTA_NOMBRE} y te voy a entrevistar. Elegí una oferta y practicamos.`,
+    accion: "Empezar",
+  },
+  cvArmar: "Te ayudo a armar tu CV paso a paso. Vos revisás todo antes de usarlo.",
+  cvCoach: "Vamos a mejorar tu CV juntos: te muestro qué se puede decir mejor y cómo.",
+  cvDiagnostico:
+    "Te muestro cómo lo leería un sistema de selección: qué entiende y qué se le escapa.",
+  tracker: "Acá seguimos tus postulaciones. Te aviso cuáles piden un seguimiento.",
+  preparar:
+    "Vamos a preparar tu postulación: te muestro qué conviene destacar. El envío lo hacés vos.",
+  academy: "Te explico las ideas clave de la búsqueda, una ficha por vez.",
+} as const;
+
+/** Completa `{nombre}` y `{n}` de un texto de `AFI_DICE`. Los valores se insertan como texto, nunca como HTML. */
+export function llenarTexto(texto: string, valores: Record<string, string | number>): string {
+  return texto.replace(/\{(\w+)\}/g, (todo, clave: string) =>
+    clave in valores ? String(valores[clave]) : todo,
+  );
+}
+
+/**
+ * Preguntas frecuentes de la beta (R28-12), borrador para que lo apruebe Ani. `/ayuda` ya traía 13 preguntas
+ * escritas en la página; acá van las que faltaban. Voseo; sin prometer trabajo, sin «compatibilidad ATS» y sin
+ * decir que la app postula por vos (ADR-004). `{n}` lo completa la página (`llenarTexto`).
+ */
+export const AYUDA_TEXTOS = {
+  afiDice: "Acá van las dudas que más nos hacen. Si no encontrás la tuya, escribinos desde la app.",
+  menuLink: "Preguntas frecuentes",
+  menuHint: "Cómo se calcula la afinidad, pagos, voz, tus datos y a quién escribir.",
+  /** Link dentro del asistente (solo texto de UI, no es un prompt). */
+  asistenteLink: "Preguntas frecuentes",
+  asistenteIntro: "¿Una duda general sobre la beta?",
+  faqs: [
+    {
+      id: "afinidad",
+      q: "¿Cómo se calcula la afinidad?",
+      a: [
+        "Leemos el aviso y lo comparamos con tu perfil: lo que pide, lo que ya tenés y lo que te falta. Con eso armamos un puntaje y te explicamos el porqué, punto por punto.",
+        "Las cosas que pueden frenarte (por ejemplo, el país, el idioma o una condición del aviso) se muestran aparte del puntaje, para que no queden escondidas. Es una estimación para ayudarte a decidir; no garantiza que te llamen.",
+      ],
+    },
+    {
+      id: "pago",
+      q: "¿Cómo pago y cuándo se activa el plan?",
+      a: [
+        "Pagás con el link de Mercado Pago que te mandamos con la invitación. Después entrás a Ajustes, a «Tu plan», y tocás «Ya pagué» (el número de operación es opcional).",
+        "Una persona del equipo confirma el pago a mano y activa tu plan por 30 días. No es automático: puede tardar un poco, y cuando se activa lo ves en «Tu plan». No guardamos datos de tu tarjeta.",
+      ],
+    },
+    {
+      id: "voz",
+      q: "¿Puedo hablar en vez de escribir? ¿Con qué navegadores?",
+      a: [
+        "Sí: donde ves el botón «Dictar» podés contar tu respuesta hablando y el texto aparece para que lo revises antes de enviarlo. Nunca se envía solo.",
+        "En Chrome, Edge y Safari dictás directo con el navegador. En Opera, Brave y Firefox grabamos y transcribimos en nuestro servidor, y durante la beta puede tener un tope diario. Si no te funciona, podés escribir: todo se puede hacer sin voz.",
+      ],
+    },
+    {
+      id: "pocas-ofertas",
+      q: "¿Por qué veo pocas ofertas de mi carrera?",
+      a: [
+        "Las ofertas que traemos solas salen de las páginas de empleo de las propias empresas, y hoy son más de tecnología y remotas. Para otras carreras hay menos, y las vamos sumando de a poco.",
+        "Mientras tanto no te quedás sin nada: podés cargar vos los avisos que ves en otros portales y los leemos igual contra tu perfil.",
+      ],
+    },
+    {
+      id: "cargar-oferta",
+      q: "¿Cómo cargo una oferta que encontré?",
+      a: [
+        "En Match, tocá «+ Cargar oferta» y pegá el aviso completo (o el link, si lo tenés). Lo leemos, lo comparamos con tu perfil y te mostramos la afinidad y el porqué.",
+        "También podés reenviar a tu dirección de la app las alertas que te llegan por email: la ves en Ajustes, en «Reenvío de emails».",
+      ],
+    },
+    {
+      id: "tope-interview",
+      q: "¿Cuántas simulaciones de Interview puedo hacer por día?",
+      a: [
+        "Hasta {n} simulaciones completas cada 24 horas. Si llegás al tope, te avisamos cuándo podés empezar otra; mientras tanto podés repasar las que ya terminaste.",
+      ],
+    },
+    {
+      id: "contacto",
+      q: "¿A quién le escribo si algo no anda o tengo una duda?",
+      a: [
+        "Desde la app, con el botón «¿Algo no anduvo?» que aparece en todas las pantallas: contanos qué pasó y leemos todo durante la beta. Podés dictar el mensaje si te resulta más cómodo.",
+      ],
+    },
+  ],
+} as const;
+
 /** Interview pulido (R23-08): espera, vacío, 404 propio. «analizando» y «retry» viajan al cliente: están en `textos-interview.ts` (R23-09). */
 export const INTERVIEW_TEXTOS = {
   ...INTERVIEW_CLIENTE,

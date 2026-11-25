@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BRAND, BRAND_COLORS } from "./brand";
 import { brandedEmailHtml, escapeEmailHtml, textToEmailHtml } from "./email-layout";
+import { emailMascotaHtml } from "./mascota";
 
 describe("brandedEmailHtml (C7-2)", () => {
   const html = brandedEmailHtml({ bodyHtml: "<p>Hola</p>" });
@@ -42,6 +43,51 @@ describe("brandedEmailHtml (C7-2)", () => {
     const withPre = brandedEmailHtml({ bodyHtml: "<p>x</p>", preheader: "<b>vence</b>" });
     expect(withPre).toContain("&lt;b&gt;vence&lt;/b&gt;");
     expect(withPre).not.toContain("<b>vence</b>");
+  });
+});
+
+describe("compatibilidad con clientes de correo (R28-11)", () => {
+  const html = brandedEmailHtml({
+    bodyHtml: "<p>Hola</p>",
+    mascotAppUrl: "https://x.test",
+    preheader: "Resumen",
+  });
+
+  it("declara el esquema claro para los clientes que oscurecen (meta y style)", () => {
+    expect(html).toContain('<meta name="color-scheme" content="light only">');
+    expect(html).toContain('<meta name="supported-color-schemes" content="light only">');
+    expect(html).toMatch(/<style>:root\{color-scheme:light only;/);
+  });
+
+  it("cada bloque de color lleva bgcolor de respaldo además del estilo en línea", () => {
+    for (const color of [BRAND_COLORS.canvas, BRAND_COLORS.ink, BRAND_COLORS.white]) {
+      expect(html).toContain(`bgcolor="${color}"`);
+    }
+    expect(html).toMatch(/<body bgcolor="#EEEDF9"/);
+  });
+
+  it("solo tablas de maquetación, sin scripts, hojas, @import ni fondos remotos", () => {
+    expect(html).not.toMatch(/<script\b|<link\b|@import|url\(|<iframe\b|<form\b/i);
+    expect(html).toMatch(/<table role="presentation"/);
+    // la única hoja es el <style> de una línea del esquema de color
+    expect(html.match(/<style>/g)).toHaveLength(1);
+  });
+
+  it("la mascota: imagen con tamaño, alt y estilo de respaldo, sobre una celda con fondo propio", () => {
+    const img = html.match(/<img\b[^>]*>/)?.[0] ?? "";
+    expect(img).toMatch(/width="94"/);
+    expect(img).toMatch(/height="160"/);
+    expect(img).toMatch(/alt="[^"]{5,}"/);
+    expect(img).toContain('border="0"');
+    expect(img).toContain("display:block");
+    expect(img).toMatch(/color:#1E1B4B/);
+    expect(html).toMatch(/<td align="center" bgcolor="#EEEDF9"[^>]*>\s*<img\b/);
+  });
+
+  it("el HTML de la mascota no cambia sin que alguien lo note (snapshot)", () => {
+    expect(emailMascotaHtml("https://x.test/", "Marca X")).toMatchInlineSnapshot(
+      `"<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td align="center" bgcolor="#EEEDF9" style="background-color:#EEEDF9;border-radius:20px;padding:12px 20px;"><img src="https://x.test/mascota/saludando-512.png" alt="Afi, la mascota de Marca X, saluda con la mano" width="94" height="160" border="0" style="display:block;border:0;outline:none;text-decoration:none;width:94px;height:160px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.3;color:#1E1B4B;"></td></tr></table>"`,
+    );
   });
 });
 

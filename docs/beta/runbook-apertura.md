@@ -241,3 +241,16 @@ Con dos o más cuentas, el MCP necesita `MCP_USER_ID` (1.2). Probá con `curl -H
 - [ ] Criterios de tester A recibidos; invitaciones enviadas desde el 12/11
 - [ ] Ensayo del 20 al 24/11 hecho y hallazgos resueltos
 - [ ] Monitores creados; Neon y Vercel abiertos el 26/11
+
+### 4.1 Lo que la pantalla `/admin/apertura` lee sola (R28-03)
+
+Además de lo de arriba, la pantalla marca estos cuatro ítems con el estado real (sin mostrar nunca el valor de una variable):
+
+| Ítem | Listo cuando | Si está pendiente |
+| --- | --- | --- |
+| Términos y privacidad (PR legal #552) | `TERMS_VERSION` (`apps/web/lib/terms.ts`) es posterior a `2026-11-02` | Mergear el PR legal #552, que sube la versión. El código no puede ver el PR: si la versión sigue igual, queda pendiente |
+| Voz en el servidor | `VOICE_SERVER_TRANSCRIBE` vale `all` | Con la política de privacidad publicada, ponerla en `all` en Vercel y volver a desplegar (`docs/beta/pasos-manuales-r25.md`, secciones 3 y 4) |
+| Ruteo a Claude | las 9 tareas de `packages/db/sql/ruteo-s4.sql` tienen en `model_routing` el proveedor y el modelo de `seeds/model_routing.json` | Correr `ruteo-s4.sql` con `--ensayo` y después sin él (`docs/beta/pasos-manuales-s4.md`, sección 1.4) |
+| Fecha definitiva de apertura | `BETA_FECHA_DEFINITIVA` está en `true` en `apps/web/lib/apertura.ts` | Elegir el día, cambiar `BETA_OPENS_AT` en `packages/pipeline/src/plan-access.ts` y poner `BETA_FECHA_DEFINITIVA = true` en el mismo commit |
+
+Los links de Mercado Pago ya los lee el ítem «Links de Mercado Pago» (`MP_LINK_LISTA` y `MP_LINK_TESTER_50`, solo «cargado / falta»).

@@ -24,6 +24,9 @@ export type SourceKind =
   | "teamtailor"
   // R16-2: Workable (widget público de cada cuenta)
   | "workable"
+  // R28-05 (ADR-046): Recruitee y SmartRecruiters, APIs públicas de los sitios de empleos
+  | "recruitee"
+  | "smartrecruiters"
   // R19-01: alertas por email de Computrabajo a las casillas del pool (migración 0046)
   | "computrabajo_alerts";
 

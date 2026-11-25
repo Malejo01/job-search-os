@@ -33,6 +33,8 @@ export const SOURCE_LABELS: Record<string, string> = {
   ashby: "Ashby",
   teamtailor: "Teamtailor",
   workable: "Workable",
+  recruitee: "Recruitee",
+  smartrecruiters: "SmartRecruiters",
   other: "Otra",
 };
 

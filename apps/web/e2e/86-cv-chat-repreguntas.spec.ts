@@ -49,8 +49,9 @@ test("fechas incompletas: repregunta una vez y «no me acuerdo» la corta", asyn
   const send = async (text: string, siguiente: RegExp | string) => {
     await answer.fill(text);
     await page.getByRole("button", { name: "Enviar", exact: true }).click();
+    // Con la base y el servidor cargados (corrida grande) la respuesta del fake tarda más de los 5 s por defecto
     await expect
-      .poll(() => lastMessage(page))
+      .poll(() => lastMessage(page), { timeout: 20_000 })
       .toMatch(typeof siguiente === "string" ? new RegExp(siguiente) : siguiente);
   };
 

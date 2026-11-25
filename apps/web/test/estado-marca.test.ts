@@ -16,11 +16,16 @@ describe("estados vacíos con la marca (R23-07)", () => {
     "app/(app)/jobs/[id]/postular/page.tsx",
   ];
 
+  // R28-15: Hoy ya tiene a Afi hablando arriba (<AfiDice>) y lleva un solo Afi por pantalla, así que sus vacíos
+  // de novedades van con EmptyState sin figura. Los demás vacíos de Hoy siguen con EstadoMarca.
+  const CON_AFI_DICE = new Set(["app/(app)/hoy/page.tsx"]);
+
   it("cada pantalla usa EstadoMarca y ya no arma EmptyState a mano", () => {
     for (const f of PANTALLAS) {
       const s = src(f);
       expect(s, f).toContain("<EstadoMarca");
-      expect(s, f).not.toMatch(/<EmptyState/);
+      if (CON_AFI_DICE.has(f)) expect(s, f).toContain("<AfiDice");
+      else expect(s, f).not.toMatch(/<EmptyState/);
     }
   });
 

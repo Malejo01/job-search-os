@@ -24,6 +24,136 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const ROLE_LABELS = roleSkillsSchema.parse(roleSkillsSeed);
 
+/**
+ * Cobertura del pool por carrera y por idioma (R28-06, `pnpm pool:cobertura`). UNA consulta agregada y de
+ * solo lectura sobre `public_jobs` (el pool global, sin datos de personas): devuelve carrera e idioma con
+ * conteos, nunca títulos, empresas ni textos. «Activa» = sin copias y vista en los últimos 30 días. Un
+ * aviso con varias carreras cuenta una vez en cada una. Idioma = `coalesce(jd_language, lang)`: «es»,
+ * «en», otro, o «sin dato». `db` tiene que ser una transacción de solo lectura (lo arma el CLI).
+ */
+export const COVERAGE_WINDOW_DAYS = 30;
+/** Las celdas con menos que esto se muestran como «<5» (no se publican conteos chicos). */
+export const SMALL_CELL = 5;
+
+export type RoleLanguageRow = {
+  role: string;
+  es: number;
+  en: number;
+  other: number;
+  unknown: number;
+};
+
+export async function readRoleLanguageCoverage(db: Db, now: Date): Promise<RoleLanguageRow[]> {
+  const since = new Date(now.getTime() - COVERAGE_WINDOW_DAYS * DAY_MS).toISOString();
+  const c = s.publicJobs;
+  const lang = sql`coalesce(${c.jdLanguage}, ${c.lang})`;
+  const rows = await db
+    .select({
+      role: sql<string>`r`,
+      es: sql<number>`count(*) filter (where ${lang} = 'es')::int`,
+      en: sql<number>`count(*) filter (where ${lang} = 'en')::int`,
+      other: sql<number>`count(*) filter (where ${lang} is not null and ${lang} not in ('es', 'en'))::int`,
+      unknown: sql<number>`count(*) filter (where ${lang} is null)::int`,
+    })
+    .from(sql`${c}, unnest(${c.roleHints}) as r`)
+    .where(sql`${c.dedupOfId} is null and ${c.lastSeenAt} >= ${since}::timestamptz`)
+    .groupBy(sql`r`)
+    .orderBy(sql`r`);
+  return rows.map((row) => {
+    const parsed = {
+      role: String(row.role),
+      es: Number(row.es),
+      en: Number(row.en),
+      other: Number(row.other),
+      unknown: Number(row.unknown),
+    };
+    // Falla cerrado: un conteo que no es entero no negativo es una forma inesperada
+    for (const n of [parsed.es, parsed.en, parsed.other, parsed.unknown]) {
+      if (!Number.isInteger(n) || n < 0) throw new Error("role-coverage: forma inesperada");
+    }
+    return parsed;
+  });
+}
+
+/** 0 se muestra tal cual; de 1 a 4, «<5»; desde 5, el número. */
+export function maskCell(n: number): string {
+  if (n <= 0) return "0";
+  return n < SMALL_CELL ? `<${SMALL_CELL}` : String(n);
+}
+
+export function formatRoleLanguageCoverage(
+  rows: readonly RoleLanguageRow[],
+  meta: { label: string; asOf: Date },
+): string {
+  const header = ["carrera", "total", "es", "en", "otro", "sin dato"];
+  const body = rows
+    .map((r) => ({ r, total: r.es + r.en + r.other + r.unknown }))
+    .sort((a, b) => b.total - a.total || a.r.role.localeCompare(b.r.role))
+    .map(({ r, total }) => [
+      r.role,
+      maskCell(total),
+      maskCell(r.es),
+      maskCell(r.en),
+      maskCell(r.other),
+      maskCell(r.unknown),
+    ]);
+  const table = [header, ...body];
+  const widths = header.map((_, i) => Math.max(...table.map((row) => row[i]!.length)));
+  const line = (row: string[]) =>
+    row
+      .map((cell, i) => (i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)))
+      .join("  ");
+  return [
+    `base: ${meta.label}`,
+    `fecha: ${meta.asOf.toISOString().slice(0, 10)} · avisos activos en ${COVERAGE_WINDOW_DAYS} días, sin copias`,
+    "",
+    line(header),
+    ...body.map(line),
+    "",
+    `Celdas de 1 a ${SMALL_CELL - 1} avisos: «<${SMALL_CELL}». Un aviso con varias carreras cuenta en cada una.`,
+  ].join("\n");
+}
+
+export type CoverageTarget =
+  { kind: "local"; db: "dev" | "snapshot" } | { kind: "remote-readonly" };
+
+/**
+ * Destino de `pool:cobertura`. Falla cerrado: sin `DB_TARGET=local` ni `--local` solo corre si se pasa
+ * `--solo-lectura` explícito (la corrida de Admin contra producción). Nunca elige la nube por omisión.
+ */
+export function parseCoverageArgs(
+  argv: readonly string[],
+  env: Record<string, string | undefined> = process.env,
+): { ok: true; target: CoverageTarget } | { ok: false; error: string } {
+  const known = new Set(["--local", "--solo-lectura", "--db"]);
+  let db: "dev" | "snapshot" = "dev";
+  let local = env.DB_TARGET === "local";
+  let readOnlyRemote = false;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--db") {
+      const v = argv[++i];
+      if (v !== "dev" && v !== "snapshot") return { ok: false, error: "--db: dev o snapshot" };
+      db = v;
+    } else if (a === "--local") local = true;
+    else if (a === "--solo-lectura") readOnlyRemote = true;
+    else if (!known.has(a)) return { ok: false, error: `argumento desconocido: ${a}` };
+  }
+  if (local && readOnlyRemote) {
+    return {
+      ok: false,
+      error: "elegí uno: base local (DB_TARGET=local / --local) o --solo-lectura",
+    };
+  }
+  if (local) return { ok: true, target: { kind: "local", db } };
+  if (readOnlyRemote) return { ok: true, target: { kind: "remote-readonly" } };
+  return {
+    ok: false,
+    error:
+      "sin DB_TARGET=local ni --local no corre: la base remota exige --solo-lectura explícito (consulta agregada, solo lectura)",
+  };
+}
+
 export async function explainEmptyRoles(
   db: Db,
   userId: string,

@@ -50,7 +50,9 @@ test.describe("Flujo 185: estados vacíos con la marca (R23-07)", () => {
     await page.goto("/interview");
     const vacio = page.getByTestId("interview-vacio");
     await expect(vacio).toBeVisible();
-    await expect(vacio.locator("[data-afi], [data-ilustracion]").first()).toBeAttached();
+    // R28-15: la portada tiene a Afi hablando arriba; el vacío ya no repite la figura (un solo Afi por pantalla)
+    await expect(page.getByTestId("afi-dice-interview").locator("[data-afi]")).toBeAttached();
+    await expect(vacio.locator("[data-afi]")).toHaveCount(0);
     await expect(vacio.getByRole("link")).toHaveCount(1);
     const { violations } = await axeSummary(page);
     expect(violations).toEqual([]);

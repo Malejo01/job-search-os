@@ -6,9 +6,11 @@ import {
   type KeywordMarket,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { AfiDice } from "@/components/afi-dice";
 import { ContextHelp } from "@/components/context-help";
 import { Badge, buttonClasses, cardClasses } from "@/components/ui";
 import {
+  AFI_DICE,
   AYUDAS_ACADEMY,
   CV_DIAGNOSIS_TITLE,
   CV_LEVEL_WORDS,
@@ -66,6 +68,8 @@ export function CvItemsDiagnosis({
         </h2>
         <ContextHelp slug={AYUDAS_ACADEMY.ats.slug} term={AYUDAS_ACADEMY.ats.term} desde="cv" />
       </div>
+      {/* R28-15: Afi presenta la sección con una burbuja */}
+      <AfiDice pose="explicando" texto={AFI_DICE.cvDiagnostico} testId="afi-dice-cv-diagnostico" />
       <ul className="flex flex-col gap-4">
         {items.map((item) => (
           <li key={item.id} className="flex flex-col gap-1.5" data-testid={`cv-diag-${item.id}`}>

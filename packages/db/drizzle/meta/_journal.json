@@ -582,6 +582,13 @@
       "when": 1795560215723,
       "tag": "0082_natural_mandarin",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1795577322943,
+      "tag": "0083_outgoing_bullseye",
+      "breakpoints": true
     }
   ]
 }

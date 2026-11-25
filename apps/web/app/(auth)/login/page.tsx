@@ -91,7 +91,7 @@ export default async function LoginPage({
         </SubmitButton>
       </form>
       <div className="flex flex-col gap-2 text-sm text-fg-subtle">
-        <a href="/forgot-password" className="underline">
+        <a href="/forgot-password" className="inline-flex min-h-11 items-center underline">
           Olvidé mi contraseña
         </a>
         <p>
@@ -100,7 +100,7 @@ export default async function LoginPage({
             Pedir acceso
           </Link>
         </p>
-        <Link href="/" className="underline">
+        <Link href="/" className="inline-flex min-h-11 items-center underline">
           Volver al inicio
         </Link>
       </div>

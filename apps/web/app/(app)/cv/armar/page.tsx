@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { AfiDice } from "@/components/afi-dice";
 import { cvChatAllowed } from "@/lib/cv-chat-server";
+import { AFI_DICE } from "@/lib/textos-rediseno";
 import { requireActiveUserId } from "@/lib/session";
 import { voiceServerAllowedFor } from "@/lib/voice/server";
 import { CvChat } from "./chat";
@@ -19,6 +21,7 @@ export default async function ArmarCvPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="text-title font-bold">Armá tu CV con IA</h1>
+      <AfiDice pose="explicando" priority texto={AFI_DICE.cvArmar} testId="afi-dice-cv-armar" />
       <CvChat serverTranscribe={serverTranscribe} />
     </div>
   );

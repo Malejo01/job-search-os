@@ -30,6 +30,7 @@ import { AssistantActionCard, type ActionStatus } from "./assistant-action-card"
 import { AssistantProposalCard, type ProposalStatus } from "./assistant-proposal-card";
 import { AfiAnimado } from "@/components/afi-animado";
 import { MASCOTA_NOMBRE } from "@/lib/mascota";
+import { AYUDA_TEXTOS } from "@/lib/textos-rediseno";
 import { buttonClasses } from "@/components/ui";
 
 const FOCUS_RING =
@@ -531,6 +532,16 @@ export function AssistantPanel({
                 <p className="text-sm text-fg-subtle">
                   Preguntale, por ejemplo, «¿qué me falta para las ofertas que me interesan?» o
                   contale un cambio: «me mudé a Uruguay».
+                </p>
+                <p className="text-sm text-fg-subtle" data-testid="assistant-ayuda">
+                  {AYUDA_TEXTOS.asistenteIntro}{" "}
+                  <Link
+                    href="/ayuda"
+                    onClick={onClose}
+                    className={`inline-flex min-h-11 items-center underline ${FOCUS_RING}`}
+                  >
+                    {AYUDA_TEXTOS.asistenteLink}
+                  </Link>
                 </p>
               </>
             ) : null}

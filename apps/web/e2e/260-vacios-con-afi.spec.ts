@@ -18,7 +18,8 @@ test.describe("Flujo 260: vacíos con la mascota (R27-05)", () => {
     const casos = [
       { ruta: "/jobs", testId: "jobs-empty-none", pose: "trabajando" },
       { ruta: "/applications", testId: null, pose: "analizando" },
-      { ruta: "/interview", testId: "interview-vacio", pose: "quieto" },
+      // R28-15: Interview habla con Afi en la portada (`hablando-1`) y su vacío ya no repite la figura
+      { ruta: "/interview", testId: "afi-dice-interview", pose: "hablando-1" },
     ] as const;
     for (const caso of casos) {
       await page.goto(caso.ruta);

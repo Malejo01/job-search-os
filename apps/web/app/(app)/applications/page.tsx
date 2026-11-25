@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { AfiDice } from "@/components/afi-dice";
 import { EstadoMarca } from "@/components/estado-marca";
-import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
+import { AFI_DICE, ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import { ApplicationRow } from "@/components/applications/application-row";
 import { CollapsibleGroup } from "@/components/applications/collapsible-group";
 import { ConfirmAction } from "@/components/applications/confirm-action";
@@ -92,6 +93,10 @@ export default async function ApplicationsPage({
           {report.applied} postulaciones sobre {report.evaluated} evaluadas
         </p>
       </div>
+      {/* R28-15: Afi habla acá; sin postulaciones lo dice el estado vacío (que ya trae a Afi): un solo Afi */}
+      {apps.length > 0 ? (
+        <AfiDice pose="analizando" priority texto={AFI_DICE.tracker} testId="afi-dice-tracker" />
+      ) : null}
       {error ? (
         <Alert tone="danger" role="alert">
           Resultado inválido.

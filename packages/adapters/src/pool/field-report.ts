@@ -88,7 +88,8 @@ export function parsePoolCliArgs(argv: readonly string[]): PoolCliArgs {
   } catch {
     return {
       ok: false,
-      error: "token inválido para ese proveedor (en teamtailor y workable: [a-z0-9-], máx. 63)",
+      error:
+        "token inválido para ese proveedor (en teamtailor, workable y recruitee: [a-z0-9-], máx. 63)",
     };
   }
   if (company !== null && !company.trim()) return { ok: false, error: "--company vacío" };
