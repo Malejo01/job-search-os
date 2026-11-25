@@ -119,7 +119,8 @@ test("más de 2.000 caracteres, escritos o dictados: avisa cuánto se pasa y no 
   await campo.fill(base);
   await expect(dialog.getByTestId("feedback-tope")).toHaveCount(0);
   await dialog.getByTestId("voice-boton").click();
-  await expect(dialog.getByTestId("voice-vista-previa")).toBeVisible();
+  // El parcial llega a los 50 ms: esperarlo, así el final no queda pisado por él
+  await expect(dialog.getByTestId("voice-vista-previa")).toContainText("Trabajé con datos");
   await page.evaluate(() => (window as unknown as { __recFinal: () => void }).__recFinal());
   await dialog.getByTestId("voice-listo").click();
   const dictado = "Trabajé con datos de ventas";

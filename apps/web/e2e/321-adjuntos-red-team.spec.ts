@@ -215,6 +215,10 @@ test.beforeAll(async () => {
   await ensureOffUser();
   await cleanAll();
 });
+// Cada test siembra su propio borrador y solo puede haber uno por persona (feedback_reports_one_draft)
+test.beforeEach(async () => {
+  await cleanAll();
+});
 test.afterAll(async () => {
   await cleanAll();
   await removeOffUser();

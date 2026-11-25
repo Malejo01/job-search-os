@@ -87,7 +87,8 @@ test("la tester arma tres ítems (dictado, dos capturas pegadas, un PDF), los re
   const campoUno = uno.getByTestId("informe-mensaje");
   await campoUno.fill("Ítem 1 ficticio 331: al abrir Hoy");
   await uno.getByTestId("voice-boton").click();
-  await expect(uno.getByTestId("voice-vista-previa")).toBeVisible();
+  // El parcial llega a los 50 ms: esperarlo, así el final no queda pisado por él
+  await expect(uno.getByTestId("voice-vista-previa")).toContainText("Trabajé con datos");
   await page.evaluate(() => (window as unknown as { __recFinal: () => void }).__recFinal());
   await uno.getByTestId("voice-listo").click();
   await expect(campoUno).toHaveValue(`Ítem 1 ficticio 331: al abrir Hoy ${TEXTO_DICTADO}`);

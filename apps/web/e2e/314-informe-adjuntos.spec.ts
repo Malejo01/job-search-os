@@ -174,6 +174,8 @@ test("quitar un ítem con adjuntos borra también sus archivos", async ({ page }
 });
 
 test("el máximo es de 10 adjuntos por ítem y avisa", async ({ page }) => {
+  // Diez subidas una detrás de otra contra `next dev` en el CI: más margen que el resto
+  test.setTimeout(150_000);
   const item = await abrirConItem(page);
   const archivos = Array.from({ length: 10 }, (_, n) => ({
     name: `adjunto-${n + 1}.pdf`,
@@ -181,7 +183,7 @@ test("el máximo es de 10 adjuntos por ítem y avisa", async ({ page }) => {
     buffer: makePdf(n),
   }));
   await item.getByTestId("informe-archivo").setInputFiles(archivos);
-  await expect(item.getByTestId("informe-adjunto")).toHaveCount(10, { timeout: 30_000 });
+  await expect(item.getByTestId("informe-adjunto")).toHaveCount(10, { timeout: 100_000 });
   await expect(item.getByTestId("informe-elegir")).toBeDisabled();
   await expect(item).toContainText("máximo de 10 adjuntos");
   await item.getByTestId("informe-archivo").setInputFiles({

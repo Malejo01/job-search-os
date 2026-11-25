@@ -47,7 +47,8 @@ test.describe("navegador con dictado en vivo (Chrome)", () => {
 
     for (let vez = 1; vez <= 2; vez++) {
       await item.getByTestId("voice-boton").click();
-      await expect(item.getByTestId("voice-vista-previa")).toBeVisible();
+      // El parcial llega a los 50 ms: esperarlo, así el final no queda pisado por él
+      await expect(item.getByTestId("voice-vista-previa")).toContainText("Trabajé con datos");
       await page.evaluate(() => (window as unknown as { __recFinal: () => void }).__recFinal());
       await item.getByTestId("voice-listo").click();
       const esperado = `Antes de dictar${" Trabajé con datos de ventas".repeat(vez)}`;
