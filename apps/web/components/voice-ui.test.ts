@@ -1,4 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const roles = vi.hoisted(() => ({
+  email: null as string | null,
+  env: {} as Record<string, string>,
+}));
+vi.mock("@/lib/profile-agent/access", () => ({ getSessionEmail: async () => roles.email }));
+vi.mock("../lib/user-roles", () => ({
+  testerEnvFor: async () => ({ ...process.env, ...roles.env }),
+}));
+
+import { voiceDailySecondsFor } from "../lib/voice/server";
 import {
   VOICE_PRIVACY_BROWSER,
   VOICE_PRIVACY_SERVER,
@@ -35,5 +46,35 @@ describe("voice-ui", () => {
     expect(voicePrivacyNote("record", true)).toBe(VOICE_PRIVACY_SERVER);
     expect(voicePrivacyNote("browser", true)).toMatch(/Gemini/);
     expect(VOICE_PRIVACY_SERVER).toMatch(/descarta/);
+  });
+});
+
+describe("voiceDailySecondsFor · cupo según el rol (R29-06)", () => {
+  afterEach(() => {
+    roles.email = null;
+    roles.env = {};
+    vi.unstubAllEnvs();
+  });
+
+  it("una tester de la lista tiene 60 minutos y una persona común 20", async () => {
+    roles.email = "tester@example.com";
+    roles.env = { ASSISTANT_TESTER_EMAILS: "tester@example.com" };
+    expect(await voiceDailySecondsFor("u-tester")).toBe(3600);
+    roles.email = "comun@example.com";
+    expect(await voiceDailySecondsFor("u-comun")).toBe(1200);
+  });
+
+  it("sin email en la sesión es una persona común", async () => {
+    roles.email = null;
+    expect(await voiceDailySecondsFor("u-sin-email")).toBe(1200);
+  });
+
+  it("VOICE_TESTER_DAILY_MINUTES cambia solo el cupo de la tester", async () => {
+    vi.stubEnv("VOICE_TESTER_DAILY_MINUTES", "30");
+    roles.email = "tester@example.com";
+    roles.env = { ASSISTANT_TESTER_EMAILS: "tester@example.com" };
+    expect(await voiceDailySecondsFor("u-tester")).toBe(1800);
+    roles.email = "comun@example.com";
+    expect(await voiceDailySecondsFor("u-comun")).toBe(1200);
   });
 });

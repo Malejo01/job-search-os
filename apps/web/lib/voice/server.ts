@@ -1,4 +1,9 @@
-import { voiceServerAllowed, voiceServerMode } from "@job-search-os/pipeline";
+import {
+  isProfileAgentTester,
+  voiceDailySecondsForRole,
+  voiceServerAllowed,
+  voiceServerMode,
+} from "@job-search-os/pipeline";
 import { getSessionEmail } from "@/lib/profile-agent/access";
 import { testerEnvFor } from "../user-roles";
 
@@ -21,6 +26,22 @@ export async function voiceServerAllowedFor(userId: string): Promise<boolean> {
     return voiceServerAllowed(await testerEnvFor(userId, email), email);
   } catch {
     return false;
+  }
+}
+
+/**
+ * Cupo diario de voz de esta persona, en segundos (R29-06). El rol se decide acá, en el servidor, con la sesión:
+ * una tester (rol `tester` en la base o en `ASSISTANT_TESTER_EMAILS`) o un admin tiene `VOICE_TESTER_DAILY_MINUTES`
+ * (60 por defecto); las demás, `VOICE_DAILY_MINUTES` (20). Ante un error de la consulta, cupo común (falla
+ * cerrado hacia el menor).
+ */
+export async function voiceDailySecondsFor(userId: string): Promise<number> {
+  try {
+    const email = await getSessionEmail(userId);
+    const isTester = isProfileAgentTester(await testerEnvFor(userId, email), email);
+    return voiceDailySecondsForRole(process.env, isTester);
+  } catch {
+    return voiceDailySecondsForRole(process.env, false);
   }
 }
 
