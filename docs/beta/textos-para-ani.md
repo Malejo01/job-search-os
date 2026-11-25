@@ -55,6 +55,24 @@ Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5
 - Soporte de la beta: WhatsApp Business (lo crea y etiqueta tester A) y `contacto@afiniajobs.com.ar` (la crea Admin, la atiende tester A).
 - Los cobros van por una cuenta nueva de Mercado Pago compartida (hay que actualizar los links `MP_LINK_*`).
 
+## R28-12 · Preguntas frecuentes
+
+`/ayuda` ya traía 13 preguntas escritas en la página; estas son las 7 nuevas, en `apps/web/lib/textos-rediseno.ts` (`AYUDA_TEXTOS`), para aprobar desde `/settings/textos`. Voseo; sin prometer trabajo, sin «compatibilidad ATS» y sin decir que la app postula por vos. `{n}` lo completa la página.
+
+| Pregunta | Respuesta (borrador) |
+| --- | --- |
+| ¿Cómo se calcula la afinidad? | Leemos el aviso y lo comparamos con tu perfil: lo que pide, lo que ya tenés y lo que te falta. Con eso armamos un puntaje y te explicamos el porqué, punto por punto. Las cosas que pueden frenarte (por ejemplo, el país, el idioma o una condición del aviso) se muestran aparte del puntaje, para que no queden escondidas. Es una estimación para ayudarte a decidir; no garantiza que te llamen. |
+| ¿Cómo pago y cuándo se activa el plan? | Pagás con el link de Mercado Pago que te mandamos con la invitación. Después entrás a Ajustes, a «Tu plan», y tocás «Ya pagué» (el número de operación es opcional). Una persona del equipo confirma el pago a mano y activa tu plan por 30 días. No es automático: puede tardar un poco, y cuando se activa lo ves en «Tu plan». No guardamos datos de tu tarjeta. |
+| ¿Puedo hablar en vez de escribir? ¿Con qué navegadores? | Sí: donde ves el botón «Dictar» podés contar tu respuesta hablando y el texto aparece para que lo revises antes de enviarlo. Nunca se envía solo. En Chrome, Edge y Safari dictás directo con el navegador. En Opera, Brave y Firefox grabamos y transcribimos en nuestro servidor, y durante la beta puede tener un tope diario. Si no te funciona, podés escribir: todo se puede hacer sin voz. |
+| ¿Por qué veo pocas ofertas de mi carrera? | Las ofertas que traemos solas salen de las páginas de empleo de las propias empresas, y hoy son más de tecnología y remotas. Para otras carreras hay menos, y las vamos sumando de a poco. Mientras tanto no te quedás sin nada: podés cargar vos los avisos que ves en otros portales y los leemos igual contra tu perfil. |
+| ¿Cómo cargo una oferta que encontré? | En Match, tocá «+ Cargar oferta» y pegá el aviso completo (o el link, si lo tenés). Lo leemos, lo comparamos con tu perfil y te mostramos la afinidad y el porqué. También podés reenviar a tu dirección de la app las alertas que te llegan por email: la ves en Ajustes, en «Reenvío de emails». |
+| ¿Cuántas simulaciones de Interview puedo hacer por día? | Hasta {n} simulaciones completas cada 24 horas. Si llegás al tope, te avisamos cuándo podés empezar otra; mientras tanto podés repasar las que ya terminaste. |
+| ¿A quién le escribo si algo no anda o tengo una duda? | Desde la app, con el botón «¿Algo no anduvo?» que aparece en todas las pantallas: contanos qué pasó y leemos todo durante la beta. Podés dictar el mensaje si te resulta más cómodo. |
+
+Textos de interfaz del mismo bloque: Afi dice «Acá van las dudas que más nos hacen. Si no encontrás la tuya, escribinos desde la app.»; el link del menú, «Preguntas frecuentes» («Cómo se calcula la afinidad, pagos, voz, tus datos y a quién escribir.»); y en el asistente, «¿Una duda general sobre la beta?» con el link «Preguntas frecuentes».
+
+El email de bienvenida ya lleva el link a `/ayuda` («…mirá las preguntas frecuentes:» + el link), en `packages/pipeline/src/welcome-email.ts`; no hizo falta cambiarlo.
+
 ## R28-15 · Lo que dice Afi (borrador para aprobar)
 
 Textos nuevos de la burbuja de Afi, en `apps/web/lib/textos-rediseno.ts` (`AFI_DICE`); se aprueban desde `/settings/textos`. Voseo y primera persona; `{nombre}` y `{n}` los completa la pantalla.

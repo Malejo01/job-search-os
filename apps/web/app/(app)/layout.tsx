@@ -12,6 +12,7 @@ import { assistantLimits } from "@/lib/assistant-limits";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireActiveUserId, requireUserId } from "@/lib/session";
+import { AYUDA_TEXTOS } from "@/lib/textos-rediseno";
 import { getUserPlan } from "@/lib/user-plan";
 import { getHeaderProfile } from "@/lib/primer-uso-cuenta";
 import { Avatar } from "./avatar";
@@ -131,6 +132,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <span aria-hidden="true"> · </span>
         <Link href="/legal/terminos" className="underline-offset-2 hover:underline">
           Términos
+        </Link>
+        <span aria-hidden="true"> · </span>
+        <Link href="/ayuda" className="underline-offset-2 hover:underline">
+          {AYUDA_TEXTOS.menuLink}
         </Link>
         <CopyrightNotice className="mt-1" />
       </footer>
