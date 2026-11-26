@@ -107,6 +107,10 @@ export * from "./mascota";
 export * from "./initials";
 export * from "./greeting";
 export * from "./score-display";
+export * from "./listing";
+export * from "./glosario";
+export * from "./salary-text";
+export * from "./requirements/summary";
 export * from "./public-url";
 
 export * from "./evaluator/skill-level-overlay";

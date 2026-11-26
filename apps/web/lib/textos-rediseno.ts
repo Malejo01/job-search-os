@@ -1,6 +1,13 @@
-import { BRAND } from "@job-search-os/pipeline";
+import {
+  BRAND,
+  formatAffinityScore,
+  roundScore,
+  type SealLevel,
+  type SealState,
+} from "@job-search-os/pipeline";
 import { MASCOTA_NOMBRE } from "./mascota";
 import { INTERVIEW_CLIENTE } from "./textos-interview";
+import { POSTULAR_CLIENTE } from "./textos-postular";
 
 /**
  * Textos del rediseño que todavía puede cambiar quien define la marca. Todo en un solo lugar: cambiar
@@ -171,7 +178,7 @@ export const AYUDA_TEXTOS = {
       id: "afinidad",
       q: "¿Cómo se calcula la afinidad?",
       a: [
-        "Leemos el aviso y lo comparamos con tu perfil: lo que pide, lo que ya tenés y lo que te falta. Con eso armamos un puntaje y te explicamos el porqué, punto por punto.",
+        "Leemos el aviso y lo comparamos con tu perfil: lo que pide, lo que ya tenés y lo que queda sin confirmar. Con eso armamos un puntaje y te explicamos el porqué, punto por punto.",
         "Las cosas que pueden frenarte (por ejemplo, el país, el idioma o una condición del aviso) se muestran aparte del puntaje, para que no queden escondidas. Es una estimación para ayudarte a decidir; no garantiza que te llamen.",
       ],
     },
@@ -289,6 +296,321 @@ export const INFORME_TEXTOS = {
   addToReportLink: "Ver mi informe",
   addToReportError: "No pudimos sumarlo al informe. Probá de nuevo.",
   addToReportFull: "Tu informe ya tiene el máximo de {max} ítems.",
+} as const;
+
+/**
+ * Tanda R30 «Confianza» (plan R30 a R34). Textos nuevos de la interfaz, borrador para que los apruebe Ani. Voseo,
+ * glosario del plan §3 (un test los revisa con el modo estricto). Cada bloque lo edita un solo teammate:
+ * `base` (glosario, sellos, aclaración y «cómo calculamos»), `listado` (`LISTADO_TEXTOS`) y `detalle`
+ * (`DETALLE_TEXTOS`). `{n}`, `{sitio}` y similares los completa la pantalla (`llenarTexto`).
+ */
+
+/** Los tres estados de cada requisito (glosario: nunca «cumple», «te falta» ni «no cumple»). */
+export const ESTADO_REQUISITO_TEXTOS = {
+  coincide: "Coincide",
+  sinConfirmar: "Sin confirmar",
+  noCoincide: "No coincide",
+} as const;
+
+/** Palabras sueltas del glosario que se repiten en varias pantallas. */
+export const GLOSARIO_TEXTOS = {
+  yaMePostule: "Ya me postulé",
+  guardada: "Guardada",
+  sinEvaluar: "Sin evaluar",
+  noEspecificado: "No especificado",
+  habilidades: "Habilidades",
+  aviso: "Aviso",
+  oferta: "Oferta",
+} as const;
+
+/** Los cuatro sellos de afinidad y el sello de una oferta en cola (R30-02). */
+export const SELLOS_TEXTOS = {
+  alta: "Afinidad alta",
+  media: "Afinidad media",
+  baja: "Afinidad baja",
+  sin_evaluar: "Sin evaluar",
+  pendiente: "Leyendo la oferta contra tu perfil…",
+  /** Palabra corta dentro del sello en cola: la frase entera va al lado. */
+  pendienteCorto: "Leyendo…",
+  /** Aclaración fija de la evaluación (regla 5 del plan). */
+  aclaracion:
+    "Esta comparación usa la información del aviso y de tu perfil. No indica tus posibilidades de contratación.",
+} as const;
+
+/** La palabra del sello: siempre está, el color nunca es la única señal. */
+export function sealWord(state: SealState): string {
+  return SELLOS_TEXTOS[state];
+}
+
+/** Lo mismo en minúsculas, para completar una frase («afinidad alta»). */
+function sealPhrase(level: SealLevel): string {
+  return SELLOS_TEXTOS[level].toLowerCase();
+}
+
+/**
+ * `aria-label` del sello: «puntaje 8.5, afinidad alta» (los e2e leen el formato «puntaje N», con punto). El número es
+ * el ya redondeado a un decimal, el mismo que dice el sello (R30-02).
+ */
+export function sealAriaLabel(state: SealState, value: number | null): string {
+  if (state === "pendiente") return "en cola";
+  if (state === "sin_evaluar" || value === null) return "sin evaluar";
+  return `puntaje ${roundScore(value)}, ${sealPhrase(state)}`;
+}
+
+/** La misma información como frase, para el modo `text` (lectores de pantalla en /hoy). */
+export function sealSentence(state: SealState, value: number | null): string {
+  if (state === "pendiente") return "En cola para evaluar";
+  if (state === "sin_evaluar" || value === null) return SELLOS_TEXTOS.sin_evaluar;
+  return `Puntaje ${formatAffinityScore(value)} de 10, ${sealPhrase(state)}`;
+}
+
+// PENDIENTE-INFORME: S-01, R-05 (redacción de `COMO_CALCULAMOS_TEXTOS` y de las palabras del sello: el plan fija
+// el sentido y la aclaración, no el texto de cada línea; cotejar con el informe original)
+/** «Cómo calculamos la afinidad» (R30-02): qué sale del aviso, qué del perfil y qué está sin confirmar. */
+export const COMO_CALCULAMOS_TEXTOS = {
+  summary: "Cómo calculamos la afinidad",
+  intro:
+    "La afinidad va de 0 a 10 y compara lo que dice el aviso con lo que cargaste en tu perfil. Es una guía para decidir.",
+  avisoTitle: "Sale del aviso",
+  avisoText:
+    "Lo que pide el puesto: tareas, requisitos, modalidad, idioma, sueldo y desde dónde se puede trabajar.",
+  perfilTitle: "Sale de tu perfil",
+  perfilText: "Lo que cargaste: tu experiencia, tus habilidades, tu idioma y dónde vivís.",
+  sinConfirmarTitle: "Está sin confirmar",
+  sinConfirmarText:
+    "Lo que el aviso o tu perfil no dicen. No lo damos por cumplido ni por faltante: queda sin confirmar.",
+  sinConfirmarNinguno: "Todo lo que miramos tiene su dato.",
+  condicionTitle: "La condición excluyente va aparte",
+  condicionText:
+    "Si el aviso pide algo que hoy no coincide con tu perfil, lo mostramos aparte de la afinidad: no cambia el número.",
+} as const;
+
+/** Textos del listado y la tarjeta (R30-03 a R30-07). Lo edita solo `listado`. */
+export const LISTADO_TEXTOS = {
+  /** Pestañas (plan §5). */
+  tabs: {
+    aria: "Pestañas de ofertas",
+    porRevisar: "Por revisar",
+    guardadas: "Guardadas",
+    yaMePostule: "Ya me postulé",
+    descartadas: "Descartadas",
+    todas: "Todas",
+  },
+  /** «Guardada» es una marca con fecha, no un estado (R30-03). */
+  guardar: {
+    guardar: "Guardar",
+    quitar: "Quitar de guardadas",
+    marca: "Guardada",
+    /** Para quien usa lector de pantalla: la acción nombra la oferta. */
+    guardarOferta: "Guardar la oferta {titulo}",
+    quitarOferta: "Quitar de guardadas la oferta {titulo}",
+    vacioTitulo: "Todavía no guardaste ninguna oferta",
+    vacioTexto: "Tocá «Guardar» en una oferta para tenerla a mano acá, sin cambiarle el estado.",
+  },
+  /** Tarjeta (R30-04). Los requisitos salen de la tabla de la evaluación. */
+  tarjeta: {
+    verOferta: "Ver oferta",
+    descartar: "Descartar",
+    abrirDetalle: "Abrir el detalle de {titulo}",
+    /** «No coincide: residencia en EE. UU.», con texto e ícono. */
+    noCoincide: "No coincide: {requisito}",
+    /** «Sin confirmar: inglés, años de experiencia»: hasta 2 cosas. */
+    sinConfirmar: "Sin confirmar: {lista}",
+    salarioDesde: "desde USD {min}",
+    leyendo: "Leyendo la oferta contra tu perfil…",
+  },
+  /** Vigencia (R30-07). Solo para ofertas que vienen del pool. */
+  vigencia: {
+    yaNoFigura: "Este aviso ya no figura en {fuente}",
+    yaNoFiguraSinFuente: "Este aviso ya no figura en su fuente",
+  },
+  /** Descartadas (R30-06). */
+  descartadas: {
+    marca: "Descartada por vos",
+    volverARevisar: "Volver a revisar",
+    verOferta: "Ver oferta",
+    avisoDescartada: "Oferta descartada.",
+    deshacer: "Deshacer",
+  },
+  /** Chips, contador y estados de la lista (R30-05). */
+  filtros: {
+    aria: "Filtros",
+    remoto: "Remoto",
+    enCiudad: "En {ciudad}",
+    aceptanPais: "Aceptan {pais}",
+    enEspanol: "En español",
+    paraEmpezar: "Para empezar",
+    orden: "Orden",
+    quitarFiltro: "Quitar el filtro {nombre}",
+    limpiar: "Limpiar filtros",
+    contadorUno: "1 oferta con estos filtros",
+    contador: "{n} ofertas con estos filtros",
+    /** Sin ningún chip activo el contador no habla de filtros. */
+    totalUno: "1 oferta",
+    total: "{n} ofertas",
+    ordenAfinidad: "Orden: afinidad",
+    ordenRecientes: "Orden: más recientes",
+    ordenAyuda: "Cambiar el orden",
+    paisSinDato: "Cargá tu país en tu perfil para usar este filtro",
+    cargando: "Cargando ofertas…",
+    // PENDIENTE-INFORME: R-19 (texto del estado vacío del listado)
+    vacioTitulo: "Ninguna oferta coincide con estos filtros",
+    vacioTexto: "Probá sacar algún filtro para ver más ofertas.",
+  },
+  /** «+ Agregar una oferta» (R30-05). */
+  agregar: {
+    boton: "+ Agregar una oferta",
+    aclaracion: "Traé un aviso que viste en otro sitio y lo evaluamos",
+  },
+  /** Resumen del panel de la lista: los mismos conteos de la tabla de requisitos que la tarjeta. */
+  panel: {
+    resumen: "Coincide: {coincide} · Sin confirmar: {sinConfirmar} · No coincide: {noCoincide}",
+    barra: "Requisitos que coinciden",
+  },
+} as const;
+
+/** Textos del detalle y la evaluación (R30-08 a R30-11). Lo edita solo `detalle`. */
+export const DETALLE_TEXTOS = {
+  /** «Lo importante para decidir» (R30-08): siempre las 7 filas, solo con lo que dice el aviso. */
+  condiciones: {
+    titulo: "Lo importante para decidir",
+    nota: "Esto es lo que dice el aviso, sin mezclar tu perfil.",
+    noEspecificado: "No especificado",
+    // PENDIENTE-INFORME: S-19 (rótulos de las 7 filas)
+    filas: {
+      modality: "Modalidad",
+      location: "Desde dónde podés trabajar",
+      salary: "Salario",
+      seniority: "Experiencia",
+      language: "Inglés",
+      hours: "Jornada",
+      contract: "Tipo de contratación",
+    },
+    todoElMundo: "Desde cualquier país",
+    inglesNoLoPide: "No lo pide",
+    horasSemanales: "{n} h semanales",
+  },
+  /** «Cómo encaja» (R30-08): sale solo de la tabla de requisitos. */
+  encaja: {
+    titulo: "Cómo encaja",
+    // PENDIENTE-INFORME: S-17 (frases del veredicto)
+    veredicto: {
+      excluyente: "Hay una condición del aviso que hoy no coincide con tu perfil.",
+      noCoincide: "Algunos requisitos del aviso no coinciden con tu perfil.",
+      sinConfirmar: "Hay requisitos que no podemos confirmar con tu perfil.",
+      coincide: "Los requisitos del aviso coinciden con tu perfil.",
+      vacio: "Todavía no hay requisitos del aviso para comparar con tu perfil.",
+    },
+    pesan: "Lo que más pesa",
+    pide: "El aviso pide: {pide}",
+    tenes: "En tu perfil: {tenes}",
+    sinDato: "Todavía no tenemos este dato en tu perfil.",
+    excluyente: "Excluyente",
+    deseable: "Deseable",
+    condicionTitulo: "Condición excluyente",
+    condicionExplica:
+      "La afinidad compara tu perfil con el puesto. Esta condición es un requisito del aviso que hoy no coincide, y se explica aparte del puntaje.",
+  },
+  /** «¿Te sirve esta evaluación?» (R30-11). Viajan como props al componente de cliente. */
+  valoracion: {
+    titulo: "¿Te sirve esta evaluación?",
+    si: "Sí",
+    no: "No",
+    gracias: "Gracias",
+    // PENDIENTE-INFORME: S-43 (los cuatro motivos, tal cual el plan §6)
+    motivosTitulo: "¿Qué pasó? (opcional)",
+    motivos: [
+      "Leyeron mal un requisito",
+      "El puntaje no me parece justo",
+      "Falta algo importante",
+      "Otro",
+    ],
+    motivoCampo: "Contanos más (opcional)",
+    ayuda: "Nos ayuda a mejorar la evaluación; no cambia tu puntaje.",
+    guardar: "Guardar motivo",
+    guardando: "Guardando…",
+    quitar: "Quitar motivo",
+    guardado: "Guardado ✓",
+    error: "No se pudo guardar el motivo. Probá de nuevo.",
+  },
+  /** «Preparar mi postulación» (R30-10): el botón de salida y la pregunta al volver. */
+  postular: {
+    ...POSTULAR_CLIENTE,
+    /** Aclaración del botón de salida: el nombre de la marca sale de `BRAND` (no viaja al cliente). */
+    aviso: `Vas a continuar en un sitio externo. Tu postulación no se envía desde ${BRAND.name}.`,
+  },
+  /** Tabla de «Requisitos» (R30-09): la única fuente de lo que la pantalla dice sobre requisitos. */
+  requisitos: {
+    titulo: "Requisitos del aviso",
+    titular: "Coinciden {x} de {y} requisitos excluyentes",
+    titularSinConfirmar: " y {n} sin confirmar",
+    sinRequisitos: "No hay requisitos verificables; mirá la lista",
+    deseables: "Deseables: coinciden {x} de {y}",
+    deseablesSinConfirmar: " y {n} sin confirmar",
+    excluyenteTitulo: "Condición excluyente",
+    excluyenteSi: "Hoy no coincide: {pide}",
+    excluyenteTenes: " (en tu perfil: {tenes})",
+    excluyenteNo: "No encontramos condiciones excluyentes que no coincidan con tu perfil.",
+    lista: { excluyente: "excluyente", deseable: "deseable" },
+    loQuePide: "Lo que pide el aviso",
+    enTuPerfil: "En tu perfil",
+    sinConfirmarPerfil: "Sin confirmar: todavía no tenemos este dato.",
+  },
+  /** Secciones plegables de la evaluación completa (R30-08/09): igual en computadora y celular. */
+  secciones: {
+    requisitos: "Requisitos",
+    habilidades: "Habilidades",
+    comoSeCalculo: "Cómo se calculó",
+    preparar: "Preparar mi postulación",
+    descripcion: "Ver descripción original",
+    fuentes: "Fuentes",
+  },
+  /** Antes de evaluar (plan §4): sello «Sin evaluar», botón y estimación provisoria plegada. */
+  antes: {
+    texto: "Todavía no evaluamos esta oferta con tu perfil.",
+    evaluar: "Evaluar esta oferta",
+    provisoria: "Estimación provisoria (sin IA)",
+    provisoriaTexto:
+      "Sale de reglas, sin inteligencia artificial: requisitos del aviso contra tu experiencia, riesgos y salario contra tu piso. No es la evaluación completa.",
+    provisoriaNumero: "{n} de 10, solo como referencia",
+    riesgos: "Riesgos detectados",
+  },
+  /** «Habilidades» de la evaluación (plan §6). */
+  habilidades: {
+    intro: "Habilidades que menciona el aviso. No cuentan en el puntaje principal.",
+    mencionada: "Mencionada en el aviso",
+    nivel: "Tu nivel: {n} de 3",
+    sinCargar: "Sin cargar",
+    cargar: "Cargá tu nivel de {nombre}",
+    vacio: "No encontramos habilidades que el aviso mencione.",
+  },
+  /** «Preparar mi postulación» dentro del detalle (R30-10, plan §7). */
+  preparar: {
+    intro:
+      "Pegá las preguntas del formulario, revisá los borradores y copiá lo aprobado. Nada se envía desde acá. La postulación la hacés vos, en el sitio del aviso.",
+    pasos: "Antes de postularte",
+    cv: "Revisar mi CV para esta oferta",
+    guardadas: "Respuestas guardadas ({n})",
+  },
+  /** Estado de la oferta (glosario: «Ya me postulé», nunca «Aplicada»). */
+  estado: {
+    marcarPostulada: "Ya me postulé",
+    postuladaEl: "Ya me postulé el {fecha}",
+  },
+  /** Riesgos que dejó la evaluación (solo con dato detrás, ver `riesgosVisibles`). */
+  riesgos: { titulo: "Riesgos de la evaluación ({n})" },
+  /** «Proponer otro puntaje» (R30-11): solo testers y admins. */
+  proponerPuntaje: {
+    titulo: "Proponer otro puntaje",
+    // PENDIENTE-INFORME: S-45 (aclaración)
+    aclaracion:
+      "Es una propuesta para revisar la evaluación. No cambia el puntaje que ves ni lo que decide la app.",
+    campoPuntaje: "Tu puntaje (0–10)",
+    campoNota: "Nota",
+    notaEjemplo: "por qué no coincide con la evaluación",
+    guardar: "Guardar",
+    guardado: "Guardado: {puntaje} · diferencia con la evaluación {diferencia}",
+  },
 } as const;
 
 /** Interview pulido (R23-08): espera, vacío, 404 propio. «analizando» y «retry» viajan al cliente: están en `textos-interview.ts` (R23-09). */

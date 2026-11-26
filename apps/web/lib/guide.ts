@@ -90,7 +90,7 @@ export const GUIDE_STEPS: Record<GuideScreen, readonly TourStep[]> = {
     {
       anchor: "jobs:puntaje",
       title: "El puntaje",
-      text: "De 0 a 10: qué tan bien calza con tu perfil. Si el borde es punteado, es una estimación sin IA.",
+      text: "De 0 a 10: qué tan bien calza con tu perfil. Si dice «Sin evaluar», todavía no hay evaluación.",
     },
     {
       anchor: "jobs:menu",

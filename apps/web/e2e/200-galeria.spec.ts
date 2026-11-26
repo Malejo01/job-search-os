@@ -468,7 +468,7 @@ test.describe("con datos inventados", () => {
         expect(res?.status()).toBe(200);
         const detail = page.getByTestId("afinidad-detalle");
         await expect(detail).toBeVisible();
-        await detail.getByText("Ver cómo se compone el puntaje").click();
+        await detail.getByText("Cómo calculamos la afinidad").click();
         await expect(detail).toHaveAttribute("open", "");
         await expect(detail.getByRole("meter").first()).toBeVisible();
         // Las barras se llenan con una transición corta

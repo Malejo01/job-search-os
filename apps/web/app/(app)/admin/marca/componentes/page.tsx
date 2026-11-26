@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Catálogo de primitivas del rediseño (C9-3; piezas exactas de los tableros aprobados el 4/11 en
- * C10-2): cada una en todos sus estados, en claro y en oscuro lado a lado. Es lo que Mauro revisa en la vista previa antes de mirar las pantallas. Solo para las
+ * C10-2): cada una en todos sus estados, en claro y en oscuro lado a lado. Es lo que revisa quien define la marca en la vista previa antes de mirar las pantallas. Solo para las
  * cuentas que administran la beta (las mismas que invitan); para el resto, 404. Sin datos de nadie:
  * los textos son de ejemplo y las empresas, inventadas.
  *
@@ -130,7 +130,7 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
           <Seal score={5.5} />
           <Seal score={3.5} />
           <Seal score={1.5} />
-          <Seal score={null} preScore={6} />
+          <Seal score={6.9} />
           <Seal score={null} />
           <Seal score={null} pending />
         </div>

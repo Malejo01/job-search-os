@@ -1,74 +1,50 @@
 /**
- * Cómo se muestra un puntaje de 0 a 10. Lógica pura, acá para poder testearla.
+ * Cómo se muestra un puntaje de 0 a 10 (R30-02, plan R30 a R34 §4). Lógica pura, acá para poder testearla.
  *
- * - `scoreState` (C7-4): los tres tramos viejos, `alto` (7 o más), `medio` (5 a 6,9) y `bajo`, más
- *   `estimacion` (estimación previa por reglas), `pendiente` (en cola) y `sin` (sin evaluar).
- * - `sealState` (C9-5, decisión 7 de C9): el sello de afinidad que reemplaza a ScoreBadge. Parte
- *   los mismos tramos (respeta los cortes de 7 y 5) en cinco niveles, cada uno con su palabra.
+ * Cuatro sellos de afinidad: `alta` (7 o más), `media` (de 5 a 6,9), `baja` (menos de 5) y `sin_evaluar` (todavía
+ * no hay evaluación). Más `pendiente` (la oferta está en cola). Esta función devuelve niveles y códigos; las
+ * palabras («Afinidad alta») las pone la web desde `textos-rediseno.ts`.
+ *
+ * El número se muestra con un decimal y coma («7,4») y **el corte usa el número ya redondeado a un decimal**: un
+ * 6,96 se ve «7,0» y es «alta»; un 6,94 se ve «6,9» y es «media». Así el número nunca contradice al sello.
+ * La estimación previa (sin IA) nunca es un sello: una oferta sin evaluación es «Sin evaluar», aunque tenga estimación.
  */
-export type ScoreState = "alto" | "medio" | "bajo" | "estimacion" | "pendiente" | "sin";
+export type SealLevel = "alta" | "media" | "baja";
+export type SealState = SealLevel | "sin_evaluar" | "pendiente";
 
-/** Niveles del sello: 8,5 a 10, 7 a 8,4, 5 a 6,9, 3 a 4,9 y menos de 3. */
-export type SealLevel = "muy" | "bastante" | "medias" | "poco" | "lejos";
-export type SealState = SealLevel | "estimacion" | "pendiente" | "sin";
+/** El puntaje redondeado a un decimal, el que se ve y con el que se corta. */
+export function roundScore(score: number): number {
+  // `toFixed` corrige el ruido de coma flotante de `Math.round(x * 10) / 10` (4,95 * 10 = 49,49999…)
+  return Number(score.toFixed(1)) + 0;
+}
 
-export function scoreState({
-  score,
-  preScore = null,
-  pending = false,
-}: {
-  score: number | null;
-  preScore?: number | null;
-  pending?: boolean;
-}): ScoreState {
-  if (pending) return "pendiente";
-  if (score === null) return preScore === null ? "sin" : "estimacion";
-  if (score >= 7) return "alto";
-  if (score >= 5) return "medio";
-  return "bajo";
+/** «7,4»: un decimal y coma, siempre (también «7,0»). Es el texto del sello y de la frase «7,4/10». */
+export function formatAffinityScore(score: number): string {
+  return roundScore(score).toFixed(1).replace(".", ",");
 }
 
 export function sealLevel(score: number): SealLevel {
-  if (score >= 8.5) return "muy";
-  if (score >= 7) return "bastante";
-  if (score >= 5) return "medias";
-  if (score >= 3) return "poco";
-  return "lejos";
+  const rounded = roundScore(score);
+  if (rounded >= 7) return "alta";
+  if (rounded >= 5) return "media";
+  return "baja";
 }
 
 export function sealState({
   score,
-  preScore = null,
   pending = false,
 }: {
   score: number | null;
-  preScore?: number | null;
   pending?: boolean;
 }): SealState {
   if (pending) return "pendiente";
-  if (score === null) return preScore === null ? "sin" : "estimacion";
+  if (score === null) return "sin_evaluar";
   return sealLevel(score);
 }
 
-const SEAL_WORDS: Record<SealState, string> = {
-  muy: "Muy afín",
-  bastante: "Bastante afín",
-  medias: "Afín a medias",
-  poco: "Poco afín",
-  lejos: "Lejos de tu perfil",
-  estimacion: "Estimado",
-  sin: "Sin evaluar",
-  pendiente: "Leyendo la oferta contra tu perfil…",
-};
-
-/** La palabra debajo del número: siempre está, el color nunca es la única señal. */
-export function sealWord(state: SealState): string {
-  return SEAL_WORDS[state];
-}
-
 /**
- * «Lejos de tu perfil»: puntaje del modelo menor a 3. Una oferta sin puntaje (en cola, estimada o
- * sin evaluar) no es lejana: todavía no se sabe.
+ * «Lejos de tu perfil»: puntaje del modelo menor a 3. Una oferta sin puntaje (en cola o sin evaluar) no es
+ * lejana: todavía no se sabe. (El orden nuevo del listado lo define R30-04; esto sigue valiendo hasta entonces.)
  */
 export function isFarFromProfile(score: number | null): boolean {
   return score !== null && score < 3;
@@ -86,34 +62,4 @@ export function splitFarFromProfile<T>(
   const far: T[] = [];
   for (const item of items) (isFarFromProfile(scoreOf(item)) ? far : near).push(item);
   return { near, far };
-}
-
-/**
- * `aria-label` del sello o de la caja: «puntaje 8.5» (los e2e leen este formato, con punto). En el
- * sello suma la palabra del nivel («puntaje 8.5, muy afín»): el sello es una imagen y su palabra
- * no se lee aparte, así el significado no depende del color tampoco para un lector (R-3).
- */
-export function scoreAriaLabel(state: ScoreState | SealState, value: number | null): string {
-  if (state === "pendiente") return "en cola";
-  if (state === "sin") return "sin evaluar";
-  if (state === "estimacion") return `estimación previa ${value}`;
-  const base = `puntaje ${value}`;
-  return state in LEVEL_PHRASE ? `${base}, ${LEVEL_PHRASE[state as SealLevel]}` : base;
-}
-
-const LEVEL_PHRASE: Record<SealLevel, string> = {
-  muy: "muy afín",
-  bastante: "bastante afín",
-  medias: "afín a medias",
-  poco: "poco afín",
-  lejos: "lejos de tu perfil",
-};
-
-/** La misma información como frase, para el modo `text` (lectores de pantalla en /hoy). */
-export function scoreSentence(state: ScoreState | SealState, value: number | null): string {
-  if (state === "pendiente") return "En cola para evaluar";
-  if (state === "sin") return "Sin evaluar";
-  if (state === "estimacion") return `Estimación previa ${value} de 10`;
-  const base = `Puntaje ${value} de 10`;
-  return state in LEVEL_PHRASE ? `${base}, ${LEVEL_PHRASE[state as SealLevel]}` : base;
 }

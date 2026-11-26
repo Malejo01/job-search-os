@@ -1,4 +1,4 @@
-import { DISCIPLINE_NAMES } from "@job-search-os/pipeline";
+import { DISCIPLINE_NAMES, sealLevel } from "@job-search-os/pipeline";
 
 /** Etiquetas de UI (español) para los enums del schema. Sin lógica: solo texto y color. */
 export const STATUS_LABELS: Record<string, string> = {
@@ -7,7 +7,8 @@ export const STATUS_LABELS: Record<string, string> = {
   descartada_prefiltro: "Descartada automáticamente",
   pendiente_jd: "Sin descripción",
   evaluada: "Evaluada",
-  aplicada: "Aplicada",
+  // Glosario del plan R30 a R34: el estado se dice «Ya me postulé», nunca «Aplicada»
+  aplicada: "Ya me postulé",
   descartada: "Descartada",
   rechazo_automatico: "Rechazo automático",
   rechazada: "Rechazada",
@@ -107,9 +108,9 @@ export const DEMO_BADGE_CLASSES =
 
 export function scoreTone(score: number | null): "alto" | "medio" | "bajo" | "none" {
   if (score === null) return "none";
-  if (score >= 7) return "alto";
-  if (score >= 5) return "medio";
-  return "bajo";
+  // Los mismos cortes que el sello, sobre el número ya redondeado a un decimal (R30-02)
+  const level = sealLevel(score);
+  return level === "alta" ? "alto" : level === "media" ? "medio" : "bajo";
 }
 
 /** Tono del badge de ubicación (`Badge` de components/ui): ok, riesgo o no. */
@@ -193,7 +194,10 @@ export function formatScore(score: number): string {
   return `${formatScoreNumber(score)}/10`;
 }
 
-/** Solo el número (7,5), para cuando la escala "/10" va en otro elemento. */
+/**
+ * Solo el número (7,5), para cuando la escala "/10" va en otro elemento. Los enteros van sin decimal. El número del
+ * sello de afinidad no usa esta: va con `formatAffinityScore` (siempre un decimal, «7,0»; R30-02).
+ */
 export function formatScoreNumber(score: number): string {
   return score.toFixed(score % 1 ? 1 : 0).replace(".", ",");
 }
@@ -207,7 +211,6 @@ export function formatDecimal(n: number, digits: number, opts?: { signed?: boole
 /** Textos de la «estimación previa» (antes «pre-score»): una línea visible, no solo un title. */
 export const PRE_SCORE_EXPLAIN =
   "Estimación previa: la calculamos con reglas, sin IA, mirando tus conocimientos, los riesgos y el salario. Todavía no es la evaluación.";
-export const BLOCKER_LABEL = "Impide postular";
 
 /** R11-11: un solo mapeo, el del pipeline (`fit/display-labels.ts`); acá se re-exporta con el nombre de siempre. */
 export const DISCIPLINE_LABEL: Record<string, string> = DISCIPLINE_NAMES;

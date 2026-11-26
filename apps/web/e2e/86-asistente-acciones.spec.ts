@@ -8,7 +8,7 @@ import { createJob, deleteJob, E2E_USER_ID, jobStatus, login, ownerDb } from "./
  * Flujo 86 (AG-5): el asistente propone ACCIONES como tarjetas-formulario y la base no cambia hasta
  * el clic de la persona. Modelo simulado (`LLM_DEMO=1`):
  * - en el detalle de una oferta, «ya me postulé» propone marcarla aplicada: la tarjeta sola no
- *   cambia el estado, «Descartar» tampoco, y «Marcar como aplicada» lo cambia con el mismo núcleo
+ *   cambia el estado, «Descartar» tampoco, y «Marcar como «Ya me postulé»» lo cambia con el mismo núcleo
  *   que el botón del detalle (el sistema no postula: solo marca). Si la oferta cambió entre la
  *   tarjeta y el clic, no pisa nada y avisa en la tarjeta;
  * - «todavía no me postulé» no propone nada;
@@ -99,7 +99,7 @@ test.describe("Flujo 86: acciones del asistente con confirmación", () => {
       await ask(page, "Ya me postulé a esta oferta ayer");
       let card = panel.getByTestId("assistant-action");
       await expect(card).toBeVisible();
-      await expect(card).toContainText("Aplicada");
+      await expect(card).toContainText("Ya me postulé");
       await expect(card).toContainText("el sistema nunca postula por vos");
       // La tarjeta muestra la oración completa de la persona
       await expect(card).toContainText("«Ya me postulé a esta oferta ayer»");
@@ -112,18 +112,18 @@ test.describe("Flujo 86: acciones del asistente con confirmación", () => {
 
       await ask(page, "Perdón, sí: ya me postulé a esta");
       card = panel.getByTestId("assistant-action").last();
-      await expect(card.getByRole("button", { name: "Marcar como aplicada" })).toBeVisible();
+      await expect(card.getByRole("button", { name: "Marcar como «Ya me postulé»" })).toBeVisible();
       expect(await jobStatus(jobId)).toBe("evaluada");
 
-      await card.getByRole("button", { name: "Marcar como aplicada" }).click();
+      await card.getByRole("button", { name: "Marcar como «Ya me postulé»" }).click();
       await expect.poll(() => jobStatus(jobId)).toBe("aplicada");
-      await expect(card).toContainText("Listo: la oferta quedó en Aplicada.");
+      await expect(card).toContainText("Listo: la oferta quedó en Ya me postulé.");
       await expect(card.getByRole("link", { name: "Ver la oferta" })).toHaveAttribute(
         "href",
         `/jobs/${jobId}`,
       );
       // El foco pasa al texto de estado de la tarjeta (el botón ya no está)
-      await expect(card.getByText("Listo: la oferta quedó en Aplicada.")).toBeFocused();
+      await expect(card.getByText("Listo: la oferta quedó en Ya me postulé.")).toBeFocused();
     } finally {
       await deleteJob(jobId);
     }
@@ -144,9 +144,9 @@ test.describe("Flujo 86: acciones del asistente con confirmación", () => {
 
       await setStatus(jobId, "aplicada");
       const appsBefore = await applicationsOf(jobId);
-      await card.getByRole("button", { name: "Marcar como aplicada" }).click();
+      await card.getByRole("button", { name: "Marcar como «Ya me postulé»" }).click();
 
-      await expect(card.getByRole("alert")).toContainText("La oferta cambió a Aplicada");
+      await expect(card.getByRole("alert")).toContainText("La oferta cambió a Ya me postulé");
       // La charla sigue ahí y el estado no tuvo ningún cambio extra
       await expect(panel).toContainText("Ya me postulé a esta oferta ayer");
       expect(await jobStatus(jobId)).toBe("aplicada");

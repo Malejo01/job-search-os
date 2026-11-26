@@ -1,81 +1,75 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatAffinityScore,
   isFarFromProfile,
-  scoreAriaLabel,
-  scoreSentence,
-  scoreState,
+  roundScore,
   sealLevel,
   sealState,
-  sealWord,
   splitFarFromProfile,
 } from "./score-display";
 
-describe("scoreState (ScoreBadge, C7-4)", () => {
-  it("alto desde 7, medio desde 5, bajo debajo", () => {
-    expect(scoreState({ score: 7 })).toBe("alto");
-    expect(scoreState({ score: 10 })).toBe("alto");
-    expect(scoreState({ score: 6.9 })).toBe("medio");
-    expect(scoreState({ score: 5 })).toBe("medio");
-    expect(scoreState({ score: 4.9 })).toBe("bajo");
-    expect(scoreState({ score: 0 })).toBe("bajo");
+describe("los cuatro sellos (R30-02): niveles y bordes", () => {
+  it("alta desde 7, media de 5 a 6,9 y baja debajo de 5", () => {
+    expect(sealLevel(10)).toBe("alta");
+    expect(sealLevel(7)).toBe("alta");
+    expect(sealLevel(6.9)).toBe("media");
+    expect(sealLevel(5)).toBe("media");
+    expect(sealLevel(4.9)).toBe("baja");
+    expect(sealLevel(0)).toBe("baja");
   });
 
-  it("en cola gana a todo; sin score, estimación o sin evaluar", () => {
-    expect(scoreState({ score: 8, pending: true })).toBe("pendiente");
-    expect(scoreState({ score: null, preScore: 6 })).toBe("estimacion");
-    expect(scoreState({ score: null, preScore: null })).toBe("sin");
-    expect(scoreState({ score: null })).toBe("sin");
-    // Con score, la estimación previa no se muestra
-    expect(scoreState({ score: 3, preScore: 9 })).toBe("bajo");
-  });
-});
-
-describe("sello de afinidad (C9-5): niveles y bordes", () => {
-  it("cinco niveles con los cortes de 8,5, 7, 5 y 3", () => {
-    expect(sealLevel(10)).toBe("muy");
-    expect(sealLevel(8.5)).toBe("muy");
-    expect(sealLevel(8.49)).toBe("bastante");
-    expect(sealLevel(7)).toBe("bastante");
-    expect(sealLevel(6.99)).toBe("medias");
-    expect(sealLevel(5)).toBe("medias");
-    expect(sealLevel(4.99)).toBe("poco");
-    expect(sealLevel(3)).toBe("poco");
-    expect(sealLevel(2.99)).toBe("lejos");
-    expect(sealLevel(0)).toBe("lejos");
+  it("el corte usa el número ya redondeado a un decimal: el número nunca contradice al sello", () => {
+    // 6,96 se ve «7,0»: es alta
+    expect(formatAffinityScore(6.96)).toBe("7,0");
+    expect(sealLevel(6.96)).toBe("alta");
+    // 6,94 se ve «6,9»: es media (un 6,9 no se muestra como 7)
+    expect(formatAffinityScore(6.94)).toBe("6,9");
+    expect(sealLevel(6.94)).toBe("media");
+    // 4,96 se ve «5,0»: es media; 4,94 se ve «4,9»: es baja
+    expect(formatAffinityScore(4.96)).toBe("5,0");
+    expect(sealLevel(4.96)).toBe("media");
+    expect(formatAffinityScore(4.94)).toBe("4,9");
+    expect(sealLevel(4.94)).toBe("baja");
   });
 
-  it("respeta los cortes de 7 y 5 de scoreState", () => {
-    for (const score of [0, 2.99, 3, 4.99, 5, 6.99, 7, 8.49, 8.5, 10]) {
-      const old = scoreState({ score });
-      const level = sealLevel(score);
-      if (old === "alto") expect(["muy", "bastante"]).toContain(level);
-      if (old === "medio") expect(level).toBe("medias");
-      if (old === "bajo") expect(["poco", "lejos"]).toContain(level);
+  it("para cualquier puntaje, el nivel sale del número que se ve", () => {
+    for (let n = 0; n <= 1000; n++) {
+      const score = n / 100;
+      const visto = Number(formatAffinityScore(score).replace(",", "."));
+      expect(sealLevel(score), `${score}`).toBe(sealLevel(visto));
     }
   });
 
-  it("estados: pendiente gana a todo; sin puntaje, estimación o sin evaluar", () => {
+  it("estados: pendiente gana a todo; sin puntaje es «sin_evaluar»", () => {
     expect(sealState({ score: 9, pending: true })).toBe("pendiente");
-    expect(sealState({ score: null, preScore: 6 })).toBe("estimacion");
-    expect(sealState({ score: null, preScore: null })).toBe("sin");
-    expect(sealState({ score: null })).toBe("sin");
-    expect(sealState({ score: 2.99, preScore: 9 })).toBe("lejos");
-    expect(sealState({ score: 8.5 })).toBe("muy");
-  });
-
-  it("la palabra siempre está: el significado no depende del color", () => {
-    expect(sealWord("muy")).toBe("Muy afín");
-    expect(sealWord("bastante")).toBe("Bastante afín");
-    expect(sealWord("medias")).toBe("Afín a medias");
-    expect(sealWord("poco")).toBe("Poco afín");
-    expect(sealWord("lejos")).toBe("Lejos de tu perfil");
-    expect(sealWord("estimacion")).toBe("Estimado");
-    expect(sealWord("sin")).toBe("Sin evaluar");
-    expect(sealWord("pendiente")).toBe("Leyendo la oferta contra tu perfil…");
+    expect(sealState({ score: null, pending: true })).toBe("pendiente");
+    expect(sealState({ score: null })).toBe("sin_evaluar");
+    expect(sealState({ score: 8.5 })).toBe("alta");
+    expect(sealState({ score: 5.5 })).toBe("media");
+    expect(sealState({ score: 3.5 })).toBe("baja");
+    expect(sealState({ score: 0 })).toBe("baja");
   });
 });
 
-describe("las lejanas al final (C9-5)", () => {
+describe("el número del sello", () => {
+  it("un decimal y coma, también en los enteros", () => {
+    expect(formatAffinityScore(7.4)).toBe("7,4");
+    expect(formatAffinityScore(7)).toBe("7,0");
+    expect(formatAffinityScore(10)).toBe("10,0");
+    expect(formatAffinityScore(0)).toBe("0,0");
+    expect(formatAffinityScore(4.9)).toBe("4,9");
+    expect(formatAffinityScore(5)).toBe("5,0");
+    expect(formatAffinityScore(6.9)).toBe("6,9");
+  });
+
+  it("roundScore redondea a un decimal sin dejar -0", () => {
+    expect(roundScore(7.44)).toBe(7.4);
+    expect(roundScore(7.46)).toBe(7.5);
+    expect(Object.is(roundScore(-0.01), 0)).toBe(true);
+  });
+});
+
+describe("las lejanas al final (C9-5, hasta que R30-04 defina el orden nuevo)", () => {
   it("lejos de tu perfil: puntaje de modelo menor a 3; sin puntaje no cuenta", () => {
     expect(isFarFromProfile(2.99)).toBe(true);
     expect(isFarFromProfile(0)).toBe(true);
@@ -94,29 +88,5 @@ describe("las lejanas al final (C9-5)", () => {
     const { near, far } = splitFarFromProfile(jobs, (j) => j.score);
     expect(near.map((j) => j.id)).toEqual(["b", "c", "e"]);
     expect(far.map((j) => j.id)).toEqual(["a", "d"]);
-  });
-});
-
-describe("scoreAriaLabel: el formato que leen los e2e", () => {
-  it("puntaje con punto decimal, estimación previa, en cola y sin evaluar", () => {
-    expect(scoreAriaLabel("alto", 8.5)).toBe("puntaje 8.5");
-    expect(scoreAriaLabel("bajo", 3)).toBe("puntaje 3");
-    // El sello suma la palabra del nivel: el lector de pantalla no depende del color (C9-5, R-3)
-    expect(scoreAriaLabel("muy", 8.5)).toBe("puntaje 8.5, muy afín");
-    expect(scoreAriaLabel("lejos", 2.9)).toBe("puntaje 2.9, lejos de tu perfil");
-    expect(scoreAriaLabel("estimacion", 6)).toBe("estimación previa 6");
-    expect(scoreAriaLabel("pendiente", null)).toBe("en cola");
-    expect(scoreAriaLabel("sin", null)).toBe("sin evaluar");
-  });
-});
-
-describe("scoreSentence: la frase para lectores de pantalla (/hoy)", () => {
-  it("dice la escala y, en el sello, el nivel", () => {
-    expect(scoreSentence("alto", 10)).toBe("Puntaje 10 de 10");
-    expect(scoreSentence("muy", 9)).toBe("Puntaje 9 de 10, muy afín");
-    expect(scoreSentence("lejos", 2)).toBe("Puntaje 2 de 10, lejos de tu perfil");
-    expect(scoreSentence("estimacion", 6)).toBe("Estimación previa 6 de 10");
-    expect(scoreSentence("pendiente", null)).toBe("En cola para evaluar");
-    expect(scoreSentence("sin", null)).toBe("Sin evaluar");
   });
 });

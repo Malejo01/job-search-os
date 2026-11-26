@@ -17,7 +17,7 @@ import { JobFields } from "./jobs/new/job-fields";
 export type ActionStatus = "pendiente" | "enviada" | "descartada";
 
 const EVENT_BUTTON: Record<ManualJobEvent, string> = {
-  apply: "Marcar como aplicada",
+  apply: "Marcar como «Ya me postulé»",
   interview: "Marcar entrevista",
   offer: "Marcar oferta",
   reject: "Marcar rechazada",
