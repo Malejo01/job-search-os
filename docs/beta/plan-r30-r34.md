@@ -1,6 +1,6 @@
 # Plan R30 a R34 · del informe de Ani a la beta (26/11)
 
-Este documento es la **especificación vigente** de las tandas R30 a R34. Junta en un solo lugar lo que Mauro decidió sobre el informe de revisión de Ani (159 puntos: R-01 a R-38, S-01 a S-49 y C-01 a C-72) y los 13 cambios de la revisión de coherencia, que aprobó completos el 26/11. Si algo de acá choca con una decisión anterior, vale lo de acá.
+Este documento es la **especificación vigente** de las tandas R30 a R34. Junta en un solo lugar lo que el responsable del proyecto decidió sobre el informe de revisión de Ani (159 puntos: R-01 a R-38, S-01 a S-49 y C-01 a C-72) y los 13 cambios de la revisión de coherencia, que aprobó completos el 26/11. Si algo de acá choca con una decisión anterior, vale lo de acá.
 
 - **El informe de Ani** está en `ops/rondas/r30-tanda/informe-ani.pdf` (privado, no va al repo). Cuando este plan dice «tal cual el informe», el texto exacto sale de ahí, por ID.
 - **Los tickets** están en `docs/beta/prompt-r30.md` a `prompt-r34.md`. La mecánica de la cadena, en `docs/beta/cadena-r30-r34.md`.
@@ -132,7 +132,7 @@ Una sola sección, con ese nombre, que junta lo que hoy está repartido:
 ## 10. Inventario y alta (R32)
 
 - **Foco:** primero lo local y en español, para las 8 carreras de la beta.
-- **La beta abre por carrera.** Una carrera abre cuando tiene al menos **30 ofertas vigentes tomables** y **10 para quien empieza**. La decisión la toma Mauro mirando el panel; nada abre solo.
+- **La beta abre por carrera.** Una carrera abre cuando tiene al menos **30 ofertas vigentes tomables** y **10 para quien empieza**. La decisión la toma el responsable mirando el panel; nada abre solo.
   - **Vigente:** la fuente la mostró en los últimos 7 días.
   - **Tomable:** una persona en Argentina la puede tomar. El aviso acepta Argentina, su región o todo el mundo de forma explícita, o el lugar de trabajo está en Argentina. Si no dice países, no cuenta.
 - **Carrera obligatoria** en el alta.
@@ -179,11 +179,11 @@ Una sola sección, con ese nombre, que junta lo que hoy está repartido:
 
 | Quién | Qué | Para qué tanda |
 |---|---|---|
-| Mauro | Integrar cada tanda, aplicar las migraciones en Neon y mergear el carril rojo | Todas |
-| Mauro | Correr las evals de `evaluate_job` y de la ficha, promover los prompts y prender las variables | R31, R33 |
-| Mauro | Aprobar el gasto de la reevaluación única | R31 |
-| Mauro | Registrar las claves de Jooble y de ReliefWeb | R32 |
-| Ani y Mauro | Marcar entre 20 y 30 ofertas para calibrar la evaluación nueva | R31 |
+| Responsable | Integrar cada tanda, aplicar las migraciones en Neon y mergear el carril rojo | Todas |
+| Responsable | Correr las evals de `evaluate_job` y de la ficha, promover los prompts y prender las variables | R31, R33 |
+| Responsable | Aprobar el gasto de la reevaluación única | R31 |
+| Responsable | Registrar las claves de Jooble y de ReliefWeb | R32 |
+| Ani y responsable | Marcar entre 20 y 30 ofertas para calibrar la evaluación nueva | R31 |
 | Ani | Crear las alertas de Computrabajo por carrera y aprobar los textos | R32, todas |
 | Ani | Probar el coach y el chat del CV | R33 |
 | Diseño | Revisar la auditoría de legibilidad | R30, R33, R34 |

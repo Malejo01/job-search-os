@@ -1,17 +1,17 @@
 # Cadena R30 → R34 · cómo se corre
 
-Cinco tandas seguidas, una tras otra, sin esperar a Mauro entre una y otra. Vos sos el **lead**. Cada tanda lleva su propio **EQUIPO DE AGENTES** con 3 teammates nuevos.
+Cinco tandas seguidas, una tras otra, sin esperar al responsable del proyecto entre una y otra. Vos sos el **lead**. Cada tanda lleva su propio **EQUIPO DE AGENTES** con 3 teammates nuevos.
 
 - **Especificación:** `docs/beta/plan-r30-r34.md`. Leela entera antes de empezar.
 - **Tickets:** `docs/beta/prompt-r30.md`, `prompt-r31.md`, `prompt-r32.md`, `prompt-r33.md` y `prompt-r34.md`, en ese orden.
 - **Informe de Ani:** `ops/rondas/r30-tanda/informe-ani.pdf`. Es privado: se lee, se cita por ID y **nunca se copia al repo**.
 - **Mecánica y reglas:** las de `ops/rondas/r22-tanda/prompt-r22-r21.md` §0 y §1 y `ops/rondas/r17-tanda/reglas-equipo.md`. Por cada tanda escribí su `ops/rondas/rNN-tanda/reglas-equipo.md` con lo propio.
 
-Mauro puede no estar: **no pares a preguntar.** Ante la duda, lo más simple que falle cerrado, anotado en el informe de la tanda.
+El responsable puede no estar: **no pares a preguntar.** Ante la duda, lo más simple que falle cerrado, anotado en el informe de la tanda.
 
 ## 0. Antes de empezar (una sola vez)
 
-1. **El informe de Ani tiene que estar.** Si `ops/rondas/r30-tanda/informe-ani.pdf` no existe, **pará y avisale a Mauro.** Es el único motivo para frenar antes de arrancar.
+1. **El informe de Ani tiene que estar.** Si `ops/rondas/r30-tanda/informe-ani.pdf` no existe, **pará y avisale al responsable.** Es el único motivo para frenar antes de arrancar.
 2. Corré `docker info`. Si no responde, anotalo y seguí con unit, typecheck y lint. Los e2e y la integración quedan para el CI.
 3. Abrí `ops/rondas/cadena-r30-r34/estado.md`. Si existe, **retomá desde la primera tanda o el primer ticket sin cerrar.** Si no existe, crealo.
 
@@ -61,7 +61,7 @@ Valen todas las de `CLAUDE.md`. Además:
   - `docs/beta/verificacion-informe-ani.md` actualizada: una fila por ID del informe, con estado (hecho, parcial, pendiente, después de abrir o requiere decisión), la tanda y cómo verlo.
 - **Privacidad:** `node .claude/bin/privacy-scan.mjs` sobre los commits de la tanda. El resultado va a `ops/rondas/rNN-tanda/privacidad.md`.
 - **`ops/ESTADO.md`** actualizado arriba de todo, y `ops/rondas/cadena-r30-r34/estado.md` con la tanda cerrada, la rama y lo pendiente.
-- **Mensaje a Mauro en 5 líneas** por tanda, dentro de `estado.md`. No esperes respuesta.
+- **Mensaje al responsable en 5 líneas** por tanda, dentro de `estado.md`. No esperes respuesta.
 
 ## 4. Rangos reservados
 

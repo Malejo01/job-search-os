@@ -8,7 +8,7 @@ Tanda R34 «Barrido y cierre». Armá un **EQUIPO DE AGENTES** con 3 teammates y
 
 - **Ningún modelo nuevo.** «Adaptar a esta oferta» usa el prompt `cv_tailor` que ya existe, con el modelo simulado.
 - **Nada se envía desde la app** (ADR-004): «Preparar mi postulación» termina en un enlace al aviso.
-- **`/market` va en su versión mínima.** El rediseño completo queda para después de abrir. Si existe `ops/rondas/r34-tanda/ronda-7.md`, tiene las decisiones de Mauro y Ani sobre mercado: valen esas. Si no existe, hacé solo lo que dice R34-03.
+- **`/market` va en su versión mínima.** El rediseño completo queda para después de abrir. Si existe `ops/rondas/r34-tanda/ronda-7.md`, tiene las decisiones del responsable y de Ani sobre mercado: valen esas. Si no existe, hacé solo lo que dice R34-03.
 - **Los arreglos del ensayo con personas no entran acá:** el ensayo es posterior. Acá se deja todo listo para hacerlo.
 
 ## Equipo y tickets

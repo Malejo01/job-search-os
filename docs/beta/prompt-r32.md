@@ -11,9 +11,9 @@ Tanda R32 «Inventario y alta». Armá un **EQUIPO DE AGENTES** con 3 teammates 
 - **Ningún pedido a un portal ni a una API de empleo.** Todo se prueba con fixtures públicas, con empresas y títulos inventados. Lo que haya que probar contra el servicio real va a los pasos manuales, con `--dry-run`.
 - **La app no crea alertas ni navega portales** (ADR-004). Las alertas las arma cada persona por su cuenta. La app explica cómo y lee los emails que le reenvían.
 - **Los lectores de email fallan cerrado:** si la estructura no es la esperada, el email entero va a la cola manual.
-- **Nada abre solo.** El panel informa y Mauro decide.
+- **Nada abre solo.** El panel informa y el responsable decide.
 - **Cada fuente, detrás de su variable,** apagada por defecto.
-- **No cambies `BETA_OPENS_AT` ni `BETA_FECHA_DEFINITIVA`.** La fecha la pone Mauro.
+- **No cambies `BETA_OPENS_AT` ni `BETA_FECHA_DEFINITIVA`.** La fecha la pone el responsable.
 
 ## Equipo y tickets
 
@@ -45,7 +45,7 @@ Tanda R32 «Inventario y alta». Armá un **EQUIPO DE AGENTES** con 3 teammates 
 
 ### R32-03 · Apertura por carrera
 
-- **Una lista de carreras abiertas,** que Mauro cambia desde el admin. Queda en el historial quién la cambió y cuándo. Revisá `apps/web/lib/apertura.ts` y `packages/pipeline/src/plan-access.ts`.
+- **Una lista de carreras abiertas,** que el responsable cambia desde el admin. Queda en el historial quién la cambió y cuándo. Revisá `apps/web/lib/apertura.ts` y `packages/pipeline/src/plan-access.ts`.
 - **Quien se anota de una carrera que todavía no abrió** ve: «Todavía estamos sumando ofertas de {carrera}. Te avisamos por email apenas abra». Queda en la lista de espera con su carrera.
 - **Quien ya está adentro no pierde nada** si su carrera no figura como abierta.
 - Reglas en `packages/pipeline`, con tests: carrera abierta, cerrada, «Otra» y cuenta anterior.
@@ -76,7 +76,7 @@ Tanda R32 «Inventario y alta». Armá un **EQUIPO DE AGENTES** con 3 teammates 
 
 - Hay emails de Get on Board que terminan con error. Revisá el lector con las variantes que se puedan armar de forma pública: una oferta, varias, sin sueldo y con el HTML cambiado.
 - Que el motivo del error quede claro en la cola manual, para arreglarlo rápido la próxima vez.
-- Los emails reales no se leen. En los pasos manuales va cómo revisa Mauro los que fallaron.
+- Los emails reales no se leen. En los pasos manuales va cómo revisa el responsable los que fallaron.
 
 ### R32-08 · Sueldo en la moneda original (carril rojo)
 

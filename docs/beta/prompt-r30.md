@@ -134,7 +134,7 @@ IDs: S-33 a S-42.
 
 ID: S-15.
 
-- El parser no leyó «USD 73.600–105.800». Test con ese caso y con sus variantes: punto de miles, guion largo, «k», rango con «a» y periodicidad.
+- El parser no leyó un rango en dólares con punto de miles y guion largo (el caso del informe). Test con un caso inventado de ese formato y con sus variantes: punto de miles, guion largo, «k», rango con «a» y periodicidad.
 - Falla cerrado: si no entiende, el salario queda sin informar. Nunca un número a medias.
 
 ### R30-14 · Calidad (lead)

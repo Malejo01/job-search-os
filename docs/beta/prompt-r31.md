@@ -5,7 +5,7 @@ Tanda R31 «Ficha del aviso». Armá un **EQUIPO DE AGENTES** con 3 teammates y 
 
 ## Reglas propias de esta tanda
 
-- **USD 0.** Todo se prueba con el modelo simulado. Las evals las corre Mauro: dejale los comandos.
+- **USD 0.** Todo se prueba con el modelo simulado. Las evals las corre el responsable: dejale los comandos.
 - **Nada se promueve.** El prompt de la ficha es nuevo y la versión nueva de `evaluate_job` va en un archivo nuevo. El ruteo de producción no cambia.
 - **Todo detrás de `JOB_CARD`** (apagada, `testers` o encendida), con el mismo patrón que `CV_COACH`. Con la variable apagada, la app se ve igual que al cerrar la R30.
 - **El modelo propone y el código decide.** El modelo dice qué pide el aviso y dónde lo dice. El estado de cada requisito lo decide el código. El modelo nunca dice «coincide».
@@ -115,7 +115,7 @@ ID: S-18 (y R-02).
   - `--dry-run` por defecto: cuenta cuántas son y estima el gasto, sin llamar a nadie;
   - con tope de gasto obligatorio; se puede cortar y retomar;
   - guarda la evaluación anterior, para poder comparar y volver atrás.
-- **No se corre en esta tanda.** Va a los pasos manuales: lo corre Mauro, con la variable prendida y el prompt promovido.
+- **No se corre en esta tanda.** Va a los pasos manuales: lo corre el responsable, con la variable prendida y el prompt promovido.
 
 ### R31-10 · Kit para calibrar
 

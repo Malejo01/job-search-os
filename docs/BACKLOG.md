@@ -2252,3 +2252,31 @@ Informe de la tanda: [`docs/beta/informe-r29.md`](beta/informe-r29.md). Pasos ma
 
 ### R29 · Cierre de la tanda
 `estado:` en rama (25/11) · `ronda/r29-cierre`
+
+## Bloque 48 · Tanda R30 «Confianza» (26/11)
+
+Informe de la tanda: [`docs/beta/informe-r30.md`](beta/informe-r30.md). Pasos manuales: [`docs/beta/pasos-manuales-r30.md`](beta/pasos-manuales-r30.md). Verificación por ID del informe de revisión: [`docs/beta/verificacion-informe-ani.md`](beta/verificacion-informe-ani.md). Cadena sobre `ronda/r30-base` (`main` #567 + documentos de la cadena R30–R34); ningún PR mergeado por agentes. Migración 0086 sin aplicar en Neon. USD 0, ningún modelo ni prompt.
+
+### Pedido
+- **R30-01** · Glosario único con test de frases prohibidas, «Muchos candidatos» solo con el número del aviso y lista de verificación por ID · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-02** · Cuatro sellos de afinidad con el número con coma («Afinidad alta · 7,4/10»), «Cómo calculamos la afinidad» y aclaración fija · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-03** · «Guardada» como marca con fecha (`saved_at`, migración 0086), acciones con sesión y pestaña · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-04** · Tarjeta con condición excluyente arriba, «Sin confirmar: …» desde la tabla y orden en `packages/pipeline` · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-05** · Pestañas, chips con número, contador, «Limpiar filtros» y filtros en la URL · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-06** · Descartadas con fondo neutro, «Volver a revisar» y «Deshacer» · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-07** · «Este aviso ya no figura en {fuente}» para las ofertas del pool · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-08** · Detalle en el orden nuevo con las 7 filas de «Lo importante para decidir» y «Cómo encaja» · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-09** · Una sola tabla de requisitos y resumen derivado de ella, sin paneles que la contradigan · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-10** · «Preparar mi postulación» en una sección y un solo botón de salida · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-11** · «¿Te sirve esta evaluación?» y «Proponer otro puntaje» solo para testers y admins (validado en el servidor) · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-12** · Tokens de legibilidad, test que falla en las pantallas de ofertas y auditoría con capturas (e2e 340) · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-13** · Parser de sueldo desde texto, que falla cerrado · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-14** · e2e de la tanda, 390 y 360 px, axe y capturas antes y después · `estado:` en rama (26/11) · `ronda/r30-cierre`
+
+### Pendientes que salen de la tanda
+- Textos marcados `PENDIENTE-INFORME` en `apps/web/lib/textos-rediseno.ts`: sin cotejar con el informe original (el PDF no se pudo leer en la máquina de la tanda).
+- Habilidades ligadas al puesto vs. a la empresa (R31, con la ficha del aviso); `closenessPhrase` sin uso (limpieza en la R34).
+- «Marcar como aplicada» en `settings/conexiones` y en la descripción del MCP (barrido de la R34).
+
+### R30 · Cierre de la tanda
+`estado:` en rama (26/11) · `ronda/r30-cierre`
