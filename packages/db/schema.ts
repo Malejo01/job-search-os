@@ -303,6 +303,8 @@ export const jobs = pgTable("jobs", {
   postedAt: timestamp("posted_at", { withTimezone: true }),
   firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).defaultNow().notNull(),
   status: jobStatus("status").notNull().default("nueva"),
+  // R30-03: marca «Guardada» con fecha. No es un estado (JOB_STATUSES no cambia); null = no guardada.
+  savedAt: timestamp("saved_at", { withTimezone: true }),
   prefilterReason: text("prefilter_reason"),
   flags: text("flags").array(),                         // volume_recruiting, location_risk, closed_fast, stale_alert
   duplicateOfId: uuid("duplicate_of_id"),
@@ -310,6 +312,8 @@ export const jobs = pgTable("jobs", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index("jobs_user_status").on(t.userId, t.status),
+  // R30-03: pestaña «Guardadas»
+  index("jobs_user_saved").on(t.userId, t.savedAt.desc()).where(sql`${t.savedAt} is not null`),
   index("jobs_user_company").on(t.userId, t.companyId, t.firstSeenAt),
   // C-7: orden y filtro por fecha de la lista (/jobs, «Hoy»)
   index("jobs_user_first_seen").on(t.userId, t.firstSeenAt.desc()),

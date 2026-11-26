@@ -45,7 +45,7 @@ export function JobFilters({
 
   return (
     <form
-      className={`grid grid-cols-2 gap-2 sm:grid-cols-3 ${pending ? "opacity-60" : ""}`}
+      className={`grid grid-cols-2 gap-2 sm:grid-cols-3 ${pending ? "cursor-progress" : ""}`}
       onSubmit={(e) => e.preventDefault()}
       aria-label="Filtros"
     >

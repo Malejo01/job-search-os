@@ -1,5 +1,11 @@
 import { schema as s } from "@job-search-os/db";
-import { JOB_STATUSES, splitFarFromProfile } from "@job-search-os/pipeline";
+import {
+  applyChips,
+  chipCounts,
+  JOB_STATUSES,
+  sortByListingTier,
+  splitFarFromProfile,
+} from "@job-search-os/pipeline";
 import {
   countJobs,
   countPossibleDuplicates,
@@ -19,23 +25,20 @@ import { requireUserId } from "@/lib/session";
 import Link from "next/link";
 import { AfiEspera } from "@/components/afi-espera";
 import { EstadoMarca } from "@/components/estado-marca";
-import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
-import {
-  Alert,
-  Icon,
-  buttonClasses,
-  filterChipClasses,
-  textLinkClasses,
-  type IconName,
-} from "@/components/ui";
+import { ESTADOS_TEXTOS, LISTADO_TEXTOS } from "@/lib/textos-rediseno";
+import { reviewAgainAction } from "./discard-actions";
+import { Alert, Icon, buttonClasses, textLinkClasses, type IconName } from "@/components/ui";
+import { Suspense } from "react";
 import { AutoRefresh } from "./auto-refresh";
+import { JobsLoading } from "./jobs-loading";
 import { EmailNudge } from "./email-nudge";
 import { FirstSteps, firstStepsHidden } from "./first-steps";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
 import { OfferPanel, OfferPanelHint } from "./offer-panel";
 import { getJobDetail } from "@/lib/job-detail";
-import { getProfileCity } from "@/lib/display-name";
+import { getProfilePlace } from "@/lib/display-name";
+import { activeChips, countryName, JobsNav } from "./jobs-nav";
 import { isUuid } from "@/lib/ids";
 import { RoleGaps } from "./role-gaps";
 import { RoleNudge } from "./role-nudge";
@@ -43,13 +46,31 @@ import { RoleNudge } from "./role-nudge";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Match" };
 
-/** Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente. */
+/**
+ * Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente. La sesión
+ * se exige antes del `Suspense` (sin sesión sigue siendo una redirección); el estado de carga (R30-05)
+ * va acá y no en un `loading.tsx`, que envolvería también a `/jobs/[id]` y sus rutas hijas.
+ */
 export default async function JobsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const userId = await requireUserId();
+  return (
+    <Suspense fallback={<JobsLoading />}>
+      <JobsContent userId={userId} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function JobsContent({
+  userId,
+  searchParams,
+}: {
+  userId: string;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const params = await searchParams;
   // O3 (C9-9): la oferta elegida para el panel de la derecha, en la URL. Solo un id válido; si no
   // existe para esta persona (RLS), el panel muestra la indicación como si no hubiera ninguna.
@@ -57,30 +78,63 @@ export default async function JobsPage({
   const selected = ofertaParam && isUuid(ofertaParam) ? ofertaParam : null;
   // R7-6: la única dependencia es ciudad → filtros → lista; todo lo demás sale a la vez (antes iban
   // seis esperas en serie).
-  const [{ city, filters, rows, duplicates, progress }, counts, stepsHidden, panelJob] =
-    await Promise.all([
-      (async () => {
-        // «En {ciudad}» (C10): la ciudad sale del perfil, no de la URL
-        const city = await getProfileCity(userId).catch(() => null);
-        const filters = { ...parseJobFilters(params), ciudad: city };
-        const [rows, duplicates, progress] = await Promise.all([
-          listJobs(userId, filters),
-          countPossibleDuplicates(userId),
-          reviewProgressFor(userId, filters),
-        ]);
-        return { city, filters, rows, duplicates, progress };
-      })(),
-      // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
-      countJobs(userId).catch(() => null),
-      firstStepsHidden(userId),
-      selected ? getJobDetail(userId, selected).catch(() => null) : Promise.resolve(null),
-    ]);
+  const [
+    { city, country, filters, rows, chipCountsByKey, duplicates, progress },
+    counts,
+    stepsHidden,
+    panelJob,
+  ] = await Promise.all([
+    (async () => {
+      // «En {ciudad}» y «Aceptan {país}» (C10, R30-05): salen del perfil, no de la URL
+      const place = await getProfilePlace(userId).catch(() => ({
+        city: null,
+        country: null,
+      }));
+      const city = place.city;
+      const filters = { ...parseJobFilters(params), ciudad: city };
+      // Los chips se aplican en memoria sobre las filas de la pestaña (una sola consulta): así cada
+      // chip puede mostrar su número y el contador es el de lo que se ve
+      const [allRows, duplicates, progress] = await Promise.all([
+        listJobs(userId, { ...filters, modalidad: null, idioma: null, cerca: false }),
+        countPossibleDuplicates(userId),
+        reviewProgressFor(userId, filters),
+      ]);
+      const ctx = { city, country: place.country };
+      const active = activeChips(filters);
+      const chipCountsByKey = chipCounts(allRows, ctx, active);
+      let rows = applyChips(allRows, ctx, active);
+      // «Orden: más recientes»; las que bajan por condición o vigencia siguen abajo
+      if (filters.orden === "recientes") {
+        rows = sortByListingTier(
+          [...rows].sort((a, b) => b.firstSeenAt.localeCompare(a.firstSeenAt)),
+          (r) => ({
+            evaluating: r.evaluating,
+            excludingNoMatch: r.requirements.excluding !== null,
+            goneFromSource: r.goneFromSource,
+          }),
+        );
+      }
+      return {
+        city,
+        country: place.country,
+        filters,
+        rows,
+        chipCountsByKey,
+        duplicates,
+        progress,
+      };
+    })(),
+    // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
+    countJobs(userId).catch(() => null),
+    firstStepsHidden(userId),
+    selected ? getJobDetail(userId, selected).catch(() => null) : Promise.resolve(null),
+  ]);
   const query = listQuery(filters);
 
-  // Chips de filtro (C10-7, ofertas-pc.png): cada uno es un link con los filtros de la URL
-  const chip = (patch: Partial<ListFilters>) => `/jobs${listQuery({ ...filters, ...patch })}`;
-  const onlyDefault =
-    filters.status === null && !filters.modalidad && !filters.idioma && !filters.cerca;
+  // R30-06: «Oferta descartada. [Deshacer]» tras descartar desde la lista (`?descartada=<id>`)
+  const justDiscarded =
+    typeof params.descartada === "string" && isUuid(params.descartada) ? params.descartada : null;
+  const hasChips = activeChips(filters).length > 0 || filters.orden === "recientes";
 
   return (
     <div data-ancho="completo" className="flex flex-col pb-10">
@@ -94,70 +148,46 @@ export default async function JobsPage({
               Tus ofertas
             </h1>
           </div>
-          <nav
-            aria-label="Filtros rápidos"
-            className="flex gap-1.5 overflow-x-auto px-3.5 pt-1 sm:gap-2 sm:overflow-visible sm:p-0"
-          >
+          {/* R6-1: siempre visible, con o sin oferta elegida (el panel reemplaza al aside). R30-05:
+              «+ Agregar una oferta» con su aclaración */}
+          <div className="flex flex-col gap-0.5 px-3.5 pt-2 sm:ml-auto sm:items-end sm:p-0">
             <Link
-              href={chip({ status: null, modalidad: null, idioma: null })}
-              aria-current={onlyDefault ? "true" : undefined}
-              className={filterChipClasses({
-                compact: true,
-                selected: onlyDefault,
-                className: "shrink-0",
-              })}
+              href="/jobs/new"
+              data-testid="agregar-oferta"
+              className={buttonClasses({ size: "sm", className: "shrink-0" })}
             >
-              {onlyDefault ? `Para revisar · ${rows.length}` : "Para revisar"}
+              {LISTADO_TEXTOS.agregar.boton}
             </Link>
-            <Link
-              href={chip({ status: filters.status === "todas" ? null : "todas" })}
-              aria-current={filters.status === "todas" ? "true" : undefined}
-              className={filterChipClasses({
-                compact: true,
-                selected: filters.status === "todas",
-                className: "shrink-0",
-              })}
-            >
-              Todas
-            </Link>
-            <Link
-              href={chip({ modalidad: filters.modalidad ? null : "remoto" })}
-              aria-current={filters.modalidad ? "true" : undefined}
-              className={filterChipClasses({
-                compact: true,
-                selected: Boolean(filters.modalidad),
-                className: "shrink-0",
-              })}
-            >
-              Remoto
-            </Link>
-            {/* «En Salta» de la referencia: la ciudad del perfil. Sin ciudad cargada, no va */}
-            {city ? (
-              <Link
-                href={chip({ cerca: !filters.cerca })}
-                aria-current={filters.cerca ? "true" : undefined}
-                className={filterChipClasses({
-                  compact: true,
-                  selected: Boolean(filters.cerca),
-                  className: "shrink-0",
-                })}
-              >
-                En {city}
-              </Link>
-            ) : null}
-          </nav>
-          <p className="ml-auto hidden text-[13px] font-bold text-fg-subtle sm:block">
-            Ordenadas por afinidad
-          </p>
-          {/* R6-1: siempre visible, con o sin oferta elegida (el panel reemplaza al aside) */}
-          <div className="px-3.5 pt-2 sm:p-0">
-            <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
-              + Cargar oferta
-            </Link>
+            <p className="text-xs text-fg-muted">{LISTADO_TEXTOS.agregar.aclaracion}</p>
           </div>
         </div>
 
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-12 sm:pt-[18px]">
+          <JobsNav
+            filters={filters}
+            counts={chipCountsByKey}
+            city={city}
+            countryLabel={country ? countryName(country) : null}
+            shown={rows.length}
+          />
+          {justDiscarded ? (
+            <Alert tone="info" role="status">
+              <form action={reviewAgainAction} className="flex flex-wrap items-center gap-3">
+                <input type="hidden" name="jobId" value={justDiscarded} />
+                <input type="hidden" name="back" value={query} />
+                <span data-testid="aviso-descartada">
+                  {LISTADO_TEXTOS.descartadas.avisoDescartada}
+                </span>
+                <button
+                  type="submit"
+                  data-testid="deshacer-descarte"
+                  className="inline-flex min-h-11 items-center font-bold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+                >
+                  {LISTADO_TEXTOS.descartadas.deshacer}
+                </button>
+              </form>
+            </Alert>
+          ) : null}
           <FirstSteps userId={userId} />
           <RoleNudge userId={userId} />
           {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
@@ -205,6 +235,8 @@ export default async function JobsPage({
               {rows.length === 0 ? (
                 <EmptyList
                   counts={counts}
+                  hasChips={hasChips}
+                  saved={Boolean(filters.saved)}
                   reviewedAll={
                     filters.status === null &&
                     progress.total > 0 &&
@@ -265,7 +297,6 @@ export default async function JobsPage({
             (filters.status !== null && filters.status !== "todas") ||
             filters.since !== null ||
             filters.periodo !== null ||
-            filters.idioma === "es" ||
             undefined
           }
         >
@@ -273,27 +304,6 @@ export default async function JobsPage({
             Más filtros y herramientas
           </summary>
           <div className="mt-3 flex flex-col gap-3">
-            {/* «En español» (ronda 61): no está en la referencia; va con los filtros finos */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={chip({ idioma: filters.idioma ? null : "es" })}
-                aria-current={filters.idioma === "es" ? "true" : undefined}
-                data-testid="chip-en-espanol"
-                aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
-                className={filterChipClasses({
-                  selected: filters.idioma === "es",
-                  className: "shrink-0",
-                })}
-              >
-                En español
-              </Link>
-              {filters.idioma === "es" ? (
-                <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
-                  Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
-                  guardado.
-                </p>
-              ) : null}
-            </div>
             <RoleGaps userId={userId} />
             {progress.total > 0 ? <ReviewProgress {...progress} filters={filters} /> : null}
             <JobFilters
@@ -372,7 +382,46 @@ const EMPTY_STEPS: ReadonlyArray<{ href: string; label: string; icon: IconName }
  * Lista vacía. Si hay ofertas sin evaluar que los filtros esconden, lo dice y las muestra; si no
  * hay ninguna oferta, explica cómo conseguir las primeras.
  */
-function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewedAll: boolean }) {
+function EmptyList({
+  counts,
+  reviewedAll,
+  hasChips,
+  saved,
+}: {
+  counts: JobCounts | null;
+  reviewedAll: boolean;
+  hasChips: boolean;
+  saved: boolean;
+}) {
+  // R30-05: con chips activos, el vacío lo dice y ofrece limpiar (texto del informe: PENDIENTE-INFORME R-19)
+  if (hasChips) {
+    return (
+      <EstadoMarca
+        tipo="sin-resultados"
+        data-testid="jobs-empty-filtros"
+        title={LISTADO_TEXTOS.filtros.vacioTitulo}
+        action={
+          <Link href="/jobs" className={EMPTY_LINK}>
+            {LISTADO_TEXTOS.filtros.limpiar}
+          </Link>
+        }
+      >
+        {LISTADO_TEXTOS.filtros.vacioTexto}
+      </EstadoMarca>
+    );
+  }
+  if (saved) {
+    return (
+      <EstadoMarca
+        tipo="sin-resultados"
+        data-testid="jobs-empty-guardadas"
+        title={LISTADO_TEXTOS.guardar.vacioTitulo}
+        action={null}
+      >
+        {LISTADO_TEXTOS.guardar.vacioTexto}
+      </EstadoMarca>
+    );
+  }
   if (reviewedAll) {
     return (
       <EstadoMarca

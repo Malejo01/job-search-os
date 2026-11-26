@@ -98,7 +98,7 @@ test.describe("Flujo 116: revisión del rediseño", () => {
     await login(page);
     await page.goto("/jobs?estado=todas");
     for (const target of [
-      page.getByRole("link", { name: "+ Cargar oferta" }),
+      page.getByRole("link", { name: "+ Agregar una oferta" }),
       page.getByTestId("tabbar").getByRole("link", { name: "Hoy" }),
       page.getByRole("link", { name: `Abrir el detalle de Analista contable ficticia ${tag}` }),
     ]) {

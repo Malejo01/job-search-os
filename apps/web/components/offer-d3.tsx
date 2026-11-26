@@ -1,17 +1,16 @@
 import {
-  closenessPhrase,
   offerMetaLine,
   offerPlace,
+  summarizeRequirements,
   withCurrentSkillLevels,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AffinitySealLink } from "@/components/affinity-seal-link";
 import { SealStamp } from "@/components/motion/seal-stamp";
-import { missingCta, missingStep } from "@/components/requisitos-del-aviso";
-import { SkillLevelButton } from "@/components/skill-level-modal";
 import { cardClasses, CheckMark, cx, Seal } from "@/components/ui";
-import type { ChecklistItemView, JobDetail } from "@/lib/job-detail";
+import type { JobDetail } from "@/lib/job-detail";
+import { ESTADO_REQUISITO_TEXTOS, LISTADO_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
 
 /** El texto del aviso que se ve en el resumen: las primeras líneas, sin cortar una palabra. */
 const JD_EXCERPT = 200;
@@ -25,63 +24,6 @@ function excerpt(text: string | null): string | null {
 }
 
 /**
- * El primer requisito que falta con un paso para acercarse (decisión 9, regla 2): el de C9
- * (`missingStep`, `missingCta`) para las skills y los datos del perfil; para lo demás, sumarlo al CV
- * si ya lo tiene. Nunca dice que lo tiene: pregunta.
- */
-function nextStep(
-  items: readonly ChecklistItemView[],
-  job: Pick<JobDetail, "id" | "skillInfo">,
-): { text: string; action: ReactNode } | null {
-  const item = items.find((i) => i.status === "no_cumple");
-  if (!item) return null;
-  const cta = missingCta(item);
-  const step = missingStep(item);
-  if (cta && "slug" in cta && job.skillInfo[cta.slug]) {
-    return {
-      text: step ?? cta.text,
-      action: (
-        <SkillLevelButton
-          slug={cta.slug}
-          name={cta.name}
-          description={job.skillInfo[cta.slug]?.description ?? null}
-          jobId={job.id}
-        />
-      ),
-    };
-  }
-  if (cta && "href" in cta) {
-    return {
-      text: step ?? cta.text,
-      action: (
-        <Link href={cta.href} className={OUTLINE_LIME}>
-          Completar en Tu perfil
-        </Link>
-      ),
-    };
-  }
-  // Como la referencia («…y quedás entre las mejores»), solo si es lo único que falta y no frena
-  // la postulación: si faltan más, no se promete quedar entre las mejores (misma regla que la frase
-  // de cercanía)
-  const missing = items.filter((i) => i.status === "no_cumple");
-  const only = missing.length === 1 && !item.bloquea;
-  return {
-    text: `¿Usaste ${item.pide} alguna vez? Sumalo a tu CV y ${
-      only ? "quedás entre las mejores." : "esta oferta te queda más cerca."
-    }`,
-    action: (
-      <Link href="/cv" className={OUTLINE_LIME}>
-        Sumarlo a mi CV
-      </Link>
-    ),
-  };
-}
-
-// Botón contorno lima sobre el índigo (tablero: borde 2 px lima y 5 abajo, texto lima 800)
-const OUTLINE_LIME =
-  "pressable edge-5 inline-flex min-h-11 items-center self-start rounded-pill border-x-2 border-t-2 border-brand bg-transparent px-[18px] text-sm font-extrabold text-brand [--jso-edge-top:2px] hover:bg-ink-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-
-/**
  * Detalle D3 (C10-8): copia del panel derecho de ofertas-pc.png y de detalle-cel.png, con las
  * medidas de `S2-hoy-ofertas.html`. Server Component.
  *
@@ -90,8 +32,8 @@ const OUTLINE_LIME =
  *   tarjeta destacada con el título de 26 px y el sello de 88 a la derecha.
  * - `panel` (lista y detalle lado a lado, desde `lg`): siempre la tarjeta.
  *
- * Después: el checklist (`.cardl`, check lima o aro) y, al lado en la computadora, el recuadro
- * índigo con el paso para lo que falta; el comienzo del aviso y las acciones (`actions`). Los textos
+ * Después: el checklist (`.cardl`, check lima o aro; sin recuadro de «paso»: regla 6 del plan, no se
+ * invita a sumar al CV lo que la persona no declaró); el comienzo del aviso y las acciones (`actions`). Los textos
  * de cercanía y de lo que falta salen del checklist de la evaluación (C9): no se inventan datos.
  */
 export function OfferD3({
@@ -113,14 +55,23 @@ export function OfferD3({
     ),
   );
   const checklist = ev?.checklist ? withCurrentSkillLevels(ev.checklist, levels) : null;
-  const closeness = checklist ? closenessPhrase(checklist) : null;
   // Las skills que el aviso solo nombra no cuentan (C9): la misma lista que el titular
   const items = checklist
     ? checklist.items.filter((i) => !(i.kind === "skill" && i.fuente.pide === "fuente"))
     : [];
-  const have = items.filter((i) => i.status === "cumple").length;
-  const counted = items.filter((i) => i.status !== "no_se_sabe").length;
-  const step = nextStep(items, job);
+  // La tabla es la única fuente (R30): conteos y estados salen de `summarizeRequirements`, los mismos
+  // que usa la tarjeta. Sin predicciones ni «lo que falta».
+  const summary = summarizeRequirements({ items });
+  const stateById = new Map(summary.rows.map((r) => [r.id, r.state] as const));
+  const total = summary.rows.length;
+  const closeness =
+    total > 0
+      ? llenarTexto(LISTADO_TEXTOS.panel.resumen, {
+          coincide: summary.counts.coincide,
+          sinConfirmar: summary.counts.sinConfirmar,
+          noCoincide: summary.counts.noCoincide,
+        })
+      : null;
   const pending = job.evaluating && !ev;
   const place = offerPlace({
     company: job.company,
@@ -149,10 +100,7 @@ export function OfferD3({
       data-testid="d3"
       // En el celular el resumen ocupa la primera pantalla, como detalle-cel.png: lo demás del
       // detalle empieza debajo
-      className={cx(
-        "flex min-w-0 flex-col gap-3 sm:gap-4",
-        page && items.length > 0 && "max-sm:min-h-[calc(100svh-1.25rem)]",
-      )}
+      className={cx("flex min-w-0 flex-col gap-3 sm:gap-4")}
     >
       <section
         aria-labelledby={titleId}
@@ -211,7 +159,9 @@ export function OfferD3({
         <div className="flex items-center gap-3.5 px-1 sm:block sm:px-0">
           {page ? <div className="sm:hidden">{seal()}</div> : null}
           <div className="min-w-0 flex-1">
-            {closeness ? (
+            {/* R30-09: en la página del detalle, lo que dice la pantalla sobre requisitos sale solo de
+                la tabla de «Requisitos» y «Cómo encaja»; este resumen lo repetía con otras palabras */}
+            {!page && closeness ? (
               <p
                 data-testid="cercania"
                 className="font-display text-[19px] leading-[1.25] font-bold text-fg"
@@ -223,26 +173,26 @@ export function OfferD3({
                 Leyendo la oferta contra tu perfil…
               </p>
             ) : null}
-            {counted > 0 ? (
+            {!page && total > 0 ? (
               <div
                 role="progressbar"
-                aria-label="Requisitos que cumplís"
+                aria-label={LISTADO_TEXTOS.panel.barra}
                 aria-valuemin={0}
-                aria-valuemax={counted}
-                aria-valuenow={have}
+                aria-valuemax={total}
+                aria-valuenow={summary.counts.coincide}
                 className="mt-2.5 h-2.5 overflow-hidden rounded-[5px] bg-line sm:mt-2.5"
               >
                 <div
                   className="h-full bg-brand shadow-[inset_0_-3px_0_var(--jso-edge-brand)]"
-                  style={{ width: `${Math.round((have / counted) * 100)}%` }}
+                  style={{ width: `${Math.round((summary.counts.coincide / total) * 100)}%` }}
                 />
               </div>
             ) : null}
           </div>
         </div>
 
-        {items.length ? (
-          <div className={cx("grid gap-3 sm:gap-3.5", step && "sm:grid-cols-2")}>
+        {!page && items.length ? (
+          <div className="grid gap-3 sm:gap-3.5">
             <ul
               aria-label="Lo que pide el aviso"
               className={cardClasses({
@@ -253,35 +203,25 @@ export function OfferD3({
             >
               {items.map((item) => (
                 <li key={item.id} className="flex items-center gap-2.5">
-                  <CheckMark done={item.status === "cumple"} />
+                  <CheckMark done={stateById.get(item.id) === "coincide"} />
                   <span
                     className={cx(
                       "min-w-0 text-sm break-words text-fg",
-                      item.status === "cumple" ? "font-semibold" : "font-bold",
+                      stateById.get(item.id) === "coincide" ? "font-semibold" : "font-bold",
                     )}
                   >
                     {item.pide}
                     <span className="sr-only">
-                      {item.status === "cumple"
-                        ? " (cumplís)"
-                        : item.status === "no_cumple"
-                          ? " (te falta)"
-                          : " (no lo sabemos)"}
+                      {` (${ESTADO_REQUISITO_TEXTOS[stateById.get(item.id) ?? "sinConfirmar"].toLowerCase()})`}
                     </span>
                   </span>
                 </li>
               ))}
             </ul>
-            {step ? (
-              <div className="flex flex-col gap-2.5 rounded-card bg-ink px-[18px] py-4">
-                <p className="text-sm leading-[1.5] font-semibold text-on-ink-muted">{step.text}</p>
-                {step.action}
-              </div>
-            ) : null}
           </div>
         ) : null}
 
-        {jd ? (
+        {!page && jd ? (
           <p className="hidden text-sm leading-[1.55] font-medium text-fg-muted sm:block">{jd}</p>
         ) : null}
         {actions ? (

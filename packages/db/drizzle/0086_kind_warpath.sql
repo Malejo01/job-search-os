@@ -1,0 +1,2 @@
+ALTER TABLE "jobs" ADD COLUMN "saved_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "jobs_user_saved" ON "jobs" USING btree ("user_id","saved_at" DESC NULLS LAST) WHERE "jobs"."saved_at" is not null;

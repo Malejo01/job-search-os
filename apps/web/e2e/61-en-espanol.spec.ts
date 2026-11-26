@@ -2,7 +2,6 @@ import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import {
-  openJobFilters,
   E2E_USER_ID,
   assignSeededPoolJobs,
   deleteSeededPublicJobs,
@@ -86,17 +85,16 @@ test.describe("Flujo 61: En español", () => {
     await expect(page.getByText(esTitle)).toBeVisible();
     await expect(page.getByText(enTitle)).toBeVisible();
 
-    // C10: «En español» está en «Más filtros y herramientas»
-    await openJobFilters(page);
-    const chip = page.getByTestId("chip-en-espanol");
+    // R30-05: «En español» es un chip más, con su número, debajo de las pestañas
+    const chip = page.getByTestId("chip-espanol");
     await expect(chip).not.toHaveAttribute("aria-current", "true");
     await chip.click();
     await expect(page).toHaveURL(/idioma=es/);
     await expect(page.getByText(esTitle)).toBeVisible();
     await expect(page.getByText(enTitle)).toHaveCount(0);
-    await expect(page.getByTestId("chip-en-espanol")).toHaveAttribute("aria-current", "true");
+    await expect(page.getByTestId("chip-espanol")).toHaveAttribute("aria-current", "true");
 
-    await page.getByTestId("chip-en-espanol").click();
+    await page.getByTestId("chip-espanol").click();
     await expect(page).not.toHaveURL(/idioma=es/);
     await expect(page.getByText(enTitle)).toBeVisible();
   });
