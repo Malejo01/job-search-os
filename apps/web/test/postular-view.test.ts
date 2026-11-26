@@ -29,7 +29,7 @@ describe("httpsUrl", () => {
 });
 
 describe("postularChecklist", () => {
-  it("siempre termina en enviar en el sitio y marcar como aplicada", () => {
+  it("siempre termina en enviar en el sitio y marcar «Ya me postulé»", () => {
     for (const hasAnswers of [true, false]) {
       for (const hasCover of [true, false]) {
         const keys = postularChecklist({ hasAnswers, hasCover }).map((i) => i.key);

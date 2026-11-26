@@ -272,17 +272,18 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await expect(page.getByTestId("first-steps-count")).toHaveText(/4 de 5/);
     // Con un solo paso por hacer la lista va plegada (ronda 73): el summary dice cuál falta
     const pending = checklist(page).getByText(/Te falta un paso:/);
-    await expect(pending).toContainText("Cuando te postules, marcala como Aplicada");
+    await expect(pending).toContainText("Cuando te postules, marcala como «Ya me postulé»");
     await pending.click();
     const item = checklist(page).getByRole("listitem").nth(3);
     await expect(item).toContainText("Le diste tu opinión a una oferta");
     await expect(item).toContainText("(hecho)");
   });
 
-  test("38c: marcar «Aplicada» tilda el ítem 5 y la checklist dice «¡Listo!»", async () => {
+  test("38c: marcar «Ya me postulé» tilda el ítem 5 y la checklist dice «¡Listo!»", async () => {
     await page.goto(`/jobs/${bestJobId}`);
-    await page.getByRole("button", { name: "Marcar aplicada" }).click();
-    await expect(page.getByText("Aplicada", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Ya me postulé" }).click();
+    // El botón también dice «Ya me postulé»: se espera a que desaparezca (la acción terminó)
+    await expect(page.getByRole("button", { name: "Ya me postulé" })).toHaveCount(0);
 
     await page.goto("/jobs");
     await expect(checklist(page)).toContainText("¡Listo!");

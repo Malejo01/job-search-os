@@ -1,5 +1,6 @@
 import { buttonClasses } from "@/components/ui/button";
 import { SubmitButton } from "@/app/components/submit-button";
+import { DETALLE_TEXTOS } from "@/lib/textos-rediseno";
 import { evaluateNowAction } from "./actions";
 
 /**
@@ -22,7 +23,7 @@ export function EvaluateNow({
     <form action={evaluateNowAction}>
       <input type="hidden" name="jobId" value={jobId} />
       <SubmitButton pendingLabel="Enviando…" className={buttonClasses({ size: "sm" })}>
-        Evaluar ahora
+        {DETALLE_TEXTOS.antes.evaluar}
       </SubmitButton>
     </form>
   );

@@ -5,14 +5,18 @@ import { humanNoteAction } from "./actions";
 
 const MAX = 140;
 
-const CHIPS = [
-  "no es mi puesto",
-  "el puntaje está alto",
-  "el puntaje está bajo",
-  "ubicación o modalidad",
-  "sueldo",
-  "le faltó leer algo del aviso",
-];
+/** Textos que escribe el servidor (`DETALLE_TEXTOS.valoracion`): no se importan acá para no pesar en el cliente. */
+export type VerdictReasonTexts = {
+  titulo: string;
+  motivos: readonly string[];
+  campo: string;
+  ayuda: string;
+  guardar: string;
+  guardando: string;
+  quitar: string;
+  guardado: string;
+  error: string;
+};
 
 /** Suma el motivo al texto separado por "; ", sin repetir y sin pasar de MAX. */
 function addReason(text: string, reason: string): string {
@@ -30,10 +34,12 @@ export function VerdictReason({
   jobId,
   evaluationId,
   note,
+  texts,
 }: {
   jobId: string;
   evaluationId: string;
   note: string | null;
+  texts: VerdictReasonTexts;
 }) {
   const [text, setText] = useState(note ?? "");
   const [seenNote, setSeenNote] = useState(note);
@@ -79,9 +85,9 @@ export function VerdictReason({
       }}
       className="flex flex-col gap-2"
     >
-      <p className="text-xs font-medium text-fg-muted">¿Por qué? (opcional)</p>
+      <p className="text-xs font-medium text-fg-muted">{texts.titulo}</p>
       <div className="flex flex-wrap gap-2">
-        {CHIPS.map((chip) => (
+        {texts.motivos.map((chip) => (
           <button
             key={chip}
             type="button"
@@ -97,7 +103,7 @@ export function VerdictReason({
       </div>
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-fg-subtle">
-          Motivo
+          {texts.campo}
           <input
             name="humanNote"
             type="text"
@@ -114,27 +120,28 @@ export function VerdictReason({
         <button
           type="submit"
           disabled={pending || trimmed === "" || trimmed === saved}
-          className="min-h-[44px] pressable edge-4 rounded-pill border-edge-brand bg-brand px-4 text-sm font-extrabold text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+          className="min-h-[44px] pressable edge-4 rounded-pill border-edge-brand bg-brand px-4 text-sm font-extrabold text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:border-line disabled:bg-surface-muted disabled:text-fg-subtle"
         >
-          {pending ? "Guardando…" : "Guardar motivo"}
+          {pending ? texts.guardando : texts.guardar}
         </button>
         {saved !== "" ? (
           <button
             type="button"
             disabled={pending}
             onClick={() => save("")}
-            className="min-h-[44px] rounded-control border border-fg-subtle bg-surface px-3 text-sm text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+            className="min-h-[44px] rounded-control border border-fg-subtle bg-surface px-3 text-sm text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:border-line disabled:text-fg-subtle"
           >
-            Quitar motivo
+            {texts.quitar}
           </button>
         ) : null}
       </div>
       <p role="status" aria-live="polite" className="min-h-[1rem] text-xs text-success">
-        {done && !pending && !failed ? "Guardado ✓" : ""}
+        {done && !pending && !failed ? texts.guardado : ""}
       </p>
       <p aria-live="polite" className="min-h-[1rem] text-xs text-danger">
-        {failed && !pending ? "No se pudo guardar el motivo. Probá de nuevo." : ""}
+        {failed && !pending ? texts.error : ""}
       </p>
+      <p className="text-xs text-fg-muted">{texts.ayuda}</p>
     </form>
   );
 }

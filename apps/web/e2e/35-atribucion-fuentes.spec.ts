@@ -119,9 +119,14 @@ test.describe("Flujo 35: atribución de WWR y de los ATS", () => {
     await page.goto(`/jobs/${jobIds.wwr}`);
     const origin = page.getByRole("list", { name: "Origen del aviso" });
     await expect(origin).toContainText("Publicado en We Work Remotely");
-    const link = origin.getByRole("link", { name: /Ver el aviso original/ });
-    await expect(link).toHaveAttribute("href", urls.wwr);
-    expect(await link.getAttribute("rel")).not.toMatch(/nofollow/);
+    // R30-10 (plan §7): la URL del aviso es la del botón de salida, así que «Ver el aviso original»
+    // no se repite; el botón lleva al original
+    await expect(origin.getByRole("link", { name: /Ver el aviso original/ })).toHaveCount(0);
+    const salida = page
+      .getByRole("link", { name: /Ir a postularme|Ver oferta/ })
+      .filter({ visible: true });
+    await expect(salida).toHaveAttribute("href", urls.wwr);
+    expect(await salida.getAttribute("rel")).not.toMatch(/nofollow/);
   });
 
   test("el aviso de un ATS nombra a la empresa y enlaza al original", async ({ page }) => {
@@ -130,9 +135,9 @@ test.describe("Flujo 35: atribución de WWR y de los ATS", () => {
     await page.goto(`/jobs/${jobIds.ats}`);
     const origin = page.getByRole("list", { name: "Origen del aviso" });
     await expect(origin).toContainText("Publicado en el sitio de empleos de Empresa Ficticia 9");
-    await expect(origin.getByRole("link", { name: /Ver el aviso original/ })).toHaveAttribute(
-      "href",
-      urls.ats,
-    );
+    await expect(origin.getByRole("link", { name: /Ver el aviso original/ })).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: /Ir a postularme|Ver oferta/ }).filter({ visible: true }),
+    ).toHaveAttribute("href", urls.ats);
   });
 });

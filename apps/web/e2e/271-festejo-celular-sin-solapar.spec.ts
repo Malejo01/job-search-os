@@ -44,7 +44,7 @@ test.describe("Flujo 271: festejo en el celular (R28-01)", () => {
     }
     await loginAsSecondUser(page);
     await page.goto(`/jobs/${data.jobId}`);
-    await page.getByRole("button", { name: "Marcar aplicada" }).click();
+    await page.getByRole("button", { name: "Ya me postulé" }).click();
     const festejo = page.getByTestId("festejo");
     await expect(festejo).toBeVisible();
 

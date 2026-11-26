@@ -14,6 +14,7 @@ import {
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
   gapText,
+  riesgosVisibles,
   translateChecklist,
   type Adjustment,
   type Checklist,
@@ -137,6 +138,10 @@ export type JobDetail = {
   salaryPeriod: string | null;
   weeklyHours: number | null;
   candidatesCount: number | null;
+  /** Marca «Guardada» (R30-03), de la misma fila: ISO o null. */
+  savedAt: string | null;
+  /** ¿Viene del pool? Solo entonces el detalle consulta la vigencia (R30-07). */
+  fromPool: boolean;
   badges: string[];
   flags: string[];
   /** Motivo del descarte en castellano llano (prefilterReasonText), no el valor crudo guardado. */
@@ -450,6 +455,8 @@ export async function getJobDetail(
       salaryPeriod: job.salaryPeriod,
       weeklyHours: job.weeklyHours,
       candidatesCount: job.candidatesCount,
+      savedAt: job.savedAt?.toISOString() ?? null,
+      fromPool: job.publicJobId !== null,
       badges: job.badges ?? [],
       flags: job.flags ?? [],
       prefilterReason: prefilterReasonText(job.prefilterReason),
@@ -476,7 +483,8 @@ export async function getJobDetail(
             matchFuerte: ev.matchFuerte,
             gaps: ev.gaps.map(gapText),
             bloqueadores: ev.bloqueadoresDuros,
-            riesgos: ev.riesgos,
+            // R30-01: «muchos candidatos» solo se muestra si el aviso trae el número
+            riesgos: riesgosVisibles(ev.riesgos, job.candidatesCount),
             senales: ev.senalesPositivas,
             veredicto: ev.veredicto,
             adjustments: decision?.adjustments ?? [],

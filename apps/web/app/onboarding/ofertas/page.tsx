@@ -56,7 +56,7 @@ export default async function FirstOffersPage() {
             {offers.some((o) => o.evaluating)
               ? " La IA está evaluando las primeras: el puntaje aparece en unos segundos."
               : offers.some((o) => o.score === null)
-                ? " Las que tienen descripción y todavía no tienen puntaje se evalúan cuando abrís la oferta y tocás «Evaluar ahora»."
+                ? " Las que tienen descripción y todavía no tienen puntaje se evalúan cuando abrís la oferta y tocás «Evaluar esta oferta»."
                 : null}
           </p>
           <FirstOffersList offers={offers} />

@@ -202,7 +202,7 @@ CARRERAS.forEach((carrera, index) => {
         if ((await region.count()) > 0) {
           const unmetMust = region
             .locator("li")
-            .filter({ has: page.getByText("No cumple", { exact: true }) })
+            .filter({ has: page.getByText("No coincide", { exact: true }) })
             .filter({ hasNotText: "(deseable)" });
           const unmet = await unmetMust.count();
           const titular = await region.getByTestId("requisitos-titular").innerText();
@@ -213,7 +213,7 @@ CARRERAS.forEach((carrera, index) => {
             expect(
               titular,
               "el titular no cuenta todos los excluyentes como cumplidos",
-            ).not.toMatch(/Cumplís (\d+) de \1 requisitos/);
+            ).not.toMatch(/Coinciden (\d+) de \1 requisitos/);
           }
         } else {
           finding(`${href}: sin «Requisitos del aviso» (evaluación sin checklist)`);

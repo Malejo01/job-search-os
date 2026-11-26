@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 // R-1: import directo (el barril de `@/components/ui` arrastra el de pipeline al navegador)
 import { buttonClasses } from "@/components/ui/button";
+import { siteOfUrl } from "@/lib/site-of-url";
+import { POSTULAR_CLIENTE as T } from "@/lib/textos-postular";
 import { changeStatusAction } from "./actions";
 
 /**
@@ -29,6 +31,8 @@ export function ApplyButton({
 }) {
   const [esperandoVuelta, setEsperandoVuelta] = useState(false);
   const [preguntando, setPreguntando] = useState(false);
+  const site = siteOfUrl(url);
+  const label = canApply ? (site ? T.irA.replace("{sitio}", site) : T.irASinSitio) : T.verOferta;
 
   useEffect(() => {
     if (!esperandoVuelta) return;
@@ -54,28 +58,26 @@ export function ApplyButton({
         onClick={() => canApply && setEsperandoVuelta(true)}
         className={buttonClasses({ className })}
       >
-        {canApply ? "Postularme en el sitio del aviso" : "Ver oferta ↗"}
-        {canApply ? <span className="sr-only"> (se abre en otra pestaña)</span> : null}
+        {label}
+        {canApply ? <span className="sr-only">{T.otraPestana}</span> : null}
       </a>
       {preguntando ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="¿Te postulaste a esta oferta?"
+            aria-label={T.preguntaTitulo}
             className="edge-6 w-full max-w-sm rounded-card border-edge bg-surface p-5"
           >
-            <p className="text-sm font-medium text-fg">¿Te postulaste a esta oferta?</p>
-            <p className="mt-1 text-xs text-fg-subtle">
-              Lo marcamos por lo que digas: la app no puede verlo en el sitio de la empresa.
-            </p>
+            <p className="text-sm font-medium text-fg">{T.preguntaTitulo}</p>
+            <p className="mt-1 text-xs text-fg-subtle">{T.preguntaAyuda}</p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setPreguntando(false)}
                 className="rounded-control border border-line-strong px-3 py-2 text-sm text-fg-muted"
               >
-                No
+                {T.preguntaNo}
               </button>
               <form action={changeStatusAction} onSubmit={() => setPreguntando(false)}>
                 <input type="hidden" name="jobId" value={jobId} />
@@ -84,7 +86,7 @@ export function ApplyButton({
                   type="submit"
                   className="rounded-control border border-success-strong bg-success-strong px-3 py-2 text-sm font-medium text-on-strong"
                 >
-                  Sí
+                  {T.preguntaSi}
                 </button>
               </form>
             </div>

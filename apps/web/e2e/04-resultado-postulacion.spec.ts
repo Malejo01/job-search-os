@@ -32,8 +32,9 @@ test.describe("Flujo 4: postular → resultado (feedback loop, JS-036)", () => {
   }) => {
     await login(page);
     await page.goto(`/jobs/${jobId}`);
-    await page.getByRole("button", { name: "Marcar aplicada" }).click();
-    await expect(page.getByText("Aplicada", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Ya me postulé" }).click();
+    // El botón también dice «Ya me postulé»: se espera a que desaparezca (la acción terminó)
+    await expect(page.getByRole("button", { name: "Ya me postulé" })).toHaveCount(0);
     expect(await applicationOutcome(jobId)).toBe("sin_respuesta");
 
     await page.goto("/applications");

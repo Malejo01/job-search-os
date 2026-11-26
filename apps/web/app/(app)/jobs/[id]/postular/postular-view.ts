@@ -43,7 +43,7 @@ export function postularChecklist(state: {
     { key: "portal", text: "Completá y enviá la postulación en el sitio del aviso." },
     {
       key: "mark",
-      text: "Volvé y marcá la oferta como aplicada: la app no puede ver si te postulaste.",
+      text: "Volvé y marcá «Ya me postulé»: la app no puede ver si te postulaste.",
     },
   ];
 }

@@ -176,7 +176,7 @@ test.describe("Flujo 278: ensayo del alta completa (R28-04)", () => {
     await page.getByRole("link", { name: ownTitle }).first().click();
     await page.waitForURL(/\/jobs\/[0-9a-f-]{36}$/);
     await expect(page.getByTestId("festejo")).toHaveCount(0);
-    await page.getByRole("button", { name: "Marcar aplicada" }).click();
+    await page.getByRole("button", { name: "Ya me postulé" }).click();
     const festejo = page.getByTestId("festejo");
     await expect(festejo).toBeVisible();
     await expect(festejo).toHaveAttribute("data-festejo", "postulacion");

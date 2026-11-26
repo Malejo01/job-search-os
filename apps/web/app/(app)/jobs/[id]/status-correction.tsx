@@ -53,7 +53,7 @@ export function StatusCorrection({
         >
           Corregir
         </button>
-        <p className="w-full text-[11px] text-fg-subtle">
+        <p className="w-full text-xs text-fg-muted">
           Para cuando marcaste un estado por error. Volver a Evaluada o Descartada borra la
           postulación registrada.
         </p>

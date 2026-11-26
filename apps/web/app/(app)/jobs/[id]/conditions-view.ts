@@ -1,5 +1,7 @@
 import { ENGLISH_LABEL, MODALITY_LABELS } from "../../../../lib/labels";
-import { NOT_INFORMED_LABEL } from "../../../../lib/textos-rediseno";
+import { DETALLE_TEXTOS, llenarTexto } from "../../../../lib/textos-rediseno";
+
+const T = DETALLE_TEXTOS.condiciones;
 
 export type ConditionsInput = {
   salaryMinUsd: number | null;
@@ -9,30 +11,45 @@ export type ConditionsInput = {
   englishRequired: string | null;
   yearsRequired: number | null;
   contractType: string | null;
+  /** `jobs.countries_allowed`: null = el aviso no lo dice (no se deduce de «remoto»). */
+  countriesAllowed?: readonly string[] | null;
+  weeklyHours?: number | null;
 };
 
+export type ConditionKey = keyof typeof T.filas;
+
 export type ConditionRow = {
-  key: "salary" | "modality" | "language" | "seniority" | "contract";
+  key: ConditionKey;
   label: string;
   value: string;
   /** El aviso no lo dice: la pantalla lo muestra más apagado. */
   informed: boolean;
 };
 
-function clean(text: string | null): string | null {
+function clean(text: string | null | undefined): string | null {
   const t = text?.trim().slice(0, 120);
   return t ? t : null;
 }
 
-function row(key: ConditionRow["key"], label: string, value: string | null): ConditionRow {
+function row(key: ConditionKey, value: string | null): ConditionRow {
+  const label = T.filas[key];
   return value === null
-    ? { key, label, value: NOT_INFORMED_LABEL, informed: false }
+    ? { key, label, value: T.noEspecificado, informed: false }
     : { key, label, value, informed: true };
 }
 
+function countriesValue(countries: readonly string[] | null | undefined): string | null {
+  const list = (countries ?? []).map((c) => c.trim()).filter(Boolean);
+  if (!list.length) return null;
+  if (list.includes("*")) return T.todoElMundo;
+  const shown = list.slice(0, 5).join(", ");
+  return list.length > 5 ? `${shown} y ${list.length - 5} más` : shown;
+}
+
 /**
- * Condiciones laborales de la oferta (R17-04), solo con campos ya extraídos: lo que el aviso no dice
- * queda como «No lo informa», nunca se supone. Sin consultas: usa lo que la página ya trae.
+ * «Lo importante para decidir» (R30-08): siempre las 7 filas, en este orden, solo con campos del
+ * aviso. Lo que el aviso no dice queda «No especificado»; nada se deduce (remoto no es «desde
+ * cualquier país») y nunca se mezcla el perfil. Sin consultas: usa lo que la página ya trae.
  */
 export function conditionRows(input: ConditionsInput): ConditionRow[] {
   const { salaryMinUsd: min, salaryMaxUsd: max } = input;
@@ -50,7 +67,7 @@ export function conditionRows(input: ConditionsInput): ConditionRow[] {
     eng === null || eng === "no_menciona"
       ? null
       : eng === "no"
-        ? "No lo pide"
+        ? T.inglesNoLoPide
         : `Inglés ${ENGLISH_LABEL[eng] ?? clean(eng) ?? ""}`.trim();
 
   const years = input.yearsRequired;
@@ -59,11 +76,19 @@ export function conditionRows(input: ConditionsInput): ConditionRow[] {
       ? null
       : `${years} ${years === 1 ? "año" : "años"} de experiencia`;
 
+  const hours = input.weeklyHours;
+  const jornada =
+    typeof hours === "number" && Number.isFinite(hours) && hours > 0
+      ? llenarTexto(T.horasSemanales, { n: hours })
+      : null;
+
   return [
-    row("salary", "Sueldo", salary),
-    row("modality", "Modalidad", modality),
-    row("language", "Idioma", language),
-    row("seniority", "Seniority", seniority),
-    row("contract", "Tipo de contrato", clean(input.contractType)),
+    row("modality", modality),
+    row("location", countriesValue(input.countriesAllowed)),
+    row("salary", salary),
+    row("seniority", seniority),
+    row("language", language),
+    row("hours", jornada),
+    row("contract", clean(input.contractType)),
   ];
 }

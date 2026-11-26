@@ -107,7 +107,7 @@ export function FormReview({ jobId }: { jobId: string }) {
             {analysis.questions.map((q) => (
               <li key={q.id} className="rounded-control border border-line px-3 py-2">
                 <span className="text-fg">{q.label}</span>{" "}
-                <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-[11px] text-fg-muted">
+                <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-xs text-fg-muted">
                   {KIND_LABELS[q.kind]}
                 </span>
                 {q.required ? <span className="ml-1 text-xs text-danger">obligatoria</span> : null}
@@ -134,7 +134,7 @@ export function FormReview({ jobId }: { jobId: string }) {
               type="button"
               onClick={generate}
               disabled={generating}
-              className="rounded-control border border-line-control px-3 py-2 text-sm text-fg disabled:opacity-50"
+              className="rounded-control border border-line-control px-3 py-2 text-sm text-fg disabled:border-line disabled:text-fg-subtle"
             >
               {generating ? "Generando…" : "Generar borradores"}
             </button>
@@ -223,12 +223,12 @@ function DraftList({
               it.state === "aprobada"
                 ? "border-success-line bg-success-soft"
                 : it.state === "descartada"
-                  ? "border-line opacity-60"
+                  ? "border-line bg-surface-muted"
                   : "border-line"
             }`}
           >
             <p className="font-medium text-fg">{it.label}</p>
-            <p className="flex flex-wrap items-center gap-1 text-[11px]">
+            <p className="flex flex-wrap items-center gap-1 text-xs">
               <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
                 {ORIGIN_LABELS[it.origin]}
               </span>
@@ -270,7 +270,7 @@ function DraftList({
                     type="button"
                     onClick={() => approve(it)}
                     disabled={saving || !it.answer.trim() || it.state === "aprobada"}
-                    className="rounded-control bg-success-strong px-3 py-1.5 text-xs font-medium text-on-strong disabled:opacity-50"
+                    className="rounded-control bg-success-strong px-3 py-1.5 text-xs font-medium text-on-strong disabled:bg-surface-muted disabled:text-fg-subtle"
                   >
                     {it.state === "aprobada" ? "Aprobada" : "Aprobar"}
                   </button>

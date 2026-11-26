@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui";
+import { summarizeRequirements, type RequirementState } from "@job-search-os/pipeline";
 import type { ChecklistItemView, ChecklistView } from "@/lib/job-detail";
-import { CHECKLIST_PIDE_SOURCE, CHECKLIST_STATUS, CHECKLIST_TENES_SOURCE } from "@/lib/labels";
+import { CHECKLIST_PIDE_SOURCE, CHECKLIST_TENES_SOURCE } from "@/lib/labels";
+import { DETALLE_TEXTOS, ESTADO_REQUISITO_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
 import dynamic from "next/dynamic";
+
+const T = DETALLE_TEXTOS.requisitos;
 
 // R-1: el modal de nivel se baja solo cuando hay una skill para cargar (en /jobs, con el panel abierto)
 const SkillLevelButton = dynamic(() =>
@@ -18,13 +22,13 @@ const SkillLevelButton = dynamic(() =>
  * no existe. `compact` es la versión de la demo pública: titular, primera mirada y lista corta, sin
  * citas ni links a pantallas privadas.
  */
-const STATUS_ICON: Record<ChecklistItemView["status"], { icon: IconName; box: string }> = {
-  cumple: { icon: "check", box: "bg-success-muted text-success" },
-  no_cumple: { icon: "cruz", box: "bg-warning-muted text-warning" },
-  no_se_sabe: { icon: "pregunta", box: "bg-surface-muted text-fg-muted" },
+const STATUS_ICON: Record<RequirementState, { icon: IconName; box: string }> = {
+  coincide: { icon: "check", box: "bg-success-muted text-success" },
+  noCoincide: { icon: "cruz", box: "bg-warning-muted text-warning" },
+  sinConfirmar: { icon: "pregunta", box: "bg-surface-muted text-fg-muted" },
 };
 
-function StatusMark({ status }: { status: ChecklistItemView["status"] }) {
+function StatusMark({ status }: { status: RequirementState }) {
   const mark = STATUS_ICON[status];
   return (
     <span
@@ -80,41 +84,44 @@ type SkillModalData = { jobId: string; skillInfo: Record<string, { description: 
 
 function Item({
   item,
+  state,
   compact,
   modal,
 }: {
   item: ChecklistItemView;
+  /** Estado que se muestra (regla 2.1: «No coincide» solo con un dato explícito del perfil). */
+  state: RequirementState;
   compact: boolean;
   modal?: SkillModalData;
 }) {
-  const cta = item.status !== "cumple" && !compact ? missingCta(item) : null;
-  const step = compact ? null : missingStep(item);
+  const cta = state !== "coincide" && !compact ? missingCta(item) : null;
+  const step = compact || state === "sinConfirmar" ? null : missingStep(item);
   return (
     <li className="flex min-w-0 gap-3 border-t border-line py-3 first:border-t-0">
-      <StatusMark status={item.status} />
+      <StatusMark status={state} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {/* El rótulo en su propio nodo: un lector (o un test) lo encuentra sin el ícono pegado */}
-        <span className="text-xs font-bold text-fg-muted">
-          {CHECKLIST_STATUS[item.status].label}
-        </span>
+        <span className="text-xs font-bold text-fg-muted">{ESTADO_REQUISITO_TEXTOS[state]}</span>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="min-w-0 font-bold break-words">{item.pide}</span>
           {item.nivel === "deseable" ? (
-            <span className="text-xs text-fg-subtle">(deseable)</span>
+            <span className="text-xs text-fg-subtle">({T.lista.deseable})</span>
           ) : null}
-          {item.bloquea ? <span className="text-xs font-bold text-danger">(frena)</span> : null}
+          {item.bloquea && state === "noCoincide" ? (
+            <span className="text-xs font-bold text-fg">({T.lista.excluyente})</span>
+          ) : null}
         </p>
         {step ? <p className="text-sm break-words text-fg">{step}</p> : null}
         <p className="break-words text-xs text-fg-subtle">
-          Lo que pide ({CHECKLIST_PIDE_SOURCE[item.fuente.pide]})
+          {T.loQuePide} ({CHECKLIST_PIDE_SOURCE[item.fuente.pide]})
           {!compact && item.evidencia ? (
             <span className="italic"> · «{item.evidencia}»</span>
           ) : null}
         </p>
         <p className="break-words text-xs text-fg-subtle">
           {item.tenes !== null && item.fuente.tenes
-            ? `Tenés (${CHECKLIST_TENES_SOURCE[item.fuente.tenes]}): ${item.tenes}`
-            : "Tenés: no lo sabemos"}
+            ? `${T.enTuPerfil} (${CHECKLIST_TENES_SOURCE[item.fuente.tenes]}): ${item.tenes}`
+            : T.sinConfirmarPerfil}
         </p>
         {item.nota ? (
           <p data-testid="requisito-nota" className="break-words text-xs text-fg-subtle">
@@ -151,6 +158,7 @@ export function RequisitosDelAviso({
   compact = false,
   modal,
   rebuilt = false,
+  hideNamedSkills = false,
 }: {
   checklist: ChecklistView;
   compact?: boolean;
@@ -158,40 +166,51 @@ export function RequisitosDelAviso({
   rebuilt?: boolean;
   /** Con esto, cada skill sin nivel abre el modal «Cargar mi nivel de X» (detalle de la oferta). */
   modal?: SkillModalData;
+  /** El detalle las muestra en su sección «Habilidades»: acá no se repiten. */
+  hideNamedSkills?: boolean;
 }) {
-  const { must, deseable, items, parcial, descarte_rapido: descarte } = checklist;
-  const total = must.cumple + must.no_cumple;
-  const deseableTotal = deseable.cumple + deseable.no_cumple;
+  const { items, parcial } = checklist;
+  // R30-09: todo sale de las mismas filas (`summarizeRequirements`), con el estado ya resuelto
+  const summary = summarizeRequirements(checklist);
+  const stateOf = new Map(summary.rows.map((r) => [r.id, r.state] as const));
   // Las skills que el aviso solo nombra (fase A) no entran al titular: van en una lista aparte
   const named = items.filter((i) => i.kind === "skill" && i.fuente.pide === "fuente");
   const main = items.filter((i) => !named.includes(i));
+  const mainRows = summary.rows.filter((r) => !named.some((n) => n.id === r.id));
+  const mustRows = mainRows.filter((r) => r.nivel === "must");
+  const deseableRows = mainRows.filter((r) => r.nivel !== "must");
+  const total = mustRows.length;
+  const mustOk = mustRows.filter((r) => r.state === "coincide").length;
+  const mustPending = mustRows.filter((r) => r.state === "sinConfirmar").length;
+  const deseableOk = deseableRows.filter((r) => r.state === "coincide").length;
+  const deseablePending = deseableRows.filter((r) => r.state === "sinConfirmar").length;
+  // La condición que se explica: la excluyente que bloquea o, si no hay, el primer requisito
+  // excluyente que no coincide (así este bloque nunca contradice los conteos de arriba)
+  const first = summary.weighing[0];
+  const blocking =
+    summary.blocking ??
+    (first && first.state === "noCoincide" && first.nivel === "must" ? first : null);
   const Heading = compact ? "h4" : "h2";
   return (
     <section
-      aria-label="Requisitos del aviso"
+      aria-label={T.titulo}
       className="flex min-w-0 flex-col gap-3 rounded-card bg-surface p-4 text-sm sm:p-5"
     >
-      <Heading className="font-display text-heading font-bold">Requisitos del aviso</Heading>
+      <Heading className="font-display text-heading font-bold">{T.titulo}</Heading>
       <p data-testid="requisitos-titular">
         {total === 0 ? (
-          "No hay requisitos verificables; mirá la lista"
+          T.sinRequisitos
         ) : (
           <>
-            Cumplís{" "}
-            <strong>
-              {must.cumple} de {total}
-            </strong>{" "}
-            requisitos excluyentes
-            {must.no_se_sabe > 0
-              ? ` y ${must.no_se_sabe} que no podemos verificar con tu perfil`
-              : ""}
+            {llenarTexto(T.titular, { x: mustOk, y: total })}
+            {mustPending > 0 ? llenarTexto(T.titularSinConfirmar, { n: mustPending }) : ""}
           </>
         )}
       </p>
-      {!compact && (deseableTotal > 0 || deseable.no_se_sabe > 0) ? (
+      {!compact && deseableRows.length > 0 ? (
         <p className="text-xs text-fg-muted">
-          Deseables: cumplís {deseable.cumple} de {deseableTotal}
-          {deseable.no_se_sabe > 0 ? ` y ${deseable.no_se_sabe} sin verificar` : ""}
+          {llenarTexto(T.deseables, { x: deseableOk, y: deseableRows.length })}
+          {deseablePending > 0 ? llenarTexto(T.deseablesSinConfirmar, { n: deseablePending }) : ""}
         </p>
       ) : null}
       {rebuilt ? (
@@ -207,25 +226,33 @@ export function RequisitosDelAviso({
       ) : null}
 
       <div className="rounded-control bg-surface-subtle p-3" data-testid="requisitos-descarte">
-        <p className="text-xs font-bold">Lo primero que mira un reclutador</p>
+        <p className="text-xs font-bold">{T.excluyenteTitulo}</p>
         <p className="break-words">
-          {descarte
-            ? `Lo primero por lo que te descartarían: ${descarte.pide}${
-                descarte.tenes ? ` (tenés ${descarte.tenes})` : ""
+          {blocking
+            ? `${llenarTexto(T.excluyenteSi, { pide: blocking.item.pide })}${
+                blocking.item.tenes
+                  ? llenarTexto(T.excluyenteTenes, { tenes: blocking.item.tenes })
+                  : ""
               }`
-            : "Nada evidente: tu perfil pasa la primera mirada"}
+            : T.excluyenteNo}
         </p>
       </div>
 
       {main.length ? (
         <ul className="flex flex-col">
           {(compact ? main.filter((i) => i.nivel === "must") : main).map((item) => (
-            <Item key={item.id} item={item} compact={compact} modal={modal} />
+            <Item
+              key={item.id}
+              item={item}
+              state={stateOf.get(item.id) ?? "sinConfirmar"}
+              compact={compact}
+              modal={modal}
+            />
           ))}
         </ul>
       ) : null}
 
-      {!compact && named.length ? (
+      {!compact && !hideNamedSkills && named.length ? (
         <div>
           <h3 className="text-xs font-semibold">Skills que nombra el aviso</h3>
           <p className="text-xs text-fg-subtle">
@@ -233,7 +260,13 @@ export function RequisitosDelAviso({
           </p>
           <ul className="flex flex-col">
             {named.map((item) => (
-              <Item key={item.id} item={item} compact={compact} modal={modal} />
+              <Item
+                key={item.id}
+                item={item}
+                state={stateOf.get(item.id) ?? "sinConfirmar"}
+                compact={compact}
+                modal={modal}
+              />
             ))}
           </ul>
         </div>

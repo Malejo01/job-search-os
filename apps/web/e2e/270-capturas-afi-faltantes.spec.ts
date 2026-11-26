@@ -75,7 +75,7 @@ for (const theme of THEMES) {
       }
       await loginAsSecondUser(page);
       await page.goto(`/jobs/${data.jobId}`);
-      await page.getByRole("button", { name: "Marcar aplicada" }).click();
+      await page.getByRole("button", { name: "Ya me postulé" }).click();
       await expect(page.getByTestId("festejo")).toBeVisible();
       await shot(page, "09-festejo", width, theme);
     });
