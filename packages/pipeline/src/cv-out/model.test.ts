@@ -63,7 +63,7 @@ describe("buildCvDocument", () => {
       "Experiencia",
       "Educación",
       "Certificaciones",
-      "Skills",
+      "Habilidades",
       "Idiomas",
       "Logros",
     ]);
@@ -81,7 +81,7 @@ describe("buildCvDocument", () => {
   it("formatea fechas MM/AAAA y descarta las inválidas", () => {
     const d = buildCvDocument(base, { lang: "es" });
     expect(d.sections.find((s) => s.id === "experience")!.blocks[0]!.detail).toBe(
-      "Empresa A | 03/2021 – Actual",
+      "Empresa A | 03/2021 – Actualidad",
     );
     expect(d.sections.find((s) => s.id === "education")!.blocks[0]!.detail).toBe(
       "Universidad A | 03/2015 – 12/2019",
@@ -103,7 +103,7 @@ describe("buildCvDocument", () => {
     expect(s.blocks.map((b) => b.detail)).toEqual(["Datos: SQL, Excel", "Otras: Comunicación"]);
   });
 
-  it("contacto: email, ciudad y solo links http(s); sin teléfono ni datos personales", () => {
+  it("contacto: email, ciudad y solo links https; sin teléfono ni datos personales", () => {
     const d = buildCvDocument(base, { lang: "es" });
     expect(d.contact).toEqual([
       "persona@example.com",

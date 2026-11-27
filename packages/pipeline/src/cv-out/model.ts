@@ -1,8 +1,10 @@
 /**
  * Modelo del CV (C-25 / 100 §3.2): la única fuente de la vista previa, del DOCX y de la impresión. Puro:
  * recibe datos confirmados por la persona y devuelve secciones y faltantes. No lleva foto, nacimiento,
- * documento, estado civil, dirección ni teléfono: ni siquiera existen en los tipos de entrada.
+ * documento, estado civil ni dirección: ni siquiera existen en los tipos de entrada. El teléfono es
+ * opcional y solo sale si la persona lo cargó y marcó «incluir» (R33-07).
  */
+import { cvGroupSkills, cvLanguageLevelText, cvNotices, type CvNotice } from "./quality";
 import { cleanCvText, CV_BULLET_MAX_CHARS, foldCvText } from "./verify";
 
 export type CvLang = "es" | "en";
@@ -44,10 +46,38 @@ export function cvProjectLink(raw: string | null | undefined): string | null {
   return PROJECT_LINK_RE.test(v) && !LINK_EMAIL_RE.test(v) ? v : null;
 }
 
+/** Tope de la etiqueta del cuarto link («Behance», «Blog»). */
+export const CV_OTHER_LABEL_MAX_CHARS = 30;
+/** Etiqueta corta en texto plano: letras, números, espacios y `. & + -`. Sin links ni emails. */
+const OTHER_LABEL_RE = /^[\p{L}\p{N}][\p{L}\p{N} .&+-]*$/u;
+
+/** Etiqueta del «otro» link, o `null` si no cumple (vacía, larga, con símbolos, link o email). */
+export function cvOtherLabel(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").replace(/\s+/g, " ").trim();
+  if (v === "" || v.length > CV_OTHER_LABEL_MAX_CHARS || !OTHER_LABEL_RE.test(v)) return null;
+  return cleanCvText(v, CV_OTHER_LABEL_MAX_CHARS) === v ? v : null;
+}
+
+const PHONE_RE = /^[+(]?\d[\d\s()-]*$/;
+export const CV_PHONE_MAX_CHARS = 25;
+
+/**
+ * Teléfono, o `null` si no cumple: solo dígitos, espacios, `+` al inicio, `-` y paréntesis, de 6 a 15
+ * dígitos y hasta 25 caracteres. Falla cerrado: nada de letras, links ni emails.
+ */
+export function cvPhone(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").replace(/\s+/g, " ").trim();
+  if (v === "" || v.length > CV_PHONE_MAX_CHARS || !PHONE_RE.test(v)) return null;
+  const digits = v.replace(/\D/g, "").length;
+  return digits >= 6 && digits <= 15 ? v : null;
+}
+
 export interface CvLinksInput {
   linkedin?: string | null;
   github?: string | null;
   portfolio?: string | null;
+  /** Cuarto link con su etiqueta corta (R33-07, C-45). */
+  other?: { label: string | null; url: string | null } | null;
 }
 
 export interface CvSkillInput {
@@ -64,6 +94,8 @@ export interface CvLanguageInput {
 export interface CvSourceData {
   displayName: string;
   email?: string | null;
+  /** Teléfono que la persona cargó (R33-07). Solo sale si pide incluirlo (`includePhone`). */
+  phone?: string | null;
   city?: string | null;
   country?: string | null;
   links?: CvLinksInput;
@@ -79,6 +111,15 @@ export interface CvBuildOptions {
   lang: CvLang;
   /** Por defecto se incluye el email si hay. */
   includeEmail?: boolean;
+  /** Ciudad y país en el encabezado (R33-07). Por defecto se incluyen si hay; no es la dirección. */
+  includePlace?: boolean;
+  /** Teléfono en el encabezado (R33-07): **sin marcar por defecto**; solo sale si es `true` y hay uno válido. */
+  includePhone?: boolean;
+  /**
+   * Mes actual (`AAAA-MM`), que pone quien llama: el paquete no mira el reloj (ADR-001). Un trabajo que
+   * termina en ese mes se muestra como «Actualidad» (R33-09, C-62).
+   */
+  today?: string | null;
 }
 
 export type CvSectionId =
@@ -113,6 +154,8 @@ export interface CvDocument {
   contact: string[];
   sections: CvSection[];
   missing: CvMissing[];
+  /** Avisos suaves (R33-09): no cambian el CV, solo orientan a la persona. */
+  notices?: CvNotice[];
 }
 
 export const CV_SECTION_TITLES: Record<CvLang, Record<CvSectionId, string>> = {
@@ -122,7 +165,8 @@ export const CV_SECTION_TITLES: Record<CvLang, Record<CvSectionId, string>> = {
     projects: "Proyectos",
     education: "Educación",
     certifications: "Certificaciones",
-    skills: "Skills",
+    // R33-07 (C-47): un solo idioma en los títulos de la versión en español
+    skills: "Habilidades",
     languages: "Idiomas",
     achievements: "Logros",
   },
@@ -150,19 +194,19 @@ function fmtMonth(m: string | null): string | null {
   return hit ? `${hit[2]}/${hit[1]}` : null;
 }
 
-/** `MM/AAAA – MM/AAAA`, `MM/AAAA – Actual` (solo trabajos) o vacío. */
-export function cvDateRange(entry: CvHistoryInput, lang: CvLang): string {
+/**
+ * `MM/AAAA – MM/AAAA`, `MM/AAAA – Actualidad` (solo trabajos) o vacío. Un trabajo que termina en `today`
+ * (el mes actual) sigue en curso: también dice «Actualidad» (C-62).
+ */
+export function cvDateRange(entry: CvHistoryInput, lang: CvLang, today?: string | null): string {
   const start = fmtMonth(entry.startMonth);
   const end = fmtMonth(entry.endMonth);
-  const now = lang === "es" ? "Actual" : "Present";
+  const now = lang === "es" ? "Actualidad" : "Present";
+  const stillThere = entry.kind === "trabajo" && !!today && entry.endMonth === today;
+  if (start && stillThere) return `${start} – ${now}`;
   if (start && end) return `${start} – ${end}`;
   if (start) return entry.kind === "trabajo" ? `${start} – ${now}` : start;
   return end ?? "";
-}
-
-function httpOnly(url: string | null | undefined): string | null {
-  const u = (url ?? "").trim();
-  return /^https?:\/\/[^\s]+$/i.test(u) ? u : null;
 }
 
 function uniqueFolded(items: readonly string[]): string[] {
@@ -181,6 +225,7 @@ function historyBlocks(
   history: readonly CvHistoryInput[],
   kind: CvHistoryKind,
   lang: CvLang,
+  today?: string | null,
 ): CvBlock[] {
   const blocks: CvBlock[] = [];
   for (const e of history.slice(0, CV_MAX_HISTORY_ENTRIES)) {
@@ -193,16 +238,20 @@ function historyBlocks(
     ).slice(0, CV_MAX_BULLETS);
     if (kind === "proyecto") {
       // Proyecto: el nombre arriba; abajo el rol, las fechas y el link (texto plano, legible por ATS)
-      const projectDetail = [org ? title : "", cvDateRange(e, lang), cvProjectLink(e.link) ?? ""]
+      const projectDetail = [
+        org ? title : "",
+        cvDateRange(e, lang, today),
+        cvProjectLink(e.link) ?? "",
+      ]
         .filter((x) => x !== "")
         .join(" | ");
       blocks.push({ heading: org || title, detail: projectDetail || null, bullets });
       continue;
     }
-    const detail = [org, cvDateRange(e, lang)].filter((x) => x !== "").join(" | ");
+    const detail = [org, cvDateRange(e, lang, today)].filter((x) => x !== "").join(" | ");
     blocks.push({
       heading: title || org,
-      detail: title ? detail || null : cvDateRange(e, lang) || null,
+      detail: title ? detail || null : cvDateRange(e, lang, today) || null,
       bullets,
     });
   }
@@ -210,36 +259,22 @@ function historyBlocks(
 }
 
 function skillBlocks(skills: readonly CvSkillInput[], lang: CvLang): CvBlock[] {
-  const groups = new Map<string, string[]>();
   const other = lang === "es" ? "Otras" : "Other";
-  for (const s of skills) {
-    const name = plain(s.name, 60);
-    if (name === "") continue;
-    const cat = plain(s.category, 40) || "";
-    const list = groups.get(cat) ?? [];
-    list.push(name);
-    groups.set(cat, list);
-  }
-  const blocks: CvBlock[] = [];
-  const uncategorized = groups.get("");
-  const hasCategories = [...groups.keys()].some((k) => k !== "");
-  for (const [cat, names] of groups) {
-    if (cat === "") continue;
-    blocks.push({
-      heading: null,
-      detail: `${cat}: ${uniqueFolded(names).join(", ")}`,
-      bullets: [],
-    });
-  }
-  if (uncategorized) {
-    const label = hasCategories ? `${other}: ` : "";
-    blocks.push({
-      heading: null,
-      detail: `${label}${uniqueFolded(uncategorized).join(", ")}`,
-      bullets: [],
-    });
-  }
-  return blocks;
+  const clean = skills
+    // La categoría va sin tocar: las de la taxonomía son claves en minúscula (`cloud`, `datos`)
+    .map((s) => ({ name: plain(s.name, 60), category: (s.category ?? "").trim() || null }))
+    .filter((s) => s.name !== "");
+  // R33-09 (C-60): categorías con nombres que se entienden y sin las técnicas ajenas al rubro
+  const groups = cvGroupSkills(clean, lang).map((g) => ({
+    ...g,
+    label: g.label === null ? null : plain(g.label, 40) || null,
+  }));
+  const hasCategories = groups.some((g) => g.label !== null);
+  return groups.map((g) => ({
+    heading: null,
+    detail: `${g.label ?? (hasCategories ? other : "")}${g.label !== null || hasCategories ? ": " : ""}${uniqueFolded(g.names).join(", ")}`,
+    bullets: [],
+  }));
 }
 
 /**
@@ -257,16 +292,26 @@ export function buildCvDocument(data: CvSourceData, opts: CvBuildOptions): CvDoc
     return true;
   };
 
-  const place = [plain(data.city, 60), plain(data.country, 60)].filter((x) => x !== "").join(", ");
+  const place =
+    opts.includePlace === false
+      ? ""
+      : [plain(data.city, 60), plain(data.country, 60)].filter((x) => x !== "").join(", ");
   const links = data.links ?? {};
+  // R33-07 (C-45): solo https, con la URL completa como texto en el encabezado
   const linkLines = [
-    ["LinkedIn", httpOnly(links.linkedin)],
-    ["GitHub", httpOnly(links.github)],
-    ["Portfolio", httpOnly(links.portfolio)],
+    ["LinkedIn", cvProjectLink(links.linkedin)],
+    ["GitHub", cvProjectLink(links.github)],
+    ["Portfolio", cvProjectLink(links.portfolio)],
+    [
+      cvOtherLabel(links.other?.label) ?? (lang === "es" ? "Otro" : "Other"),
+      cvProjectLink(links.other?.url),
+    ],
   ].flatMap(([label, url]) => (url ? [`${label}: ${url}`] : []));
   const email = opts.includeEmail === false ? "" : (data.email ?? "").trim();
+  const phone = opts.includePhone === true ? (cvPhone(data.phone) ?? "") : "";
   const contact = [
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "",
+    phone,
     place,
     ...linkLines,
   ].filter((x) => x !== "");
@@ -276,22 +321,28 @@ export function buildCvDocument(data: CvSourceData, opts: CvBuildOptions): CvDoc
   if (!add("summary", summary ? [{ heading: null, detail: summary, bullets: [] }] : [])) {
     missing.push("summary");
   }
-  if (!add("experience", historyBlocks(data.history, "trabajo", lang))) missing.push("experience");
-  add("projects", historyBlocks(data.history, "proyecto", lang));
-  if (!add("education", historyBlocks(data.history, "educacion", lang))) missing.push("education");
-  add("certifications", historyBlocks(data.history, "certificacion", lang));
+  const today = opts.today ?? null;
+  if (!add("experience", historyBlocks(data.history, "trabajo", lang, today))) {
+    missing.push("experience");
+  }
+  add("projects", historyBlocks(data.history, "proyecto", lang, today));
+  if (!add("education", historyBlocks(data.history, "educacion", lang, today))) {
+    missing.push("education");
+  }
+  add("certifications", historyBlocks(data.history, "certificacion", lang, today));
   if (!add("skills", skillBlocks(data.skills, lang))) missing.push("skills");
+  // R33-09 (C-64, C-69): cada idioma en su línea, con el nivel explicado; solo los que la persona declaró
   const langs = uniqueFolded(
     data.languages.map((l) => {
       const n = plain(l.name, 40);
       const lv = plain(l.level, 30);
-      return n && lv ? `${n}: ${lv}` : n;
+      return n && lv ? `${n}: ${cvLanguageLevelText(lv, lang)}` : n;
     }),
   );
   if (
     !add(
       "languages",
-      langs.length ? [{ heading: null, detail: langs.join(", "), bullets: [] }] : [],
+      langs.map((detail) => ({ heading: null, detail, bullets: [] })),
     )
   ) {
     missing.push("languages");
@@ -306,7 +357,7 @@ export function buildCvDocument(data: CvSourceData, opts: CvBuildOptions): CvDoc
       : [],
   );
 
-  return {
+  const doc: CvDocument = {
     lang,
     name: plain(data.displayName, 100),
     headline: plain(data.headline, 120) || null,
@@ -314,4 +365,6 @@ export function buildCvDocument(data: CvSourceData, opts: CvBuildOptions): CvDoc
     sections,
     missing,
   };
+  doc.notices = cvNotices(doc, data.skills);
+  return doc;
 }

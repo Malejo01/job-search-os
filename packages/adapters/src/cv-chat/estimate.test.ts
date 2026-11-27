@@ -55,7 +55,7 @@ describe("CVC-6 · estimado sin red del CV conversacional", () => {
     for (const r of runs) {
       expect(r.docx.isDocx, r.id).toBe(true);
       expect(r.docx.sections, r.id).toEqual(
-        expect.arrayContaining(["Experiencia", "Educación", "Skills"]),
+        expect.arrayContaining(["Experiencia", "Educación", "Habilidades"]),
       );
       expect(r.docx.text, r.id).toContain("• ");
       expect(r.docx.text, r.id).not.toMatch(/\t/); // sin tablas

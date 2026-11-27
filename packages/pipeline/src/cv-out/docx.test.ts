@@ -96,16 +96,16 @@ describe("buildCvDocx", () => {
     if (!r.ok) return;
     const lines = r.value.split("\n");
     expect(lines[0]).toBe("Persona Ficticia");
-    for (const h of ["Resumen", "Experiencia", "Educación", "Skills", "Idiomas"]) {
+    for (const h of ["Resumen", "Experiencia", "Educación", "Habilidades", "Idiomas"]) {
       expect(lines).toContain(h);
     }
     expect(lines).toContain("persona@example.com | Ciudad A");
-    expect(lines).toContain("Empresa A | 03/2021 – Actual");
+    expect(lines).toContain("Empresa A | 03/2021 – Actualidad");
     expect(lines).toContain("• Armé reportes en SQL para 12 sucursales");
     expect(lines).toContain("• Bajé el cierre un 30%");
     expect(lines).toContain("Analista con experiencia en reportes & tableros <clave>.");
     expect(lines).toContain("Datos: SQL");
-    expect(lines).toContain("Inglés: B2");
+    expect(lines).toContain("Inglés: B2, nivel intermedio alto");
   });
 
   it("sin tablas, columnas, imágenes, encabezados ni pies", () => {

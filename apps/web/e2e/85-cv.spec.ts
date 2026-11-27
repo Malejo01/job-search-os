@@ -52,8 +52,9 @@ test.describe("Flujo 85: Tu CV", () => {
     await expect(page.getByRole("heading", { name: "Tu CV", level: 1 })).toBeVisible();
     const faltan = page.getByTestId("cv-faltantes");
     await expect(faltan).toContainText("tu experiencia laboral");
-    await faltan.getByRole("link", { name: "Cargá tu historial" }).first().click();
-    await page.waitForURL("**/settings/historial");
+    // R33-01: cada faltante con su botón al campo exacto
+    await faltan.getByRole("link", { name: "Agregar mi experiencia" }).click();
+    await page.waitForURL(/\/settings\/historial/);
   });
 
   test("valida sin devolver lo escrito y carga un trabajo a mano", async ({ page }) => {
@@ -120,6 +121,12 @@ test.describe("Flujo 85: Tu CV", () => {
     await page.goto("/cv");
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("link", { name: "Descargar DOCX" }).click();
+    // R33-07: si al CV le falta algo, antes pregunta si completarlo; se baja igual
+    const igual = page.getByTestId("cv-descargar-igual");
+    await igual
+      .waitFor({ state: "visible", timeout: 2000 })
+      .then(() => igual.click())
+      .catch(() => undefined);
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^CV(-[A-Za-z0-9]+)*\.docx$/);
 

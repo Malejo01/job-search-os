@@ -159,7 +159,13 @@ export async function getCandidateProfile(
           availability: settings.availability ?? NOT_LOADED,
           contract: settings.contract ?? NOT_LOADED,
           work_authorization: settings.workAuthorization ?? NOT_LOADED,
-          links: settings.links,
+          // Solo los links de siempre: la fila también guarda el teléfono del CV (R33-07), que no es un dato
+          // para el modelo
+          links: Object.fromEntries(
+            (["linkedin", "github", "portfolio", "cv"] as const)
+              .filter((k) => typeof settings.links?.[k] === "string")
+              .map((k) => [k, settings.links[k]]),
+          ),
         }
       : NO_FIXED_ANSWERS,
     salary: {

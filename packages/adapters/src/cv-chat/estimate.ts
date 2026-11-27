@@ -57,7 +57,7 @@ export type PersonaRun = {
   docx: { isDocx: boolean; text: string; sections: string[] };
 };
 
-const STANDARD_SECTIONS = ["Resumen", "Experiencia", "Educación", "Skills", "Idiomas"];
+const STANDARD_SECTIONS = ["Resumen", "Experiencia", "Educación", "Habilidades", "Idiomas"];
 
 /** Lee una entrada de un ZIP sin comprimir por el directorio central. */
 export function readStoredEntry(zip: Uint8Array, name: string): string | null {
