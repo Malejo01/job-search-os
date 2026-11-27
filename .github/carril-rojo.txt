@@ -210,3 +210,7 @@ apps/web/lib/feedback-report.ts
 apps/web/lib/feedback-files.ts
 apps/web/lib/admin-feedback-reports.ts
 apps/web/lib/feedback-report-email.ts
+# R31: ficha del aviso (lectura con el rol de servicio y encendido por variable)
+apps/web/lib/job-card.ts
+packages/pipeline/src/job-card/flag.ts
+packages/adapters/src/reevaluate/reevaluate-cli.ts

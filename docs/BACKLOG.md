@@ -2280,3 +2280,27 @@ Informe de la tanda: [`docs/beta/informe-r30.md`](beta/informe-r30.md). Pasos ma
 
 ### R30 · Cierre de la tanda
 `estado:` en rama (26/11) · `ronda/r30-cierre`
+
+## Bloque 49 · Tanda R31 «Ficha del aviso» (26/11)
+
+Informe de la tanda: [`docs/beta/informe-r31.md`](beta/informe-r31.md). Pasos manuales: [`docs/beta/pasos-manuales-r31.md`](beta/pasos-manuales-r31.md). Cadena sobre `ronda/r30-cierre`; ningún PR mergeado por agentes. Migraciones 0087 y 0088 y RLS 0071 a 0073 sin aplicar en Neon. USD 0 (modelo simulado); prompts nuevos sin promover; todo detrás de `JOB_CARD`, apagada por defecto.
+
+### Pedido
+- **R31-01** · Tabla `job_cards` compartida por hash del texto, RLS con `FORCE`, ADR-048 · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-02** · Prompt `extract_job_card` v1 y validador que verifica cada cita contra el aviso · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-03** · Generación una vez por hash, en el ingreso, a pedido y antes de evaluar, con tope diario · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-04** · El detalle en español desde la ficha, con citas y estados · `estado:` en rama (26/11) · `ronda/r31-04-pantalla`
+- **R31-05** · Filas `req:<n>` en la tabla, estado decidido por el código y pregunta de un toque (`requirement_answers`, 0088) · `estado:` en rama (26/11) · `ronda/r31-05-evaluacion`
+- **R31-06** · `evaluate_job` v1.5.0 en archivo nuevo y golden propuesto en ops · `estado:` en rama (26/11) · `ronda/r31-05-evaluacion`
+- **R31-07** · Tarjeta, «lo que más pesa» y habilidades del puesto desde la ficha · `estado:` en rama (26/11) · `ronda/r31-04-pantalla`
+- **R31-08** · «Esto mismo te pasa en N de tus M ofertas» y modal de un campo · `estado:` en rama (26/11) · `ronda/r31-04-pantalla`
+- **R31-09** · Comando de reevaluación única (dry-run, tope, retoma, vuelta atrás); no se ejecutó · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-10** · Kit de calibración (`/calibracion`, exportación para admins, `docs/beta/calibracion-r31.md`) · `estado:` en rama (26/11) · `ronda/r31-05-evaluacion`
+- **R31-11** · e2e con el modelo simulado, 390 y 360 px, axe y costo estimado · `estado:` en rama (26/11) · `ronda/r31-cierre`
+
+### Pendientes que salen de la tanda
+- Correr las evals de la ficha y de `evaluate_job` v1.5.0, calibrar con 20 a 30 ofertas y promover (pasos manuales).
+- Programar `purgeOrphanJobCards` en la retención; ritmo por persona antes de `JOB_CARD=all`.
+
+### R31 · Cierre de la tanda
+`estado:` en rama (26/11) · `ronda/r31-cierre`

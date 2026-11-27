@@ -21,6 +21,8 @@ process.env.E2E_ASSISTANT_MODE = ASSISTANT_MODE;
 process.env.E2E_CV_TAILOR_MODE = "testers";
 // R25: el runner sabe que el server corre con VOICE_SERVER_TRANSCRIBE=testers (e2e 220-229)
 process.env.E2E_VOICE_SERVER_MODE = "testers";
+// R31: el runner sabe que el server corre con JOB_CARD=testers (ficha del aviso, e2e 370-387)
+process.env.E2E_JOB_CARD_MODE = "testers";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -72,6 +74,8 @@ export default defineConfig({
       CV_TAILOR: "testers",
       // R25: voz transcripta en el servidor para testers (la persona B), modelo simulado por LLM_DEMO=1. Flujos 220-229
       VOICE_SERVER_TRANSCRIBE: "testers",
+      // R31: ficha del aviso para testers (admins y ASSISTANT_TESTER_EMAILS), modelo simulado. Flujos 370-387
+      JOB_CARD: "testers",
       // R26-01: fichas de prueba de Academy (todas en borrador), en vez de las del repo. Solo vale con
       // DB_TARGET=local (lib/academy.ts). Flujos 230-234
       ACADEMY_DIR: join(__dirname, "e2e", "fixtures", "academy"),

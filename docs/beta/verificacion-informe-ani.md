@@ -9,6 +9,8 @@ Una fila por cada uno de los 159 puntos del informe de revisión: **R-01 a R-38*
 
 > Textos sin cotejar con el informe original: ver PENDIENTE-INFORME en `apps/web/lib/textos-rediseno.ts`. Las filas con «(descripción pendiente: cotejar con el informe)» no tienen su descripción en el plan ni en los prompts.
 
+Estado al cierre de la R31 (26/11): se actualizaron las filas R-02, R-25 a R-29, S-02, S-05 a S-08, S-12, S-18, S-21 y S-22. Lo de la R31 solo se ve con `JOB_CARD=testers` (apagada, la app es la de la R30) y necesita las migraciones 0087 y 0088 y las RLS 0071 a 0073 aplicadas (`docs/beta/pasos-manuales-r31.md`). Las filas que dependen de `evaluate_job@v1.5.0` quedan `parcial` hasta medirla y promoverla.
+
 Estado al cierre de la R30 (26/11). `hecho` en una fila de la R30 quiere decir que el código está en la rama de cierre y probado con tests unitarios; los e2e los completa el lead en `docs/beta/informe-r30.md`. `parcial` quiere decir que falta otro ticket de la cadena o que el texto está sin cotejar con el informe.
 
 ## Parte 1 · Listado y detalle de la oferta (R-01 a R-38)
@@ -16,7 +18,7 @@ Estado al cierre de la R30 (26/11). `hecho` en una fila de la R30 quiere decir q
 | ID | De qué trata | Tanda | Estado | Cómo verlo |
 |---|---|---|---|---|
 | R-01 | Vocabulario único de la interfaz (glosario) | R30-01 | parcial | `packages/pipeline/src/glosario.ts` y `apps/web/test/glosario-textos.test.ts`; queda «Match» (nombre del menú) para el barrido de la R34 |
-| R-02 | Vocabulario único, caso «Esto mismo te pasa en N de tus M ofertas» | R30-01 y R31-08 | parcial | Glosario hecho; el conteo llega en la R31 |
+| R-02 | Vocabulario único, caso «Esto mismo te pasa en N de tus M ofertas» | R30-01 y R31-08 | hecho | `/jobs/{id}` con `JOB_CARD=testers` y un dato repetido en 2 o más ofertas: frase y botón «Actualizar mi inglés» (solo ese campo); e2e 382 |
 | R-03 | Estados con el nombre del glosario («Ya me postulé», no «Aplicada») | R30-01 | hecho | `/jobs?estado=aplicada` y el detalle de una oferta marcada como postulada |
 | R-04 | Frases que predicen o comparan, fuera | R30-01 | hecho | Test del glosario; tarjeta y detalle sin «entre las mejores» ni «impide postular» |
 | R-05 | Sello de afinidad con cuatro niveles | R30-02 | hecho | `/jobs` y el detalle de una oferta evaluada |
@@ -39,11 +41,11 @@ Estado al cierre de la R30 (26/11). `hecho` en una fila de la R30 quiere decir q
 | R-22 | Descartadas: «Volver a revisar» y «Ver oferta» | R30-06 | hecho | `/jobs?estado=descartada` |
 | R-23 | Aviso «Oferta descartada. [Deshacer]» | R30-06 | hecho | `/jobs`, descartar una oferta evaluada |
 | R-24 | Detalle: orden de las secciones, igual en computadora y celular | R30-08 | hecho | `/jobs/{id}` a 390 y 1280 px |
-| R-25 | Detalle en español: «La oferta en pocas palabras» | R31-04 | pendiente | `/jobs/{id}` con ficha (el lugar está listo, sin contenido) |
-| R-26 | Detalle: bloques «Qué vas a hacer» y «Qué buscan» | R30-08 y R31-04 | parcial | El lugar está listo en el detalle; el contenido llega en la R31 |
+| R-25 | Detalle en español: «La oferta en pocas palabras» | R31-04 | parcial | `/jobs/{id}` con `JOB_CARD=testers`, de una oferta con ficha (2 o 3 frases con «Así lo dice el aviso»); textos sin cotejar (PENDIENTE-INFORME R-25 a R-29); e2e 383 |
+| R-26 | Detalle: bloques «Qué vas a hacer» y «Qué buscan» | R30-08 y R31-04 | parcial | `/jobs/{id}` con ficha: «Qué buscan» separa indispensable y deseable solo si el aviso lo hace; textos sin cotejar |
 | R-27 | «Conocé la empresa» | después de abrir | después de abrir | — |
-| R-28 | Estados del resumen: preparando, error, sin descripción | R31-04 | pendiente | `/jobs/{id}` sin ficha |
-| R-29 | «Ver descripción original» a un toque | R31-04 | pendiente | `/jobs/{id}` |
+| R-28 | Estados del resumen: preparando, error, sin descripción | R31-04 | hecho | `/jobs/{id}` sin ficha: «Preparando el resumen…», error con «Reintentar», «Pegá la descripción para ver el resumen» y el tope; e2e 370 a 374 y 383 |
+| R-29 | «Ver descripción original» a un toque | R31-04 | hecho | `/jobs/{id}`: sigue a un toque, sin traducción completa |
 | R-30 | «Lo importante para decidir»: siempre las 7 filas | R30-08 | hecho | `/jobs/{id}`: 7 filas, «No especificado» cuando falta |
 | R-31 | Preparar mi postulación: una sola sección | R30-10 | hecho | `/jobs/{id}`, sección plegable |
 | R-32 | Un solo botón de salida «Ir a postularme en {sitio}» | R30-10 | parcial | `/jobs/{id}`; la ruta `/jobs/{id}/postular` conserva su botón «Ir al aviso» hasta la R34 |
@@ -59,27 +61,27 @@ Estado al cierre de la R30 (26/11). `hecho` en una fila de la R30 quiere decir q
 | ID | De qué trata | Tanda | Estado | Cómo verlo |
 |---|---|---|---|---|
 | S-01 | Sello y aclaración fija de la evaluación | R30-02 | hecho | `/jobs/{id}` evaluada: aclaración fuera del bloque plegable |
-| S-02 | Una sola tabla de requisitos a la vista | R30-09 y R31-05 | parcial | `/jobs/{id}`, «Requisitos»; las filas del aviso llegan en la R31 |
+| S-02 | Una sola tabla de requisitos a la vista | R30-09 y R31-05 | hecho | `/jobs/{id}`, «Requisitos», con las filas del aviso (`req:<n>`) y su cita cuando hay ficha |
 | S-03 | Todo lo demás se deriva de la tabla | R30-09 | hecho | Conteos, «Cómo encaja» y la tarjeta salen de `summarizeRequirements` |
 | S-04 | Lenguaje de los estados: Coincide, Sin confirmar, No coincide | R30-01 y R30-09 | hecho | `/jobs/{id}`, «Requisitos» |
-| S-05 | «Sin confirmar» no es «No coincide» | R30-01, R30-09 y R31-05 | parcial | Regla hecha y probada; la pregunta de un toque llega en la R31 |
-| S-06 | Requisitos del aviso en la tabla, con su fuente | R30-09 y R31-05 | pendiente | `/jobs/{id}` (R31: filas `req:<n>`) |
-| S-07 | Textos de la tabla de requisitos | R30-09 y R31-05 | parcial | `/jobs/{id}`, «Requisitos»; textos sin cotejar |
-| S-08 | Condición excluyente explicada aparte de la afinidad | R30-09 y R31-06 | parcial | `/jobs/{id}` con una condición que no coincide; la versión nueva de `evaluate_job` llega en la R31 |
+| S-05 | «Sin confirmar» no es «No coincide» | R30-01, R30-09 y R31-05 | hecho | `/jobs/{id}`, «Requisitos»: una fila sin dato del perfil dice «Sin confirmar» y ofrece «¿Tenés esto?» (Sí, No, En parte); «No» pasa a «No coincide» y vale para otras ofertas que pidan lo mismo; e2e 378 |
+| S-06 | Requisitos del aviso en la tabla, con su fuente | R30-09 y R31-05 | hecho | `/jobs/{id}`, «Requisitos»: filas del aviso con «Así lo dice el aviso» |
+| S-07 | Textos de la tabla de requisitos | R30-09 y R31-05 | parcial | `/jobs/{id}`, «Requisitos»; textos de la pregunta sin cotejar (PENDIENTE-INFORME S-02) |
+| S-08 | Condición excluyente explicada aparte de la afinidad | R30-09 y R31-06 | parcial | `/jobs/{id}` con una condición que no coincide; `evaluate_job@v1.5.0` está escrita y probada con el modelo simulado, pero no se midió ni se promovió (ver `docs/beta/pasos-manuales-r31.md` §4 y §7) |
 | S-09 | Contradicciones entre paneles (bloqueadores y puntaje) | R30-09 | hecho | `/jobs/{id}`: ya no hay panel de bloqueadores aparte de la tabla |
 | S-10 | Contradicciones entre paneles (gaps y riesgos) | R30-09 | hecho | `/jobs/{id}`: riesgos dentro de «Cómo se calculó» |
 | S-11 | Frases que predicen, fuera (regla 2) | R30-01 | hecho | Test del glosario |
-| S-12 | Lenguaje de la tabla con el glosario | R30-01, R30-09 y R31-06 | parcial | `/jobs/{id}`; la tabla de la revisora «tal cual» está sin cotejar |
+| S-12 | Lenguaje de la tabla con el glosario | R30-01, R30-09 y R31-06 | parcial | `/jobs/{id}`; la tabla de la revisora «tal cual» está sin cotejar; el prompt nuevo no se promovió |
 | S-13 | Autorización de trabajo y residencia en filas distintas | R30-09 | hecho | `/jobs/{id}`, «Requisitos» |
 | S-14 | El inglés, una sola vez | R30-09 | hecho | `/jobs/{id}`, «Requisitos» |
 | S-15 | Parser de sueldo: rangos en USD con punto de miles y variantes | R30-13 | parcial | Tests de `packages/pipeline/src/salary-text.test.ts`; falta conectarlo a una fuente |
 | S-16 | Antes de evaluar: «Sin evaluar» y estimación provisoria plegada | R30-02 y R30-08 | hecho | `/jobs/{id}` sin evaluar |
 | S-17 | «Evaluar esta oferta» como acción principal sin evaluar | R30-08 | parcial | `/jobs/{id}` sin evaluar; frases del veredicto sin cotejar (PENDIENTE-INFORME S-17) |
-| S-18 | «Esto mismo te pasa en N de tus M ofertas» | R31-08 | pendiente | `/jobs/{id}` con un faltante repetido |
+| S-18 | «Esto mismo te pasa en N de tus M ofertas» | R31-08 | hecho | `/jobs/{id}` con `JOB_CARD=testers` y un faltante repetido (por ejemplo el inglés): frase junto a «lo que más pesa» y botón que abre solo ese campo; al guardar, las ofertas se actualizan sin llamar al modelo; e2e 382 |
 | S-19 | «Cómo encaja»: veredicto y hasta 3 cosas que más pesan | R30-08 | parcial | `/jobs/{id}` evaluada; rótulos de las 7 filas sin cotejar (PENDIENTE-INFORME S-19) |
 | S-20 | Secciones plegables iguales en computadora y celular | R30-08 | hecho | `/jobs/{id}` a 390 y 1280 px |
-| S-21 | Habilidades ligadas al puesto, «Mencionada en el aviso» | R30-09 y R31-05 | parcial | `/jobs/{id}`, «Habilidades»; la separación puesto/empresa llega en la R31 |
-| S-22 | El área del puesto es un dato del aviso, no un requisito | R30-09, R31-05 y R31-06 | parcial | Sigue como dato en «Cómo se calculó»; el cambio de fondo es de la R31 |
+| S-21 | Habilidades ligadas al puesto, «Mencionada en el aviso» | R30-09, R31-05 y R31-07 | hecho | `/jobs/{id}`, «Habilidades»: con ficha, solo las que la ficha liga al puesto; sin ficha, como en la R30 |
+| S-22 | El área del puesto es un dato del aviso, no un requisito | R30-09, R31-05 y R31-06 | parcial | Con ficha, la fila «disciplina» ya no figura como requisito cumplido (solo si es un oficio distinto, que es una condición del aviso); el prompt nuevo lo pide pero no está promovido |
 | S-23 | Habilidades: nivel de la persona o «Sin cargar» | R30-09 y R31-05 | hecho | `/jobs/{id}`, «Habilidades» |
 | S-24 | Habilidades: sin «cobertura 100 %» ni «+6» | R30-09 y R31-05 | hecho | `/jobs/{id}`, «Habilidades» |
 | S-25 | Habilidades: sin la lista duplicada de «Sin nivel cargado» | R30-09 y R31-05 | hecho | `/jobs/{id}`, «Habilidades» |
