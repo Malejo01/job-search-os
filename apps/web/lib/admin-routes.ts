@@ -23,6 +23,8 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   "(app)/admin/marca/componentes/page.tsx",
   "(app)/admin/textos/page.tsx",
   "(app)/admin/metricas/page.tsx",
+  "(app)/admin/cobertura/page.tsx",
+  "(app)/admin/carreras/page.tsx",
   "(app)/admin/salud/page.tsx",
   "(app)/admin/costos/page.tsx",
   "(app)/admin/apertura/page.tsx",
@@ -41,6 +43,7 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   "(app)/admin/personas/[id]/actions.ts",
   "(app)/admin/invitations/actions.ts",
   "(app)/admin/planes/actions.ts",
+  "(app)/admin/carreras/actions.ts",
   "(app)/admin/feedback/actions.ts",
   "(app)/admin/informes/actions.ts",
 ];

@@ -764,3 +764,193 @@ export const INTERVIEW_TEXTOS = {
     action: "Ir a Interview",
   },
 } as const;
+
+/**
+ * Alta y apertura por carrera (R32-01, R32-03, R32-04 y R32-09). Lo edita solo `alta`. Voseo, sin prometer
+ * trabajo. `{carrera}`, `{n}` y similares los completa `llenarTexto`: se insertan como texto, nunca como HTML.
+ */
+export const ALTA_TEXTOS = {
+  /** R32-01: recuadro para las cuentas que todavía no cargaron su carrera. Se pide una sola vez. */
+  carreraPedida: {
+    titulo: "¿Cuál es tu carrera?",
+    texto:
+      "La usamos para mostrarte primero las ofertas que te sirven. Te la pedimos una sola vez y la podés cambiar cuando quieras en Ajustes.",
+    grupo: "Elegí una",
+    otra: "Otra",
+    otraLabel: "Escribí tu carrera",
+    otraAyuda: "Entre 2 y 60 caracteres.",
+    guardar: "Guardar mi carrera",
+    ahoraNo: "Ahora no",
+    guardada: "Listo, guardamos tu carrera.",
+    errores: {
+      elegir: "Elegí una carrera para guardar.",
+      corta: "Escribí tu carrera, con al menos 2 letras.",
+      larga: "Tu carrera tiene más de 60 caracteres. Acortala un poco.",
+      caracteres: "Usá solo letras, números y signos comunes, sin enlaces.",
+      fallo: "No pudimos guardar tu carrera. Probá de nuevo en un rato.",
+    },
+  },
+  /** R32-01: «Otra» en el paso de puestos del alta. */
+  carreraOtra: {
+    legend: "¿Tu carrera no está en la lista?",
+    ayuda:
+      "Si ninguno de los puestos es el tuyo, escribí tu carrera acá y no elijas ninguno. Todavía no podemos asegurarte ofertas de carreras que no están en la lista.",
+    label: "Mi carrera",
+    placeholder: "Por ejemplo, Arquitectura",
+    obligatoria: "Elegí al menos un puesto o escribí tu carrera en «Otra».",
+    error: "Escribí tu carrera con entre 2 y 60 letras, números o signos comunes, sin enlaces.",
+  },
+  /** R32-03: lo que ve quien se anota de una carrera que todavía no abrió. */
+  esperaCarrera: "Todavía estamos sumando ofertas de {carrera}. Te avisamos por email apenas abra.",
+  /** R32-03: pantalla de admin `/admin/carreras`. Informa; la decisión es del responsable. */
+  apertura: {
+    titulo: "Apertura por carrera",
+    intro:
+      "Acá decidís qué carreras están abiertas. Nada abre solo: el panel de cobertura informa y el cambio lo hacés vos. Con la lista vacía no se cierra nada a quien ya está adentro, y las altas nuevas quedan en la lista de espera de su carrera.",
+    umbral: "Para abrir: al menos {tomables} tomables y {empieza} para quien empieza.",
+    carrera: "Carrera",
+    estado: "Estado",
+    cobertura: "Cobertura",
+    abierta: "Abierta",
+    cerrada: "Cerrada",
+    abrir: "Abrir {carrera}",
+    cerrar: "Cerrar {carrera}",
+    verCobertura: "Ver el panel de cobertura",
+    coberturaFila: "{tomables} tomables · {empieza} para quien empieza",
+    sinCobertura: "Sin dato de cobertura",
+    semaforo: { verde: "En verde", amarillo: "Cerca", rojo: "En rojo" },
+    abiertaDesde: "Abierta desde el {fecha} por {quien}",
+    abiertaSinQuien: "Abierta desde el {fecha}",
+    historialTitulo: "Quién cambió la lista y cuándo",
+    historialVacio: "Todavía no se cambió nada.",
+    historialAbrir: "{quien} abrió {carrera} el {fecha}",
+    historialCerrar: "{quien} cerró {carrera} el {fecha}",
+    quienNinguno: "una cuenta que ya no existe",
+    otraAviso:
+      "«Otra» nunca abre sola: son personas con una carrera que todavía no está en el catálogo.",
+    ok: {
+      abierta: "Listo: la carrera quedó abierta.",
+      cerrada: "Listo: la carrera quedó cerrada. Quien ya estaba adentro no pierde nada.",
+      sin_cambio: "Ya estaba así: no cambió nada.",
+    },
+    errores: {
+      invalida: "Esa carrera no se puede abrir.",
+      no_admin: "Tu cuenta no puede administrar las carreras.",
+      sin_base: "Tu cuenta es admin en la app pero falta habilitarla en la base (app_admins).",
+      fallo: "No se pudo guardar el cambio. Probá de nuevo.",
+    },
+    noLeyo:
+      "No se pudo leer la lista de carreras abiertas. ¿Falta aplicar la migración 0089 y la política 0074?",
+  },
+  /** R32-04: estado vacío por carrera, cuando hay pocas ofertas. */
+  pocasOfertas: {
+    titulo: "Hay pocas ofertas de {carreras} en {idioma} esta semana",
+    fila: "{carrera}: {n} esta semana",
+    texto:
+      "Encontramos menos de {umbral}. Para ver más, armá una alerta por email en el portal de tu carrera y reenviala acá, o cargá una oferta que hayas visto.",
+    guia: "Ver la guía de alertas, paso a paso",
+    cargar: "Cargar una oferta",
+    cerrar: "Ahora no",
+  },
+  /** R32-04: guía de alertas por carrera. Las alertas las arma cada persona; la app no entra a ningún portal. */
+  guia: {
+    aclaracion:
+      "Las alertas las armás vos en cada portal: nosotros no las creamos ni entramos a tu cuenta. Después hacés que esos emails lleguen a tu dirección.",
+    carrera: "Para {carrera}",
+    palabras: "Palabras para buscar",
+    pasoAPaso: "Paso a paso en {portal}",
+    llegadas: "Te llegaron {n} ofertas de {portal} en los últimos 30 días.",
+    llegadaUna: "Te llegó 1 oferta de {portal} en los últimos 30 días.",
+    llegadaNinguna: "Todavía no te llegó ninguna oferta de {portal}.",
+    recibir: {
+      directa: "Escribís tu dirección como email de la alerta y llegan solas.",
+      reenviar:
+        "Llegan a tu email y las reenviás a tu dirección (a mano o con los filtros de Gmail).",
+      pegar: "Todavía no leemos sus emails: pegá los avisos que te interesen.",
+    },
+    cuales:
+      "Mirá cuál te sirve: si un portal no te trae ofertas, no hace falta mantener esa alerta.",
+  },
+  /** R32-09: email de novedades, su preferencia en Ajustes y la baja en un clic. */
+  novedades: {
+    titulo: "Novedades por email",
+    texto:
+      "Un email, como mucho una vez por semana, con las ofertas nuevas de tu carrera. Si no hay ofertas nuevas, no te escribimos.",
+    label: "Quiero recibir el email de novedades",
+    guardar: "Guardar",
+    guardado: "Listo, guardamos tu preferencia.",
+    baja: {
+      titulo: "Email de novedades",
+      ajustes: "Ir a Ajustes",
+      ok: {
+        titulo: "Te diste de baja",
+        texto:
+          "Listo: no te mandamos más el email de novedades. Si fue un error, lo podés volver a prender en Ajustes.",
+      },
+      invalido: {
+        titulo: "El enlace no es válido",
+        texto:
+          "El enlace de baja está incompleto o no es el que te mandamos. Podés dejar de recibir el email desde Ajustes, en «Novedades por email».",
+      },
+      error: {
+        titulo: "No pudimos darte de baja",
+        texto:
+          "Probá de nuevo en un rato, o dejá de recibir el email desde Ajustes, en «Novedades por email».",
+      },
+    },
+  },
+} as const;
+
+/**
+ * Panel de cobertura (R32-02, `/admin/cobertura`). Lo edita solo `cobertura`. Es una pantalla de admin: informa
+ * y el responsable decide, nada abre solo.
+ */
+export const COBERTURA_TEXTOS = {
+  titulo: "Cobertura por carrera",
+  intro:
+    "Cuántas ofertas del pool le sirven hoy a una persona de Argentina, carrera por carrera. Informa; la decisión de abrir una carrera es tuya.",
+  definiciones: {
+    titulo: "Cómo se cuenta",
+    vigente: "Vigente: una fuente mostró el aviso en los últimos 7 días.",
+    tomable:
+      "Tomable: el aviso acepta Argentina, su región o todo el mundo de forma explícita, o el lugar de trabajo está en Argentina. Si no dice países, no cuenta.",
+    paraEmpezar:
+      "Para quien empieza: tomable y de nivel trainee, pasante o junior, la misma señal del chip «Para empezar».",
+    espanol: "En español: el idioma del aviso es español. Sin dato no cuenta, así que es un piso.",
+    varias: "Una oferta con varias carreras cuenta una vez en cada una.",
+  },
+  umbral: "Para abrir una carrera: al menos {tomables} tomables y {empieza} para quien empieza.",
+  semaforo: {
+    verde: "Lista para abrir",
+    amarillo: "Cerca del umbral",
+    rojo: "Todavía no",
+  },
+  columnas: {
+    carrera: "Carrera",
+    estado: "Estado",
+    vigentes: "Vigentes",
+    tomables: "Tomables",
+    paraEmpezar: "Para quien empieza",
+    espanol: "En español",
+    fuentes: "Fuentes",
+    tendencia: "Últimos 14 días",
+  },
+  fuentes: {
+    ninguna: "Sin fuentes",
+    detalle: "{fuente}: {tomables} tomables de {vigentes}",
+  },
+  tendencia: {
+    resumen: "{nuevas} nuevas en 7 días, {previas} en los 7 anteriores",
+    grafico: "Ofertas tomables nuevas por día, de hace 14 días a hoy",
+    sinDatos: "Sin datos suficientes: el pool todavía no tiene 14 días de historia.",
+  },
+  sinDatos: "No se pudo leer la cobertura. Probá de nuevo en un momento.",
+  generado: "Calculado el {fecha}.",
+  apertura: {
+    label: "Cobertura de las carreras de la beta",
+    todas: "Las {total} carreras están en verde.",
+    algunas: "{verdes} de {total} carreras en verde; faltan: {faltan}.",
+    noLeyo: "No se pudo leer la cobertura del pool.",
+    todo: "Sumá fuentes para esas carreras y volvé a mirar el panel de cobertura. Abrir una carrera lo decide el responsable.",
+  },
+} as const;

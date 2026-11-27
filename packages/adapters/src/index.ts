@@ -35,6 +35,8 @@ export * from "./applications/linkedin-application";
 export * from "./email/resend";
 export * from "./billing/plan-expiry-notices";
 export * from "./billing/welcome-email";
+export * from "./news/news-email";
+export * from "./news/unsubscribe-token";
 export * from "./applicant/context";
 export * from "./mcp/auth";
 export * from "./mcp/untrusted";
@@ -98,6 +100,7 @@ export {
 } from "./market/career-market";
 export { readCareerRevealCounts } from "./market/career-reveal";
 export { readBetaPoolCounts, type BetaPoolCounts } from "./market/beta-counts";
+export { readCareerCoverageJobs, CAREER_COVERAGE_MAX_ROWS } from "./market/career-coverage";
 export {
   readPoolCoverage,
   readPoolMailboxActivity,

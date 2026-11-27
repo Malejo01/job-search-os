@@ -25,6 +25,18 @@ export const ADMIN_SECTIONS = [
     label: "Métricas",
     hint: "Uso de la beta por carrera",
   },
+  {
+    id: "cobertura",
+    href: "/admin/cobertura",
+    label: "Cobertura",
+    hint: "Ofertas por carrera antes de abrir",
+  },
+  {
+    id: "carreras",
+    href: "/admin/carreras",
+    label: "Carreras",
+    hint: "Qué carreras están abiertas",
+  },
   { id: "costos", href: "/admin/costos", label: "Costos", hint: "Gasto de IA y márgenes" },
   { id: "salud", href: "/admin/salud", label: "Salud", hint: "Fallas, topes y anomalías" },
   {

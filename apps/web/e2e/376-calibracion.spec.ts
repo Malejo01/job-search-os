@@ -117,7 +117,8 @@ test("el admin exporta lo marcado, sin datos personales", async ({ page }) => {
   expect(csv).not.toContain(E2E_B_EMAIL);
   expect(csv).not.toContain("Persona B");
   expect(csv).not.toContain(E2E_B_USER_ID);
-  expect(csv).not.toMatch(/@/);
+  // Sin ningún email: la versión del prompt (`evaluate_job@v1.5.0`) lleva «@», pero su «dominio» termina en números
+  expect(csv).not.toMatch(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
   // La oferta es de la persona (no del pool): sin título ni empresa
   expect(csv).not.toContain("Calibración Abogacía Societario");
   // La versión vieja no sale
