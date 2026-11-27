@@ -16,7 +16,7 @@ import { Alert, cardClasses, filterChipClasses } from "@/components/ui";
 const pick = (selected: boolean) =>
   filterChipClasses({
     selected,
-    className: "min-w-11 disabled:cursor-not-allowed disabled:opacity-60",
+    className: "min-w-11 disabled:cursor-not-allowed disabled:grayscale",
   });
 const PANEL = cardClasses({ padding: "md", className: "flex flex-col gap-3" });
 const H2 = "text-base font-bold text-fg";

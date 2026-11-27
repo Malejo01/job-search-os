@@ -64,20 +64,11 @@ function esPantallaDelCv(archivo: string): boolean {
  */
 const PENDIENTES_OFERTAS: Readonly<Record<string, number>> = {};
 
-/** Hallazgos del resto de las pantallas de usuario. Solo pueden bajar; R33 (CV) y R34 (el resto) los vacían. */
-const EXCEPCIONES: Readonly<Record<string, number>> = {
-  "app/(app)/inbox/bulk-bar.tsx": 1,
-  "app/(app)/inbox/page.tsx": 1,
-  "app/(app)/plan/si-aprendes.tsx": 1,
-  "app/(app)/settings/criteria/save-button.tsx": 1,
-  "app/components/guarded-form.tsx": 1,
-  "app/components/submit-button.tsx": 1,
-  "app/terminos-actualizados/form.tsx": 1,
-  "components/brand/illustration.tsx": 1,
-  "components/guided-tour.tsx": 1,
-  "components/primer-uso.tsx": 1,
-  "components/specialty-chips-toggle.tsx": 4,
-};
+/**
+ * Hallazgos del resto de las pantallas de usuario. R34-01: vacía. Todo lo de usuario está en modo estricto; lo único
+ * que no se mide está en `EXCLUIDOS` (el admin, la hoja de papel y la página de error).
+ */
+const EXCEPCIONES: Readonly<Record<string, number>> = {};
 
 function archivos(dir: string, out: string[] = []): string[] {
   for (const nombre of readdirSync(dir)) {
@@ -186,6 +177,24 @@ describe("las pantallas cumplen la regla", () => {
       .filter(([a, n]) => cuenta(a) !== n)
       .map(([a, n]) => `${a}: anotado ${n}, hoy ${cuenta(a)}`);
     expect(mal).toEqual([]);
+  });
+
+  it("R34-01: la lista de excepciones está vacía y solo el admin queda sin medir entre las pantallas de usuario", () => {
+    expect(Object.keys(EXCEPCIONES)).toEqual([]);
+    expect(Object.keys(PENDIENTES_OFERTAS)).toEqual([]);
+    for (const a of [
+      "app/(app)/hoy/page.tsx",
+      "app/(app)/inbox/page.tsx",
+      "app/(public)/page.tsx",
+    ]) {
+      expect(medidos, a).toContain(a);
+      expect(cuenta(a), a).toBe(0);
+    }
+    expect(EXCLUIDOS.map((e) => e.prefijo)).toEqual([
+      "app/(app)/admin/",
+      "components/cv-preview.tsx",
+      "app/global-error.tsx",
+    ]);
   });
 
   it("las pendientes de ofertas solo nombran archivos de ofertas que existen", () => {

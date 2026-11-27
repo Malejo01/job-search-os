@@ -20,7 +20,7 @@ export function SaveButton({
       type="submit"
       disabled={pending}
       aria-disabled={pending}
-      className={`${className} disabled:opacity-60`}
+      className={`${className} disabled:grayscale`}
     >
       {pending ? pendingLabel : label}
     </button>

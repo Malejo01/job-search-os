@@ -291,8 +291,8 @@ export default async function InboxPage({
           {rows.map((r) => (
             <li
               key={r.id}
-              className={`rounded-card bg-surface p-4 text-sm ${
-                r.dismissed || r.seen ? "opacity-75" : ""
+              className={`rounded-card p-4 text-sm ${
+                r.dismissed || r.seen ? "bg-surface-muted" : "bg-surface"
               }`}
             >
               <div className="flex items-start gap-2">
