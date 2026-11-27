@@ -27,6 +27,8 @@ import {
   type Checklist,
   type CriteriaRules,
   type Evaluation,
+  type JobCard,
+  type RequirementAnswer,
   type JobFacts,
   type JobForPrompt,
   type ReuseInputs,
@@ -36,6 +38,7 @@ import {
 import type { PromptRef } from "@job-search-os/prompts";
 import { randomUUID } from "node:crypto";
 import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm";
+import { ensureJobCardBeforeEvaluation, loadJobCardForEvaluation } from "../job-card/ensure";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, globalCapReached, spendLast24h, userDailyCapUsd } from "../llm/spend";
@@ -218,6 +221,9 @@ export type EvaluateForProfileInput = {
    * (demo, tests) el checklist sale sin skills.
    */
   checklistSkills?: ChecklistSkills;
+  /** R31-03: la ficha verificada del aviso (la lee el prompt v1.5+ y la fase B de la tabla) y las respuestas de un toque. */
+  jobCard?: JobCard | null;
+  requirementAnswers?: ReadonlyMap<string, RequirementAnswer>;
   /**
    * El salario del aviso salió de un campo de la API (ver `salaryIsFromApi`). Ausente = false: sin
    * saber de dónde vino, el código no se fía de la cifra (demo, tests).
@@ -309,6 +315,7 @@ export async function evaluateForProfile(
     },
     rules,
     job,
+    jobCard: input.jobCard,
   });
 
   // El prompt completo (perfil, criterios y aviso) no puede pasarse del máximo: no se llama al
@@ -401,6 +408,8 @@ export async function evaluateForProfile(
       userSkills: skillsIn?.userSkills ?? [],
       terms: skillsIn?.terms ?? [],
       skillNames: skillsIn?.skillNames,
+      jobCard: input.jobCard ?? null,
+      ...(input.requirementAnswers ? { requirementAnswers: input.requirementAnswers } : {}),
     });
   } catch (e) {
     input.logger?.error(
@@ -540,6 +549,13 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   }
   const rules = criteria.rules as CriteriaRules;
 
+  // R31-03: la ficha del aviso, siempre antes de evaluar. Solo con JOB_CARD encendida; nunca frena la evaluación.
+  await ensureJobCardBeforeEvaluation(
+    { db, llm: deps.llm, logger: log, now: deps.now, signal: deps.signal },
+    job,
+  );
+  const cardCtx = await loadJobCardForEvaluation(db, { jdText: job.jdText, userId: job.userId });
+
   // Los niveles de skills solo alimentan el checklist: si falla la carga, la evaluación sigue
   let checklistSkills: ChecklistSkills | undefined;
   try {
@@ -585,6 +601,8 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
     job,
     reuse: reusable ?? undefined,
     checklistSkills,
+    jobCard: cardCtx.jobCard,
+    requirementAnswers: cardCtx.requirementAnswers,
     salaryFromApi: salaryFromApiKinds(sources.map((r) => r.kind)),
     logger: log,
     signal: deps.signal,

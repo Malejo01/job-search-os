@@ -1,6 +1,7 @@
 import { err, ok } from "@job-search-os/pipeline";
 import { demoCvInterview, demoCvWrite } from "./demo-cv";
 import { demoCvTailor } from "./demo-cv-tailor";
+import { demoJobCard } from "./demo-job-card";
 import { demoTranscription } from "./demo-voice";
 import { demoInterviewFeedback, demoInterviewQuestions } from "./demo-interview";
 import type { CallSink, GenerateContext, LlmClient } from "./types";
@@ -17,6 +18,7 @@ const DEMO_TASKS = [
   "cv_review",
   "cv_coach_turn",
   "cv_tailor",
+  "extract_job_card",
   "transcribe_audio",
 ];
 
@@ -295,16 +297,18 @@ export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
                           ? [demoDrafts(vars)]
                           : task === "cv_tailor"
                             ? [demoCvTailor(vars)]
-                            : task === "transcribe_audio"
-                              ? [demoTranscription(vars, ctx.images?.[0]?.data)]
-                              : (() => {
-                                  const typed = demoEvaluation(vars);
-                                  const legacy = {
-                                    ...typed,
-                                    gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
-                                  };
-                                  return [typed, legacy];
-                                })();
+                            : task === "extract_job_card"
+                              ? [demoJobCard(vars)]
+                              : task === "transcribe_audio"
+                                ? [demoTranscription(vars, ctx.images?.[0]?.data)]
+                                : (() => {
+                                    const typed = demoEvaluation(vars);
+                                    const legacy = {
+                                      ...typed,
+                                      gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
+                                    };
+                                    return [typed, legacy];
+                                  })();
       const parsed = candidates.map((o) => schema.safeParse(o)).find((p) => p.success);
       if (!parsed?.success) {
         return err({

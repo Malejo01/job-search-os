@@ -40,6 +40,7 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "application_answers", column: "user_id", action: "delete" },
   { table: "answer_bank", column: "user_id", action: "delete" },
   { table: "candidate_facts", column: "user_id", action: "delete" },
+  { table: "requirement_answers", column: "user_id", action: "delete" },
   { table: "application_settings", column: "user_id", action: "delete" },
   { table: "inbound_emails", column: "user_id", action: "delete" },
   { table: "raw_blobs", column: "user_id", action: "delete" },

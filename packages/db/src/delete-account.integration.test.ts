@@ -76,6 +76,8 @@ async function seed(id: string, tag: string): Promise<void> {
   await owner`insert into candidate_facts (user_id, key, project, claim, source)
                values (${id}, 'k1', 'Proyecto', 'Afirmación', 'https://example.test')`;
   await owner`insert into application_settings (user_id, availability) values (${id}, 'inmediata')`;
+  await owner`insert into requirement_answers (user_id, req_key, answer)
+               values (${id}, 'formacion:titulo ficticio', 'si')`;
   await owner`insert into contacts (user_id, name) values (${id}, 'Contacto A')`;
   await owner`insert into talent_platforms (user_id, name, status) values (${id}, 'Plataforma A', 'pendiente')`;
   const [skill] = await owner<{ id: string }[]>`

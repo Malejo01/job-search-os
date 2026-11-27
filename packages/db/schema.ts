@@ -1215,3 +1215,53 @@ export const textReviews = pgTable("text_reviews", {
   check("text_reviews_status", sql`${t.status} in ('aprobada', 'propuesta')`),
   check("text_reviews_proposal", sql`${t.proposal} is null or char_length(${t.proposal}) <= 1000`),
 ]);
+
+// Ficha del aviso (R31-01, ADR-048, rls/0071). UNA fila por descripción: la clave es `jd_hash` (sha256 del texto
+// normalizado, el mismo de `jobs.jd_hash` y `public_jobs.jd_hash`). Sale solo del texto del aviso y sirve a todas las
+// personas, por eso NO lleva `user_id` ni nada que diga quién la pidió. La app solo la lee (la persona ve la ficha de
+// un hash que coincide con una oferta suya o del pool); la escribe el proceso que la genera, con la conexión de
+// servicio. `card` solo existe con status `lista` y es un `JobCard` ya verificado contra el texto
+// (`packages/pipeline/src/job-card`). Las columnas sueltas son copias para que /market cuente sin abrir el JSON.
+export const jobCards = pgTable("job_cards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jdHash: text("jd_hash").notNull(),
+  status: text("status").notNull(),                          // lista | fallida | sin_texto
+  card: jsonb("card"),                                       // JobCard verificado; null si no está lista
+  schemaVersion: integer("schema_version").notNull().default(1),
+  promptVersion: text("prompt_version"),
+  model: text("model"),
+  attempts: integer("attempts").notNull().default(0),        // intentos de generación (el reintento de «fallida» suma)
+  errorCode: text("error_code"),                             // solo un código corto, nunca texto del aviso ni del modelo
+  area: text("area"),
+  jdLanguage: text("jd_language"),                           // es | en | pt | otro (idioma del aviso según la ficha)
+  englishLevel: text("english_level"),                       // NivelIngles de la ficha o null
+  modality: text("modality"),                                // remoto | hibrido | presencial o null
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("job_cards_jd_hash").on(t.jdHash),
+  check("job_cards_hash_shape", sql`${t.jdHash} ~ '^[0-9a-f]{64}$'`),
+  check("job_cards_status", sql`${t.status} in ('lista', 'fallida', 'sin_texto')`),
+  check("job_cards_card_only_if_ready", sql`(${t.status} = 'lista') = (${t.card} is not null)`),
+  check("job_cards_error_code", sql`${t.errorCode} is null or char_length(${t.errorCode}) <= 60`),
+]);
+
+// Respuestas de un toque a «lo que pide el aviso» (R31-05, rls/0072). Cuando la tabla de requisitos no puede
+// comparar una fila con el perfil queda «Sin confirmar» y la persona contesta Sí, No o En parte. `req_key` es la
+// clave estable de lo que se pide (`requirementKey` en packages/pipeline): la misma respuesta vale para las demás
+// ofertas que pidan lo mismo. No es una afirmación para formularios: por eso no va en `candidate_facts`, que lee
+// el servidor MCP como hechos que se pueden decir de la persona. Datos de la persona: user_id, RLS y cascada.
+export const requirementAnswers = pgTable("requirement_answers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reqKey: text("req_key").notNull(),                         // `requirementKey`: categoria:datos normalizados, hasta 160
+  answer: text("answer").notNull(),                          // si | no | en_parte
+  note: text("note"),                                        // solo con «en_parte»; hasta 200 caracteres
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("requirement_answers_user_key").on(t.userId, t.reqKey),
+  check("requirement_answers_key", sql`char_length(${t.reqKey}) between 1 and 160`),
+  check("requirement_answers_answer", sql`${t.answer} in ('si', 'no', 'en_parte')`),
+  check("requirement_answers_note", sql`${t.note} is null or (${t.answer} = 'en_parte' and char_length(${t.note}) <= 200)`),
+]);

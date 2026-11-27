@@ -112,7 +112,7 @@ const clampLockTimeout = (ms: number | undefined): number =>
     : DEFAULT_LOCK_TIMEOUT_MS;
 
 /** Toma el lock global dentro de la transacción, esperando como mucho `lockTimeoutMs`. */
-async function takeSpendLock(tx: Pick<Db, "execute">, lockTimeoutMs: number): Promise<void> {
+export async function takeSpendLock(tx: Pick<Db, "execute">, lockTimeoutMs: number): Promise<void> {
   // SET no admite parámetros: el valor es un entero ya acotado
   await tx.execute(sql.raw(`set local lock_timeout = ${lockTimeoutMs}`));
   await tx.execute(

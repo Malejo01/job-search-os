@@ -35,6 +35,9 @@ const CATALOG_TABLES = [
   "public_job_skills",
   "public_job_fetches",
   "role_market_snapshots",
+  // Ficha del aviso (R31-01, ADR-048): sin user_id a propósito (es función del texto); la app solo lee las de sus
+  // ofertas o del pool (rls/0071) y la escribe el proceso de servicio.
+  "job_cards",
   // Boards de ATS del pool (ronda 47): sin policy, solo el cron con la conexión de servicio.
   "ats_boards",
   // Lista de espera pública (ronda 63): personas sin cuenta, sin policy; solo entra por waitlist_join.
@@ -142,6 +145,8 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into candidate_facts (user_id, key, project, claim, source)
                values (${id}, 'k1', 'Proyecto de Prueba', 'Afirmación ficticia', 'https://example.test')`;
   await owner`insert into application_settings (user_id, availability) values (${id}, 'inmediata')`;
+  await owner`insert into requirement_answers (user_id, req_key, answer)
+               values (${id}, 'formacion:titulo ficticio', 'si')`;
   await owner`insert into contacts (user_id, name) values (${id}, 'Contacto de Prueba')`;
   await owner`insert into talent_platforms (user_id, name, status) values (${id}, 'Plataforma de Prueba', 'pendiente')`;
   const [skill] = await owner<{ id: string }[]>`
@@ -859,6 +864,11 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       ).rejects.toThrow(/admin_beta_feedback: no autorizado/);
     },
     // R29-02: informes de revisión, solo app_admins (rls/0069)
+    admin_calibration_marks: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select * from admin_calibration_marks(10)`),
+      ).rejects.toThrow(/admin_calibration_marks: no autorizado/);
+    },
     admin_feedback_reports: async () => {
       await expect(asUser(A, (tx) => tx`select * from admin_feedback_reports(10)`)).rejects.toThrow(
         /admin_feedback_reports: no autorizado/,

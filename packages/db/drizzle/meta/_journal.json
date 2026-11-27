@@ -610,6 +610,20 @@
       "when": 1795730260091,
       "tag": "0086_kind_warpath",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1795736352379,
+      "tag": "0087_silent_meggan",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1795736503233,
+      "tag": "0088_good_sheva_callister",
+      "breakpoints": true
     }
   ]
 }
