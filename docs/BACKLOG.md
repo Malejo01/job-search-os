@@ -2327,3 +2327,29 @@ Informe de la tanda: [`docs/beta/informe-r32.md`](beta/informe-r32.md). Pasos ma
 
 ### R32 · Cierre de la tanda
 `estado:` en rama (27/11) · `ronda/r32-cierre`
+
+## Bloque 51 · Tanda R33 «CV» (27/11)
+
+Informe de la tanda: [`docs/beta/informe-r33.md`](beta/informe-r33.md). Pasos manuales: [`docs/beta/pasos-manuales-r33.md`](beta/pasos-manuales-r33.md). Cadena sobre `ronda/r32-cierre`; ningún PR mergeado por agentes. Migración 0091 y RLS 0075 sin aplicar en Neon; la RLS 0074 se vuelve a aplicar (REVOKE de seguridad). USD 0; sin prompts nuevos; sin dependencias nuevas (PDF con serializador propio, ADR-049). Orden de la cadena: `r33-02-asistente` → `r33-08-documento` → `r33-01-calidad` → `r33-12-ci` → `r33-cierre`; la cadena se revisa entera (las puertas pasan sobre el último commit).
+
+### Pedido
+- **R33-01** · «Tu CV» con tres estados, cada faltante con su botón al campo exacto y el aviso de borrador · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-02** · Borrador automático en los dos asistentes (`cv_drafts`, 0091, RLS 0075; limpieza a 30 días) · `estado:` en rama (27/11) · `ronda/r33-02-asistente`
+- **R33-03** · Botones y flujo del asistente (un solo «Responder y seguir», saltear, temas, volver, privacidad una vez) · `estado:` en rama (27/11) · `ronda/r33-02-asistente`
+- **R33-04** · Resumen profesional y habilidades blandas por situaciones, sin inventar · `estado:` en rama (27/11) · `ronda/r33-02-asistente`
+- **R33-05** · «Esto es lo que entendí» con ejemplos, quitar y deshacer, idiomas y links · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-06** · Diagnóstico con palabra y número entero y una acción por falta · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-07** · Contacto y links (teléfono opcional sin marcar, «Otro» link, https) · `estado:` en rama (27/11) · `ronda/r33-08-documento`
+- **R33-08** · PDF real en el servidor, A4, texto seleccionable y links, sin dependencia nueva · `estado:` en rama (27/11) · `ronda/r33-08-documento`
+- **R33-09** · Calidad del CV («Actualidad», categorías en español, avisos suaves, nada no confirmado) · `estado:` en rama (27/11) · `ronda/r33-08-documento`
+- **R33-10** · Legibilidad estricta en todas las pantallas del CV y auditoría · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-11** · e2e de los dos caminos · `estado:` en rama (27/11) · `ronda/r33-cierre`
+- **R33-12** · Arreglos del CI de integración de R30 a R32 (PR #570): casos de la RLS 0074 y REVOKE de seguridad, listado visible sin JavaScript, confirmación de Gmail primera, specs que asumían datos o pantallas viejas · `estado:` en rama (27/11) · `ronda/r33-12-ci`
+
+### Pendientes que salen de la tanda
+- C-62 en el coach (necesita versión nueva de prompt), C-68 sin pantalla que reescriba una viñeta; ritmo de descarga del PDF solo en memoria.
+- Programar la limpieza de borradores (30 días): sumarla a la purga diaria de `/api/cron/evaluate`, en un PR rojo aparte.
+- `decide()` revienta con reglas incompletas (`evaluation_criteria.rules = {}`): decidir si la evaluación falla cerrada con un mensaje claro. En producción no pasa (el alta arma las reglas).
+
+### R33 · Cierre de la tanda
+`estado:` en rama (27/11) · `ronda/r33-cierre`

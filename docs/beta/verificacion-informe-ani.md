@@ -11,6 +11,8 @@ Una fila por cada uno de los 159 puntos del informe de revisión: **R-01 a R-38*
 
 Estado al cierre de la R31 (26/11): se actualizaron las filas R-02, R-25 a R-29, S-02, S-05 a S-08, S-12, S-18, S-21 y S-22. Lo de la R31 solo se ve con `JOB_CARD=testers` (apagada, la app es la de la R30) y necesita las migraciones 0087 y 0088 y las RLS 0071 a 0073 aplicadas (`docs/beta/pasos-manuales-r31.md`). Las filas que dependen de `evaluate_job@v1.5.0` quedan `parcial` hasta medirla y promoverla.
 
+Estado al cierre de la R33 (26/11): se actualizaron C-01 a C-05, C-26 a C-47 en lo que cubren R33-05 y R33-06 (ver abajo) y C-43 a C-69 en lo de R33-07 a R33-09. **Las descripciones de C-43 a C-69 se corrigieron para que coincidan con el informe de revisión** (la versión anterior las había armado a partir del plan y no coincidían). Las filas C-06 a C-20 (R33-03 y R33-04) y los e2e de la tanda **(completa el lead)**. Lo de la tanda necesita la migración 0091 y la RLS 0075 aplicadas (`docs/beta/pasos-manuales-r33.md`). C-21 a C-25 y C-63 quedan «después de abrir». Ver `docs/beta/informe-r33.md`.
+
 Estado al cierre de la R32 (26/11): **ninguna fila cambia.** La R32 (inventario, alta por carrera, cobertura, fuentes y sueldo en la moneda original) no cubre ningún ID de los 159: el plan y `docs/beta/prompt-r32.md` no citan ninguno. Si al cotejar con el informe de revisión alguna fila resulta cubierta por R32-01 a R32-09, se actualiza acá. Ver `docs/beta/informe-r32.md`.
 
 Estado al cierre de la R30 (26/11). `hecho` en una fila de la R30 quiere decir que el código está en la rama de cierre y probado con tests unitarios; los e2e los completa el lead en `docs/beta/informe-r30.md`. `parcial` quiere decir que falta otro ticket de la cadena o que el texto está sin cotejar con el informe.
@@ -116,75 +118,75 @@ Estado al cierre de la R30 (26/11). `hecho` en una fila de la R30 quiere decir q
 
 | ID | De qué trata | Tanda | Estado | Cómo verlo |
 |---|---|---|---|---|
-| C-01 | Pantalla «Tu CV»: sin nada cargado | R33-01 | pendiente | `/cv` |
-| C-02 | Pantalla «Tu CV»: con datos parciales | R33-01 | pendiente | `/cv` |
-| C-03 | Borrador automático | R33-02 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-04 | Pantalla «Tu CV»: CV completo con diagnóstico y descarga | R33-01 | pendiente | `/cv` |
-| C-05 | Borrador: texto, 30 días y borrado con la cuenta | R33-02 | pendiente | `/cv` con borrador |
-| C-06 | Asistente: un solo «Responder y seguir» | R33-03 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-07 | Asistente: «Saltear esta pregunta» | R33-03 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-08 | Asistente: «Terminar y armar» con confirmación | R33-03 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-09 | Asistente: el dictado no envía solo | R33-03 | pendiente | `/cv/armar` |
-| C-10 | Asistente: avance como lista de los 7 temas | R33-03 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-11 | Asistente: «Volver a la pregunta anterior» | R33-03 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-12 | Asistente: privacidad una sola vez, en un ⓘ | R33-03 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-13 | Asistente: mensaje de honestidad corto y arriba | R33-03 | pendiente | `/cv/armar` y `/cv/coach` |
-| C-14 | Asistente: camino para quien no tiene experiencia | R33-03 | pendiente | `/cv/armar` |
-| C-15 | Resumen profesional: preguntas | R33-04 | pendiente | `/cv/armar` |
-| C-16 | Resumen profesional: borrador editable | R33-04 | pendiente | `/cv/armar` |
-| C-17 | Resumen profesional: sin cifras inventadas | R33-04 | pendiente | Tests de `packages/pipeline` |
-| C-18 | Habilidades blandas por situaciones | R33-04 | pendiente | `/cv/armar` |
-| C-19 | Habilidades blandas: de dónde salió cada una | R33-04 | pendiente | `/cv/armar` |
-| C-20 | Habilidades blandas: entre 2 y 4 como máximo | R33-04 | pendiente | `/cv/armar` |
+| C-01 | Diagnóstico de intención: «No tengo CV» es la puerta cuando no hay nada; la mini-tarjeta, el recordatorio cuando ya hay algo | R33-01 | hecho, con una diferencia | `/cv` sin datos: solo «Tengo CV» y «No tengo CV» (e2e 428); con algo cargado la puerta desaparece y queda el recordatorio de lo que falta. Diferencia: sin el agente de perfil no hay puerta de dos caminos, y ahí la lista de faltantes también se muestra con el CV vacío (es la guía) |
+| C-02 | Regla de visibilidad según el estado de los datos (sin nada / parcial / completo) | R33-01 | hecho | La regla es `cvScreen` en `packages/pipeline` (13 tests). Parcial: sin «No tengo CV», con «Seguir armando mi CV» y la lista de lo que falta, cada ítem con su botón (e2e 428). Completo: diagnóstico y descarga, y la tarjeta de pendientes desaparece (solo test unitario: exige un resumen confirmado). Un borrador sin confirmar no cambia el estado: solo suma el aviso |
+| C-03 | Borrador automático | R33-02 | parcial | `/cv/armar` y `/cv/perfil` → coach: dejar a medias y volver. Requiere 0091 y RLS 0075 en Neon; e2e 410 (sin correr) |
+| C-04 | Enlaces genéricos reemplazados por botones a campos concretos: «Agregar mi experiencia», «Agregar mis estudios», «Escribir mi resumen» | R33-01 | hecho, con una diferencia | `/cv`, lista de lo que falta (e2e 428): experiencia y estudios caen en el campo exacto de `/settings/historial` (`?tipo=` y ancla), habilidades e idioma en `/settings/skills`. Diferencia: «Escribir mi resumen» lleva al asistente (`/cv/armar`), porque no hay otro lugar donde escribirlo; sin el chat dice «Todavía no hay dónde escribirlo». «Skills» se escribe «habilidades» (glosario) |
+| C-05 | Borrador: texto, 30 días y borrado con la cuenta | R33-02 | parcial | Tests de integración (vencimiento a 30 días y cascada con la cuenta). «Volver a Tu CV» dice «Tu progreso queda guardado como borrador» en el chat y en el coach (el borrador se guarda solo, así que no hay aviso de salida). La purga no está programada (`pasos-manuales-r33.md` §3) |
+| C-06 | Asistente: un solo «Responder y seguir» | R33-03 | hecho | `/cv/armar` y `/cv/coach/charla`; e2e 411 y 413 (sin correr) |
+| C-07 | Asistente: «Saltear esta pregunta» | R33-03 | hecho | Enlace con «Podés volver a esto más tarde». En el chat lo salteado queda en la lista de temas con «Volver a este tema» (`guided.test.ts`); en el coach queda marcado y se retoma en la próxima revisión |
+| C-08 | Asistente: «Terminar y armar» con confirmación | R33-03 | hecho, con una diferencia | Chat: solo con datos suficientes (un trabajo con empresa y cargo, proyecto, estudio o certificación), aparte, con «Falta: […]». Coach: el CV ya existe, así que siempre está disponible y pide confirmación mientras la revisión no terminó |
+| C-09 | Asistente: el dictado no envía solo | R33-03 | hecho | «Revisá lo que dijimos y apretá Responder y seguir» tras dictar, en el chat y en el coach. El dictado siempre solo completó el campo |
+| C-10 | Asistente: avance como lista de los 7 temas | R33-03 | hecho, con una diferencia | Chat: los 7 temas (puesto, resumen, experiencia, estudios, habilidades, idiomas, links; el séptimo es el resumen y estudios con certificaciones cuentan como uno). Coach: la lista son los problemas de la revisión de ese CV, no los 7 temas |
+| C-11 | Asistente: «Volver a la pregunta anterior» | R33-03 | hecho | `/cv/armar` y `/cv/coach/charla` (e2e 411 y 413, sin correr). En el coach, lo ya confirmado en tarjetas no se deshace |
+| C-12 | Asistente: privacidad una sola vez, en un ⓘ | R33-03 | hecho | `VoiceInput` con `privacy="info"` (nuevo); la revisión («Dictar tareas») usa `hidden` salvo el primero, a cargo de `calidad` |
+| C-13 | Asistente: mensaje de honestidad corto y arriba | R33-03 | hecho, con una diferencia | Dice «Nada entra a tu CV hasta que lo confirmes» en vez de «Nada se guarda hasta que lo confirmes» (el plan §11 guarda un borrador; ver C-03). A confirmar con la revisora |
+| C-14 | Asistente: camino para quien no tiene experiencia | R33-03 | hecho | `/cv/armar`: la pregunta de estudios ofrece proyectos, voluntariado y cursos. El coach parte de un CV ya cargado |
+| C-15 | Resumen profesional: preguntas | R33-04 | hecho | `/cv/armar`: tres preguntas tras el puesto (la del puesto ya existía y no se repite si el perfil ya lo tiene) |
+| C-16 | Resumen profesional: borrador editable | R33-04 | hecho, con una diferencia | El borrador de 2 o 3 frases lo arma el código con las palabras de la persona, no la IA (USD 0, sin prompt nuevo); queda un gancho validado para una IA (`cvSummaryChoose`). Campo editable «Resumen profesional» en la revisión |
+| C-17 | Resumen profesional: sin cifras inventadas | R33-04 | hecho | `guided.test.ts` (validador: cifras, números en letras, nombres, tecnologías y links que no estén en las respuestas); un solo bloque, sin «Objetivo» |
+| C-18 | Habilidades blandas por situaciones | R33-04 | hecho | `/cv/armar`: cuatro situaciones con el texto del informe; nunca «¿cuáles son tus habilidades blandas?». La habilidad de cada situación sale de una tabla fija |
+| C-19 | Habilidades blandas: de dónde salió cada una | R33-04 | hecho | «La sugerimos por lo que contaste en {empresa}», la viñeta que se sumaría, «Usarla» / «No, gracias». Sin ejemplo no se propone nada |
+| C-20 | Habilidades blandas: entre 2 y 4 como máximo | R33-04 | hecho | Tope de 4 contando lo usado (`guided.test.ts`); con una sola situación contada se muestran 1 o 2 |
 | C-21 | Sugerencias por rubro con lista curada | después de abrir | después de abrir | — |
 | C-22 | Sugerencias por rubro con lista curada | después de abrir | después de abrir | — |
 | C-23 | Sugerencias por rubro con lista curada | después de abrir | después de abrir | — |
 | C-24 | Sugerencias por rubro con lista curada | después de abrir | después de abrir | — |
 | C-25 | Sugerencias por rubro con lista curada | después de abrir | después de abrir | — |
-| C-26 | «Esto es lo que entendí»: ejemplos de guía distinguibles | R33-05 | pendiente | `/cv` revisión |
-| C-27 | «Esto es lo que entendí»: «Quitar trabajo» con confirmación y «Deshacer» | R33-05 | pendiente | `/cv` revisión |
-| C-28 | «Esto es lo que entendí»: «Agregar otro trabajo» | R33-05 | pendiente | `/cv` revisión |
-| C-29 | «Esto es lo que entendí»: «Agregar estudio o certificación» | R33-05 | pendiente | `/cv` revisión |
-| C-30 | «Esto es lo que entendí»: habilidades con selector, chips y texto libre | R33-05 | pendiente | `/cv` revisión |
-| C-31 | «Esto es lo que entendí»: idiomas con el nivel explicado | R33-05 | pendiente | `/cv` revisión |
-| C-32 | «Esto es lo que entendí»: varios idiomas | R33-05 | pendiente | `/cv` revisión |
-| C-33 | «Esto es lo que entendí»: campos de resumen y blandas | R33-05 | pendiente | `/cv` revisión |
-| C-34 | «Esto es lo que entendí»: links | R33-05 | pendiente | `/cv` revisión |
-| C-35 | «Esto es lo que entendí»: cierre «Guardar y ver mi CV» | R33-05 | pendiente | `/cv` revisión |
-| C-36 | Diagnóstico: palabra y número entero | R33-06 | pendiente | `/cv` diagnóstico |
-| C-37 | Diagnóstico: cortes de los niveles | R33-06 | pendiente | Tests de `cv-diagnosis.ts` |
-| C-38 | Diagnóstico: frase fija sobre qué miden los niveles | R33-06 | pendiente | `/cv` diagnóstico |
-| C-39 | Diagnóstico: cada barra dice qué mide, con ⓘ | R33-06 | pendiente | `/cv` diagnóstico |
-| C-40 | Diagnóstico: «Legibilidad» y «Largo» separados | R33-06 | pendiente | `/cv` diagnóstico |
-| C-41 | Diagnóstico: cada faltante con su botón al paso concreto | R33-06 | pendiente | `/cv` diagnóstico |
-| C-42 | Diagnóstico: una sola acción principal si varias barras fallan por lo mismo | R33-06 | pendiente | `/cv` diagnóstico |
-| C-43 | Contacto: LinkedIn, portfolio y GitHub marcados si están cargados | R33-07 | pendiente | `/cv` vista previa |
-| C-44 | Contacto: ciudad y país marcados | R33-07 | pendiente | `/cv` vista previa |
-| C-45 | Contacto: excepción a lo que se marca solo | R33-07 | pendiente | `/cv` vista previa |
-| C-46 | Links: URL completa, validación de https y «Abrir para probarlo» | R33-07 | pendiente | `/cv` vista previa |
-| C-47 | Aviso antes de descargar un CV incompleto; títulos en un solo idioma | R33-07 | pendiente | `/cv` descarga |
-| C-48 | PDF real generado en el servidor | R33-08 | pendiente | `/cv` descarga |
-| C-49 | PDF: «Descargar PDF» y nombre del archivo | R33-08 | pendiente | `/cv` descarga |
-| C-50 | PDF: A4 y texto seleccionable | R33-08 | pendiente | `/cv` descarga |
-| C-51 | PDF: acentos y eñes | R33-08 | pendiente | `/cv` descarga |
-| C-52 | PDF: links tocables | R33-08 | pendiente | `/cv` descarga |
-| C-53 | PDF igual a la vista previa, con carga y error | R33-08 | pendiente | `/cv` descarga |
-| C-54 | PDF: sesión, rate limit y sin URL pública | R33-08 | pendiente | Tests de la ruta de descarga |
-| C-55 | PDF: pruebas del informe | R33-08 | pendiente | Tests de `packages/pipeline` y e2e |
-| C-56 | Calidad del CV: titular con puesto y resumen arriba | R33-09 | pendiente | `/cv` vista previa |
-| C-57 | Calidad del CV: «Actualidad» si el trabajo sigue | R33-09 | pendiente | `/cv` vista previa |
-| C-58 | Calidad del CV: de tareas a logros sin inventar | R33-09 | pendiente | `/cv/armar` |
-| C-59 | Calidad del CV: antes y después conservando las palabras de la persona | R33-09 | pendiente | `/cv/armar` |
-| C-60 | Calidad del CV: categorías de habilidades según el rubro | R33-09 | pendiente | `/cv` vista previa |
-| C-61 | Calidad del CV: «Habilidades» en español | R33-09 | pendiente | `/cv` vista previa |
-| C-62 | Calidad del CV: aviso suave si una habilidad no aparece en ninguna viñeta | R33-09 | pendiente | `/cv` diagnóstico |
+| C-26 | Campos vacíos con texto de ejemplo que se confunde con lo cargado: placeholder con contraste y «Sin completar» | R33-05 | hecho | `/cv/armar` (revisión) y tarjetas de `/cv/perfil`: ejemplos «Ejemplo: …» en gris y el estado «Sin completar»; e2e 430 (sin correr) |
+| C-27 | «Quitar trabajo» pegado a «Logro»: separarlo y pedir confirmación («¿Quitar este trabajo? [Quitar] [Cancelar]»), con «Deshacer» | R33-05 | hecho, con una diferencia | `/cv/armar`, revisión; e2e 430. El texto agrega el número del trabajo: «¿Quitar este trabajo? (1)». En el coach no hay «Quitar»: «Descartar» ya es un interruptor reversible y no borra nada hasta «Guardar lo que elegí» |
+| C-28 | Botón claro «Agregar otro trabajo» | R33-05 | hecho | `/cv/armar` (tope de 6 trabajos) y tarjetas de `/cv/perfil` |
+| C-29 | «Estudios y certificaciones: Nada cargado» → botón «Agregar estudio o certificación» | R33-05 | hecho, con una diferencia | `/cv/armar` (con «Tipo»: estudio o certificación). En el coach la tarjeta nueva es de estudio, certificación incluida (no hay tarjeta de certificación) |
+| C-30 | Habilidades: selector con sugerencias para marcar + campo libre, con chips que se quitan | R33-05 | parcial | `/cv/armar`: chips y campo libre (Enter o «Agregar habilidad»). El selector existe y lleva «Sugerencia: verificá que corresponda a tu caso», pero no recibe sugerencias (por rubro: después de abrir). En el coach, cada habilidad ya es una tarjeta con su nivel |
+| C-31 | «Idiomas: Inglés A2»: nivel con explicación («A2: básico») y poder cargar más idiomas con su nivel | R33-05 | hecho, con una diferencia | `/cv/armar`: selector de nivel explicado (A1 a C2 y Nativo) y «Agregar otro idioma» (hasta 6). En el coach el nivel también se explica, pero no hay «Agregar otro idioma» (las tarjetas salen del CV leído) |
+| C-32 | Campos nuevos: Resumen (C-16), habilidades blandas confirmadas (C-19) y Links (C-45) | R33-05 | parcial | `/cv/armar`: resumen editable y blandas con «Usarla» / «No, gracias» (paneles de `asistente`, arriba de la revisión) y links de LinkedIn, GitHub y portfolio (solo `https`). En el coach no hay estos campos en las tarjetas: los links se cargan en `/cv` (R33-07) |
+| C-33 | «Dictar tareas 1»: el aviso de privacidad se muestra una sola vez (C-12) | R33-05 | hecho | `/cv/armar`, revisión: el primer «Dictar tareas» lleva el aviso en el ⓘ (`privacy="info"`) y los demás no (`hidden`) |
+| C-34 | Botón de cierre claro «Guardar y ver mi CV»; aclarar cuándo se guarda | R33-05 | hecho, con una diferencia | `/cv/armar`, vista previa: el botón y, encima, «Nada entra a tu CV hasta que toques «Guardar y ver mi CV»». Diferencia con el informe, que pide aclarar que se guarda recién con ese botón: vale el plan §11, que guarda un borrador mientras la persona avanza; lo que recién entonces ocurre es que entre al CV. En el coach el guardado es por tarjeta («Guardar lo que elegí») |
+| C-35 | Mantener «Si algo está vacío, queda vacío: no lo completo yo» | R33-05 | hecho | `/cv/armar`, revisión: el texto está tal cual. En el coach, «lo que el CV no dice queda vacío» |
+| C-36 | Escala de palabras con número entero: 8 a 10 «Sólido», 5 a 7 «En camino», 1 a 4 «Para reforzar», 0 «Sin empezar» | R33-06 | hecho | `/cv` diagnóstico; 44 tests de `cv-diagnosis.ts` con los bordes (el número se redondea primero y la palabra sale del entero que se ve); e2e 429 (sin correr). Un 0 con contenido cargado dice «Para reforzar · 0/10» (con «Sin empezar» diría que no hay nada cargado) |
+| C-37 | Frase fija: «Estos niveles miden cómo lo lee un sistema automático. No miden si sos buen o buena candidata» | R33-06 | hecho | `/cv` diagnóstico, arriba, con la leyenda de las cuatro palabras |
+| C-38 | Cada barra con una línea que diga qué mide, y un «ⓘ» | R33-06 | hecho | `/cv` diagnóstico: el ⓘ abre «Qué mide» con el texto de cada barra (por teclado también) |
+| C-39 | Separar «Legibilidad» de «Largo/contenido» en dos barras | R33-06 | hecho | `/cv` diagnóstico: seis barras |
+| C-40 | Si varios «Falta» tienen el mismo motivo (sin experiencia), una acción principal y el resto en pausa; y cada «falta» con un paso concreto (tabla 8.2) | R33-06 | parcial | `/cv` diagnóstico sin experiencia: «Cargá tu experiencia laboral» + «Agregar mi experiencia», y «Se calcula cuando tengas experiencia cargada» en legibilidad, largo y logros. Cada barra trae su botón (titular, contacto, resumen, estudios, «Escribir un logro con ayuda»…). Falta: «La tengo / No la tengo» por habilidad, con nivel; hoy el botón lleva a `/settings/skills` |
+| C-41 | Mantener «Sumalas solo si de verdad las tenés» y que el diseño no empuje a agregar lo que no se tiene | R33-06 | hecho | `/cv` diagnóstico: el consejo de palabras clave conserva la frase |
+| C-42 | Los «Falta» de logros y de largo contemplan que ya hay experiencia con viñetas vagas: el paso es reescribirlas con preguntas | R33-06 | hecho | `/cv` diagnóstico: con experiencia cargada, logros dice «Escribir un logro con ayuda» (no «cargá experiencia»); test «viñetas vagas» |
+| C-43 | Vista previa que se actualiza sola al cambiar las opciones | R33-07 | hecho | `/cv`: cambiar el idioma o una casilla; sin botón «Actualizar vista previa»; e2e 421 |
+| C-44 | Opciones del contenido: teléfono (opcional, sin marcar), ciudad y país («no tu dirección»), links | R33-07 | hecho | `/cv`, opciones del CV y «Tus links»: el teléfono se guarda en `application_settings.links` (sin migración), validado (dígitos, espacios, `+ - ( )`, 6 a 15 dígitos) y sale en el CV solo si se marca «Incluir mi teléfono»; en la URL viaja la marca `tel=1`, nunca el número; no se le pasa al modelo en el contexto de postulaciones. e2e 421. **Diferencia aceptada:** la casilla «Incluir skills básicas» se llama «Incluir habilidades básicas» (glosario) |
+| C-45 | Links: URL completa como texto, solo `https`, «Abrir para probarlo»; ¿el tema links del asistente se guarda? | R33-07 | hecho | `/cv`, «Tus links»: LinkedIn, GitHub, «Portfolio o sitio web» y «Otro link» con un nombre corto (por ejemplo, Behance), cada uno con su casilla «Incluir mi …», `https` obligatorio y «Abrir para probarlo». Los links del chat se guardan (`asistente`, R33-04). e2e 421 |
+| C-46 | Aviso antes de descargar un CV incompleto («¿Completarlo antes?») | R33-07 | hecho | `/cv`: «Descargar PDF» o «Descargar DOCX» con un CV sin Educación o sin Resumen; e2e 421 |
+| C-47 | Títulos de las secciones en un solo idioma («Habilidades») | R33-07 | hecho | `/cv` en español y en English; tests de `quality.test.ts` |
+| C-48 | Botones coherentes («Descargar DOCX» y «Descargar PDF», un archivo real) | R33-08 | hecho | `/cv`; e2e 420 |
+| C-49 | El archivo descargado coincide con la vista previa | R33-08 | hecho | Mismas opciones en la URL de la vista previa y de las dos descargas; e2e 421 |
+| C-50 | PDF con texto seleccionable; DOCX que abre en tres programas | R33-08 | parcial | Texto seleccionable probado en `pdf.test.ts`; la apertura en lectores reales es manual (`pasos-manuales-r33.md` §5) |
+| C-51 | Nombre del archivo `CV-Nombre-Apellido.pdf` | R33-08 | hecho | Descargar el PDF; e2e 420 |
+| C-52 | A4, márgenes legibles, sin cortar una viñeta entre páginas | R33-08 | hecho | `packages/pipeline/src/cv-out/pdf.test.ts`; impresión en papel manual |
+| C-53 | Tildes, eñes, nombres y emails largos | R33-08 | hecho | `pdf.test.ts`; lo que no entra en WinAnsi se reemplaza y se informa |
+| C-54 | Estados «Generando tu archivo…» y de error con el siguiente paso | R33-08 | hecho | `/cv`, descarga; error 429 por ritmo. El ritmo es por instancia (limitación en ADR-049) |
+| C-55 | Pruebas: vacío, muy corto, dos páginas, links, inglés, tres programas, papel | R33-08 | parcial | Automáticas en `pdf.test.ts`; tres programas y papel, manual |
+| C-56 | Titular con el puesto y resumen arriba | R33-09 | parcial | `/cv`: aviso de titular; el resumen lo escribe el asistente (R33-04) |
+| C-57 | Viñetas de tareas, no de logros | R33-09 | hecho | `/cv`, «Para que tu CV se lea mejor», con preguntas guía |
+| C-58 | Verbo y frase vagos | R33-09 | hecho | Mismo aviso que C-57 |
+| C-59 | Falta Educación | R33-09 | hecho | `/cv`: lista de faltantes y aviso antes de descargar |
+| C-60 | Categorías de habilidades comprensibles según el perfil | R33-09 | hecho | `/cv`, vista previa; tests de `cvGroupSkills`. Regla heurística: perfil técnico si la mitad o más son técnicas |
+| C-61 | Habilidades sin respaldo en la experiencia: aviso suave | R33-09 | hecho | `/cv`, «Para que tu CV se lea mejor»; no se quita ninguna |
+| C-62 | «Actualidad» si el trabajo sigue | R33-09 | parcial | `/cv`, vista previa. La pregunta «¿Es tu trabajo actual?» ya está en el chat de `/cv/armar`; en el coach queda para la R34 (necesita un prompt nuevo) |
 | C-63 | Forma del cargo | después de abrir | después de abrir | — |
-| C-64 | Calidad del CV: aviso si falta Educación | R33-09 | pendiente | `/cv` diagnóstico |
-| C-65 | Calidad del CV: idioma con su nivel explicado | R33-09 | pendiente | `/cv` revisión |
-| C-66 | Calidad del CV: nunca un dato no confirmado | R33-09 | pendiente | `/cv` vista previa |
-| C-67 | Calidad del CV: «Español: nativo» no se asume | R33-09 | pendiente | `/cv` vista previa |
-| C-68 | Calidad del CV: lo que está vacío queda vacío | R33-09 | pendiente | `/cv` vista previa |
-| C-69 | Calidad del CV: ninguna sugerencia entra sin que la marque | R33-09 | pendiente | `/cv/armar` |
+| C-64 | Idioma con su nivel explicado | R33-09 | hecho | `/cv`: «Inglés: A2, nivel básico» |
+| C-65 | Sin links | R33-07 | hecho | Mismo editor que C-45 |
+| C-66 | Mezcla de idioma en los títulos | R33-07 | hecho | Mismo cambio que C-47 |
+| C-67 | Preguntas guía para pasar de tareas a logros sin inventar | R33-09 | hecho | Preguntas con las palabras de la persona; tests de `quality.test.ts` |
+| C-68 | Reescritura con «antes» y «después» | R33-09 | parcial | Componente y comparación listos; ninguna pantalla propone hoy la reescritura de una viñeta existente |
+| C-69 | No agregar datos no cargados («Español: nativo») | R33-09 | hecho | Tests del modelo; `/cv` sin idiomas que no cargaste |
 | C-70 | `/market` mínimo: preguntas para la carrera de la persona | R34-03 | pendiente | `/market` |
 | C-71 | `/market` mínimo: cada dato con su cantidad de avisos y fecha | R34-03 | pendiente | `/market` |
 | C-72 | `/market` mínimo: pocos datos sin gráfico y una acción por bloque | R34-03 | pendiente | `/market` |
