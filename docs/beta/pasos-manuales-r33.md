@@ -119,14 +119,14 @@ Persona con la cuenta de prueba de la beta y el coach y el agente de perfil habi
 **C. En los dos caminos, ya con el CV armado (`/cv`)**
 1. Diagnóstico: cada barra con palabra y número entero («Sólido · 9/10»…), la frase que dice que miden cómo lo lee un sistema automático, el ⓘ de cada barra, «Legibilidad» y «Largo» separados, y que cada «falta» traiga su botón.
 2. Opciones: cambiá el idioma y fijate que la vista previa cambie sola. «Incluir ciudad y país» viene marcado y aclara que no es tu dirección. Guardá un LinkedIn con `http://` (tiene que rechazarlo sin repetir lo escrito) y uno con `https://` (tiene que mostrar «Abrir para probarlo» y aparecer completo debajo del nombre).
-3. Mirá los títulos: en español todo en español («Habilidades», no «Skills»). Un trabajo en curso dice «Actualidad». El idioma dice «Inglés: A2, nivel básico». No debe aparecer ningún idioma ni dato que no cargaste.
+3. Mirá los títulos: en español todo en español («Habilidades», no «Skills»). Un trabajo en curso dice «Actualidad». El idioma sale con su nivel y la explicación (por ejemplo «Inglés: B1, nivel intermedio»). No debe aparecer ningún idioma ni dato que no cargaste.
 4. «Para que tu CV se lea mejor»: aviso de habilidades que ninguna viñeta respalda (siguen en el CV) y preguntas sobre viñetas de tarea.
 5. Tocá «Descargar PDF» y «Descargar DOCX» con un CV incompleto: tiene que preguntar «¿Completarlo antes?» con «Completar» y «Descargar igual». Descargá y comprobá que el archivo coincide con la vista previa.
 6. Tomá nota de cualquier texto que suene a promesa, a predicción o a jerga.
 
 ## 7. Lo no verificado
 
-- Los e2e 410, 420, 421, 428, 429 y 430 y los ajustados 85 y 86 están escritos y no se corrieron en la ronda de los teammates. **(completa el lead: resultado de la corrida.)**
+- Los e2e 410, 420, 421, 428, 429 y 430 y los ajustados 85 y 86 no se corrieron en la ronda de los teammates; los corrió el lead al cierre, de a un spec, y pasaron (completado en la R34).
 - El PDF no se abrió en un lector real ni se imprimió (paso 5).
 - El DOCX no se abrió en Word, Google Docs ni LibreOffice en esta tanda.
 - La migración 0091 y la RLS 0075 solo se probaron en la base local con Docker, no en Neon.

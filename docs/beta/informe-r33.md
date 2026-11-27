@@ -2,8 +2,6 @@
 
 Tanda sobre el CV: pantalla «Tu CV», borrador, los dos asistentes, revisión, diagnóstico, contacto y links, PDF real y calidad del contenido. Pasos para el responsable del proyecto: `docs/beta/pasos-manuales-r33.md`. Estado de cada punto del informe de revisión: `docs/beta/verificacion-informe-ani.md`. Informes de cada ticket: `ops/rondas/r33-tanda/r33-NN/informe.md` (privado).
 
-Las partes que dependen de otros teammates o de correr los e2e están marcadas **(completa el lead)**.
-
 ## Qué entró por ticket
 
 | Ticket | Qué entró |
@@ -16,7 +14,7 @@ Las partes que dependen de otros teammates o de correr los e2e están marcadas *
 | R33-06 · Diagnóstico | Palabra y número entero con cortes probados, frase fija, ⓘ en cada barra, «Legibilidad» y «Largo» separados, cada «falta» con su botón y una sola acción principal. e2e 429 |
 | R33-07 · Contacto y links | La vista previa se actualiza sola; ciudad y país marcados («Incluye ciudad y país, no tu dirección»); editor de links solo `https` con «Abrir para probarlo» (server action nueva, sin migración); aviso «¿Completarlo antes?» antes de descargar; «Habilidades» en español. e2e 421 |
 | R33-08 · PDF real | PDF A4 generado en el servidor desde el mismo modelo que el DOCX, sin dependencia nueva (ADR-049); «Descargar PDF» con estados de carga y error; sesión, ritmo y sin URL pública. e2e 420 |
-| R33-09 · Calidad del CV | Avisos suaves (sin titular, habilidades sin respaldo, viñetas de tarea con preguntas guía con las palabras de la persona), «Actualidad», categorías de habilidades comprensibles según el perfil, idioma con su nivel («Inglés: A2, nivel básico»), nunca un dato no confirmado |
+| R33-09 · Calidad del CV | Avisos suaves (sin titular, habilidades sin respaldo, viñetas de tarea con preguntas guía con las palabras de la persona), «Actualidad», categorías de habilidades comprensibles según el perfil, idioma con su nivel y la explicación del nivel, nunca un dato no confirmado |
 
 | R33-10 · Legibilidad del CV | Reglas de legibilidad de la R30 en modo estricto para las pantallas del CV (`apps/web/test/legibilidad.test.ts`) y auditoría 431 (claro/oscuro, 390/1280 px, zoom 200 %) |
 | R33-12 · Arreglos del CI del PR de integración | Ver la sección «R33-12» |

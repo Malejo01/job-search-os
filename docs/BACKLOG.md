@@ -2349,7 +2349,30 @@ Informe de la tanda: [`docs/beta/informe-r33.md`](beta/informe-r33.md). Pasos ma
 ### Pendientes que salen de la tanda
 - C-62 en el coach (necesita versión nueva de prompt), C-68 sin pantalla que reescriba una viñeta; ritmo de descarga del PDF solo en memoria.
 - Programar la limpieza de borradores (30 días): sumarla a la purga diaria de `/api/cron/evaluate`, en un PR rojo aparte.
-- `decide()` revienta con reglas incompletas (`evaluation_criteria.rules = {}`): decidir si la evaluación falla cerrada con un mensaje claro. En producción no pasa (el alta arma las reglas).
+- `decide()` revienta con reglas incompletas (`evaluation_criteria.rules = {}`): decidir si la evaluación falla cerrada con un mensaje claro. En producción no pasa (el alta arma las reglas). **Resuelto en R34-07** (falla cerrado, decisión del 27/11).
 
 ### R33 · Cierre de la tanda
 `estado:` en rama (27/11) · `ronda/r33-cierre`
+
+## Bloque 52 · Tanda R34 «Barrido y cierre» (27/11)
+
+Informe de la tanda: [`docs/beta/informe-r34.md`](beta/informe-r34.md). Pasos manuales: [`docs/beta/pasos-manuales-r34.md`](beta/pasos-manuales-r34.md). Informe de la cadena entera: [`docs/beta/informe-cadena-r30-r34.md`](beta/informe-cadena-r30-r34.md). Cadena sobre `ronda/r33-cierre`; ningún PR mergeado por agentes. Migraciones 0092 y 0093 y RLS 0076 y 0077 sin aplicar en Neon. USD 0; sin prompts nuevos; sin dependencias nuevas. Orden de la cadena: `r34-06-textos` → `r34-01-legibilidad` → `r34-03-mercado` → `r34-02-postulacion` → `r34-07-decide` → `r34-08-ci` → `r34-cierre`; la cadena se revisa entera (las puertas pasan sobre el último commit).
+
+### Pedido
+- **R34-01** · Barrido de legibilidad en todas las pantallas de usuario, lista de excepciones vacía y auditoría 440 · `estado:` en rama (27/11) · `ronda/r34-01-legibilidad`
+- **R34-02** · El CV desde la oferta: revisar, adaptar (otra versión, hasta 3 por oferta: `cv_offer_versions`, 0092, 0093, RLS 0076 y 0077) y descargar · `estado:` en rama (27/11) · `ronda/r34-02-postulacion`
+- **R34-03** · `/market` mínimo para la carrera de la persona, con avisos vigentes · `estado:` en rama (27/11) · `ronda/r34-03-mercado`
+- **R34-04** · Seguimiento mínimo en «Ya me postulé» (fecha, estado a mano, versión del CV), sin migración · `estado:` en rama (27/11) · `ronda/r34-03-mercado`
+- **R34-05** · Ensayo de punta a punta (e2e 445) y guion `docs/beta/ensayo-beta.md` · `estado:` en rama (27/11) · `ronda/r34-02-postulacion`
+- **R34-06** · Cierre de la cadena: textos provisorios cotejados con el informe, verificación de los 159 IDs, informe de la cadena · `estado:` en rama (27/11) · `ronda/r34-06-textos` y `ronda/r34-cierre`
+- **R34-07** · `decide()` con reglas vacías o incompletas falla cerrado (`decideChecked`, Result con error; el worker deja la oferta «Sin evaluar», sin llamar al modelo) · `estado:` en rama (27/11) · `ronda/r34-07-decide`
+- **R34-08** · Arreglos del CI de integración R30 a R33 (PR #571): 138, 142, 86 y 110, por supuestos de datos de la persona seed del CI · `estado:` en rama (27/11) · `ronda/r34-08-ci`
+
+### Pendientes que salen de la tanda
+- Programar las purgas de borradores del CV y de fichas huérfanas: PR rojo aparte (decisión del 27/11: no se tocó el cron).
+- `news_email` arranca en `false` para todas las cuentas: lo hace el responsable con un `UPDATE` en Neon; la 0089 no cambia.
+- Borrar los cinco componentes de `/market` que ya no se usan (el guard no deja borrar; comando en los pasos manuales).
+- El ensayo con 5 personas (compuerta B) es posterior: el guion está listo.
+
+### R34 · Cierre de la tanda
+`estado:` en rama (27/11) · `ronda/r34-cierre`
