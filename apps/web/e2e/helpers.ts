@@ -12,6 +12,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 // Import relativo directo, como global-setup: test-guard.ts no importa nada
 import { assertLocalTestDatabase, assertLocalTestEnv } from "../../../packages/db/src/test-guard";
 import { TERMS_VERSION } from "../lib/terms";
+import { E2E_CRITERIA_RULES, repairEmptyCriteria } from "./criteria-rules";
 
 /** Credenciales del usuario seed local (pnpm db:seed --local con SEED_USER_EMAIL/PASSWORD). */
 export const E2E_EMAIL = process.env.E2E_EMAIL ?? "mauro@job-search-os.local";
@@ -616,8 +617,10 @@ export async function ensureSecondUser(): Promise<void> {
     if (!crit) {
       await db
         .insert(s.evaluationCriteria)
-        .values({ userId: E2E_B_USER_ID, version: 1, active: true, rules: {} as never });
+        .values({ userId: E2E_B_USER_ID, version: 1, active: true, rules: E2E_CRITERIA_RULES });
     }
+    // Una fila que dejó una versión anterior con `{}` hace reventar `decide()` al evaluar
+    await repairEmptyCriteria(db, E2E_B_USER_ID);
   } finally {
     await close();
   }

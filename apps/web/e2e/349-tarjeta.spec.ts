@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { deleteJob, login } from "./helpers";
 import { createEvaluatedJob } from "./listado-helpers";
+import { blankProfileFacts } from "./perfil-sin-datos-helper";
 
 /**
  * Flujo 349 (R30-04): la tarjeta dice puesto, empresa, modalidad, sello con número, sueldo solo si el
@@ -13,8 +14,12 @@ test.describe("Flujo 349: la tarjeta", () => {
   const titleBlocked = `Oferta ficticia excluyente ${tag}`;
   const titleOk = `Oferta ficticia común ${tag}`;
   const ids: string[] = [];
+  let restoreProfile: () => Promise<void> = async () => {};
 
   test.beforeAll(async () => {
+    // «Inglés avanzado» y «5 años» tienen que quedar «Sin confirmar»: el perfil del CI trae esos datos
+    // (5 años, B2) y la tarjeta los superpone a la evaluación. Ver `perfil-sin-datos-helper.ts`.
+    restoreProfile = await blankProfileFacts();
     ids.push(
       await createEvaluatedJob({
         title: titleBlocked,
@@ -52,6 +57,7 @@ test.describe("Flujo 349: la tarjeta", () => {
 
   test.afterAll(async () => {
     for (const id of ids) await deleteJob(id);
+    await restoreProfile();
   });
 
   test("condición excluyente arriba, texto con ícono, y la oferta baja en el orden", async ({

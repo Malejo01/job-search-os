@@ -18,15 +18,30 @@ async function expectInlineAndClear(page: Page) {
   await inline.scrollIntoViewIfNeeded();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const chip = await inline.boundingBox();
-  const bar = await page.getByTestId("tabbar").boundingBox();
   expect(chip).not.toBeNull();
-  expect(bar).not.toBeNull();
-  expect(chip!.y + chip!.height).toBeLessThanOrEqual(bar!.y);
-  const apply = page.getByRole("link", { name: /Postularme/ });
-  if (await apply.first().isVisible()) {
-    const a = await apply.first().boundingBox();
-    expect(chip!.y + chip!.height <= a!.y || a!.y + a!.height <= chip!.y).toBe(true);
+  // Las pestañas de abajo existen en Hoy y Ofertas. En el detalle de una oferta NO hay barra (R30-10 y C10-8:
+  // `MobileTabBar` devuelve `null` con `DETAIL`): el botón de salida «Ir a postularme» va arriba y fijo
+  // (`salida-cel`). Este test asumía la barra también ahí; eso era el dato viejo, no un error del código.
+  const enDetalle = /\/jobs\/[0-9a-f-]{36}$/.test(new URL(page.url()).pathname);
+  const bar = page.getByTestId("tabbar");
+  if (enDetalle) {
+    await expect(bar).toHaveCount(0);
+    await expect(page.getByTestId("salida-cel")).toBeVisible();
+  } else {
+    const b = await bar.boundingBox();
+    expect(b).not.toBeNull();
+    expect(chip!.y + chip!.height).toBeLessThanOrEqual(b!.y);
   }
+  // Lo que importa en los tres casos: nada fijo lo tapa. El punto central del botón cae sobre el botón mismo
+  // (un elemento fijo encima, sea la barra o el botón de salida, lo robaría).
+  const cubierto = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="feedback-inline"] button');
+    if (!el) return true;
+    const r = el.getBoundingClientRect();
+    const arriba = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return !(arriba && el.contains(arriba));
+  });
+  expect(cubierto).toBe(false);
 }
 
 test.describe("Flujo 138: «¿Algo no anduvo?» en el celular", () => {

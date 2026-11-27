@@ -115,8 +115,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {planAccess ? <PlanNotice access={planAccess} /> : null}
         {/* R32-01: a las cuentas sin carrera se les pide una sola vez, arriba de lo que estaban mirando.
             Sin redirigir: la persona sigue en su pantalla. Las de ancho completo traen su propio margen */}
+        {/* Una acción que la persona tiene que completar y que vive en la pantalla (la confirmación del
+            reenvío de Gmail en la bandeja, `data-prioridad="primero"`) va primero: mientras esté, el pedido de
+            carrera se oculta y vuelve cuando ya no está (R33-12) */}
         {needsCareerPrompt(headerProfile.career) ? (
-          <div className="group-has-[[data-ancho=completo]]/main:mx-auto group-has-[[data-ancho=completo]]/main:max-w-6xl group-has-[[data-ancho=completo]]/main:px-4 group-has-[[data-ancho=completo]]/main:pt-4 sm:group-has-[[data-ancho=completo]]/main:px-12">
+          <div className="group-has-[[data-prioridad=primero]]/main:hidden group-has-[[data-ancho=completo]]/main:mx-auto group-has-[[data-ancho=completo]]/main:max-w-6xl group-has-[[data-ancho=completo]]/main:px-4 group-has-[[data-ancho=completo]]/main:pt-4 sm:group-has-[[data-ancho=completo]]/main:px-12">
             <CareerPrompt
               careers={BETA_LAUNCH_ROLE_KEYS.map((key) => ({ key, label: catalogLabel(key) }))}
               texts={ALTA_TEXTOS.carreraPedida}

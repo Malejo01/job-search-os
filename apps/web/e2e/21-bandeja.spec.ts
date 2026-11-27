@@ -118,8 +118,13 @@ test.describe("Flujo 21: bandeja automática", () => {
     await expect(boton).toHaveAttribute("target", "_blank");
     await expect(boton).toHaveAttribute("rel", /noopener/);
 
-    // Es lo primero de la página
-    const primero = await main(page).locator("section > *").first().getAttribute("aria-label");
+    // Es lo primero de la página que se ve. Con una cuenta sin carrera (la del CI), el pedido de carrera
+    // (R32-01) está en el layout, antes en el DOM: mientras haya una confirmación pendiente se oculta, y
+    // `:visible` deja de contarlo. Sin esa regla, el pedido quedaba arriba de la confirmación.
+    const primero = await main(page)
+      .locator("section > *:visible")
+      .first()
+      .getAttribute("aria-label");
     expect(primero).toBe("Confirmación del reenvío de Gmail");
 
     await bloque.getByRole("button", { name: "Ya lo confirmé" }).click();

@@ -1,6 +1,6 @@
-import { schema as s } from "@job-search-os/db";
+import { createDb, requireDatabaseUrl, schema as s } from "@job-search-os/db";
 import { eq, sql } from "drizzle-orm";
-import { assertAppRole, getAppDb, withUser } from "./db";
+import { withUser } from "./db";
 
 /**
  * Preferencia del email de novedades (R32-09), solo servidor. La columna es `profiles.news_email` (por defecto
@@ -42,10 +42,15 @@ export async function setNewsEmailPref(userId: string, on: boolean): Promise<boo
  * SECURITY DEFINER; no lee nada de la persona ni devuelve nada más.
  */
 export async function unsubscribeNewsEmail(userId: string): Promise<boolean> {
-  await assertAppRole();
-  const rows = (await getAppDb().transaction(async (tx) => {
-    await tx.execute(sql`set local statement_timeout = '5s'`);
-    return tx.execute(sql`select public.news_email_unsubscribe(${userId}::uuid) as ok`);
-  })) as unknown as { ok: boolean }[];
-  return rows[0]?.ok === true;
+  // La función no tiene EXECUTE para la app (rls/0074): solo la conexión de servicio, y la ruta ya verificó el token
+  const conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
+  try {
+    const rows = (await conn.db.transaction(async (tx) => {
+      await tx.execute(sql`set local statement_timeout = '5s'`);
+      return tx.execute(sql`select public.news_email_unsubscribe(${userId}::uuid) as ok`);
+    })) as unknown as { ok: boolean }[];
+    return rows[0]?.ok === true;
+  } finally {
+    await conn.close();
+  }
 }

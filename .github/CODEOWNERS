@@ -213,3 +213,5 @@
 /packages/adapters/src/reevaluate/reevaluate-cli.ts @Malejo01
 # R32: aviso de pocas ofertas (server action inline)
 /apps/web/app/(app)/jobs/few-offers-notice.tsx @Malejo01
+# R33: baja del email de novedades con el rol de servicio (después de verificar el token)
+/apps/web/lib/news-email.ts @Malejo01

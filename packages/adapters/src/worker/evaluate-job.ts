@@ -75,6 +75,16 @@ export type EvaluateOutcome =
     }
   | { ok: false; jobId: string; error: string; retry: "retry" | "failed" | "skipped" };
 
+/** Primeras líneas de «at …» del stack de un error (sin el mensaje); `[]` si no hay. Para saber dónde reventó. */
+export function stackHead(e: unknown, lines = 8): string[] {
+  if (!(e instanceof Error) || typeof e.stack !== "string") return [];
+  return e.stack
+    .split("\n")
+    .filter((l) => l.trimStart().startsWith("at "))
+    .slice(0, lines)
+    .map((l) => l.trim());
+}
+
 /**
  * Texto de una excepción inesperada para `outcome.error` (→ job_queue.last_error y log): solo
  * `<name> <code> <constraint>`, sin `message`, que en errores de la base cita la consulta y el JD.
@@ -1232,6 +1242,12 @@ export async function evaluateJobNow(
     try {
       outcome = await evaluateJobById(jobId, deps);
     } catch (e) {
+      // Solo queda la clase del error en la cola; el servidor tiene que poder decir DÓNDE reventó. Se loguean las
+      // primeras líneas del stack (rutas y funciones, sin el mensaje, que puede citar datos).
+      log.error(
+        { err: unexpectedError(e), stack: stackHead(e) },
+        "evaluación inmediata: error inesperado",
+      );
       outcome = {
         ok: false,
         jobId,

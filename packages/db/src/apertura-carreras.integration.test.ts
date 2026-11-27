@@ -193,16 +193,13 @@ describe("baja del email de novedades (rls/0074)", () => {
       select user_id, news_email from profiles where user_id in ${owner([COMUN, OTRA])}`;
     expect(antes.every((p) => p.news_email === true)).toBe(true);
 
-    const [r] = await asUser(
-      null,
-      (tx) => tx<{ ok: boolean }[]>`select news_email_unsubscribe(${COMUN}::uuid) as ok`,
-    );
+    // Solo la conexión de servicio (la ruta de baja, después de verificar la firma): la app no tiene EXECUTE
+    const [r] = await owner<{ ok: boolean }[]>`select news_email_unsubscribe(${COMUN}::uuid) as ok`;
     expect(r!.ok).toBe(true);
     // idempotente
-    const [r2] = await asUser(
-      null,
-      (tx) => tx<{ ok: boolean }[]>`select news_email_unsubscribe(${COMUN}::uuid) as ok`,
-    );
+    const [r2] = await owner<
+      { ok: boolean }[]
+    >`select news_email_unsubscribe(${COMUN}::uuid) as ok`;
     expect(r2!.ok).toBe(true);
 
     const despues = await owner<{ user_id: string; news_email: boolean }[]>`
@@ -212,14 +209,22 @@ describe("baja del email de novedades (rls/0074)", () => {
   });
 
   it("responde lo mismo exista o no la cuenta (sin oráculo de existencia)", async () => {
-    const [r] = await asUser(
-      null,
-      (tx) =>
-        tx<
-          { ok: boolean }[]
-        >`select news_email_unsubscribe('e3200000-0000-4000-8000-0000000000ff'::uuid) as ok`,
-    );
+    const [r] = await owner<
+      { ok: boolean }[]
+    >`select news_email_unsubscribe('e3200000-0000-4000-8000-0000000000ff'::uuid) as ok`;
     expect(r!.ok).toBe(true);
+  });
+
+  it("la app no puede ejecutarla: ni con sesión ni sin ella, ni sobre otra persona", async () => {
+    for (const quien of [null, COMUN]) {
+      await expect(
+        asUser(quien, (tx) => tx`select news_email_unsubscribe(${OTRA}::uuid)`),
+      ).rejects.toThrow(/permission denied/);
+    }
+    const [p] = await owner<
+      { news_email: boolean }[]
+    >`select news_email from profiles where user_id = ${OTRA}`;
+    expect(p!.news_email).toBe(true);
   });
 
   it("la persona puede volver a prender su preferencia desde su perfil (RLS del dueño)", async () => {

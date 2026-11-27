@@ -103,7 +103,13 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await page.goto("/jobs");
     const item = page.getByRole("main").getByRole("listitem").filter({ hasText: tituloTarjeta });
     await expect(item).toBeVisible();
-    await expect(item.getByRole("button")).toHaveCount(0);
+    // La tarjeta de R30-04 trae «Guardar» y «Descartar» (job-list.tsx): eso es el diseño, no un fallo. Lo que este
+    // flujo exige es que el 👍/👎 NO esté en la tarjeta (va en el detalle, C10-7): se busca ese par y los
+    // botones de la tarjeta solo pueden ser esos dos.
+    await expect(item.getByRole("button", { name: /me sirve la evaluación/i })).toHaveCount(0);
+    await expect(item.getByText(/👍|👎/)).toHaveCount(0);
+    const botones = await item.getByRole("button").allInnerTexts();
+    expect(botones.every((t) => /^(Guardar|Quitar|Descartar)/i.test(t.trim()))).toBe(true);
     const sinScroll = await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     );

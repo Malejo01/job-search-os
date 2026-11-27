@@ -158,8 +158,12 @@ BEGIN
   RETURN true;
 END
 $fn$;
+-- Sin EXECUTE para la app: la función no tiene barrera (actúa sobre el uuid que le pasan), así que solo la llama la
+-- ruta pública de baja con la conexión de servicio, DESPUÉS de verificar la firma del enlace. Si no, cualquier sesión
+-- podría dar de baja a otra persona. El REVOKE explícito a `authenticated` limpia el permiso en bases donde una
+-- versión anterior de este archivo ya lo había dado.
 REVOKE ALL ON FUNCTION public.news_email_unsubscribe(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.news_email_unsubscribe(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.news_email_unsubscribe(uuid) FROM authenticated;
 
 -- ─── Columnas de `profiles` que la persona no escribe directo (R32-01 y R32-09) ────────────────────────
 -- `career_asked_at` (cuándo se le pidió la carrera) y `news_email_sent_at` (último email de novedades) los decide

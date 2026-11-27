@@ -3,6 +3,7 @@ import type { ChipKey } from "@job-search-os/pipeline";
 import { filterChipClasses } from "@/components/ui";
 import { listQuery, type JobFilters } from "@/lib/jobs";
 import { LISTADO_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
+import { LinkPending } from "./jobs-loading";
 
 const T = LISTADO_TEXTOS;
 
@@ -132,6 +133,7 @@ export function JobsNav({
             })}
           >
             {T.tabs[k]}
+            <LinkPending />
           </Link>
         ))}
       </nav>
@@ -159,6 +161,7 @@ export function JobsNav({
                   </span>
                 </>
               ) : null}
+              <LinkPending />
             </Link>
           );
         })}
@@ -174,6 +177,7 @@ export function JobsNav({
           })}
         >
           {recientes ? T.filtros.ordenRecientes : T.filtros.ordenAfinidad}
+          <LinkPending />
         </Link>
       </nav>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

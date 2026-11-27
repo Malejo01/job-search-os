@@ -106,6 +106,7 @@ export default async function InboxPage({
         <div
           role="region"
           aria-label="Confirmación del reenvío de Gmail"
+          data-prioridad="primero"
           className={cardClasses({
             tone: "info",
             padding: "md",

@@ -2,6 +2,7 @@ import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { axeSummary } from "./axe-helpers";
 import { createJob, deleteJob, E2E_USER_ID, login, ownerDb } from "./helpers";
+import { blankProfileFacts } from "./perfil-sin-datos-helper";
 
 /**
  * Flujo 359 (R30-08/09): detalle evaluado con una condición excluyente que no coincide. «Cómo
@@ -32,7 +33,11 @@ const MODALIDAD = item({ id: "modalidad", pide: "Modalidad remoto", tenes: "Acep
 
 test.describe("Flujo 359: detalle con condición excluyente", () => {
   let jobId = "";
+  let restoreProfile: () => Promise<void> = async () => {};
   test.beforeAll(async () => {
+    // «5 años de experiencia» tiene que quedar «Sin confirmar»: el perfil del CI trae 5 años y el detalle
+    // lo superpone a la evaluación («Coincide · En tu perfil: 5 años»). Ver `perfil-sin-datos-helper.ts`.
+    restoreProfile = await blankProfileFacts();
     jobId = await createJob({
       title: `E2E detalle excluyente ${Date.now()}`,
       status: "evaluada",
@@ -73,6 +78,7 @@ test.describe("Flujo 359: detalle con condición excluyente", () => {
   });
   test.afterAll(async () => {
     if (jobId) await deleteJob(jobId);
+    await restoreProfile();
   });
 
   test("la condición se explica aparte, lo que pesa sale de la tabla y lo sin dato es «Sin confirmar»", async ({

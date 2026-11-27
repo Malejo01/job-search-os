@@ -151,6 +151,8 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into application_settings (user_id, availability) values (${id}, 'inmediata')`;
   await owner`insert into requirement_answers (user_id, req_key, answer)
                values (${id}, 'formacion:titulo ficticio', 'si')`;
+  // R33-02: borrador automático del CV
+  await owner`insert into cv_drafts (user_id, kind, payload) values (${id}, 'chat', '{"v":1}'::jsonb)`;
   await owner`insert into contacts (user_id, name) values (${id}, 'Contacto de Prueba')`;
   await owner`insert into talent_platforms (user_id, name, status) values (${id}, 'Plataforma de Prueba', 'pendiente')`;
   const [skill] = await owner<{ id: string }[]>`
@@ -1114,6 +1116,52 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       await expect(asUser(A, (tx) => tx`select * from text_review_history(null)`)).rejects.toThrow(
         /text_review: no autorizado/,
       );
+    },
+    // R32-03 (rls/0074): carreras abiertas. La lista la lee cualquiera; cambiarla y ver quién y cuándo, solo admins.
+    careers_open_list: async () => {
+      const [r] = await asUser(A, (tx) => tx<{ l: string[] }[]>`select careers_open_list() as l`);
+      expect(Array.isArray(r!.l)).toBe(true);
+    },
+    admin_career_set: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select admin_career_set('contabilidad_ajena', true)`),
+      ).rejects.toThrow(/admin_career_set: no autorizado/);
+      expect(
+        await owner`select 1 from open_careers where career = 'contabilidad_ajena'`,
+      ).toHaveLength(0);
+    },
+    admin_careers_open: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_careers_open()`)).rejects.toThrow(
+        /admin_careers_open: no autorizado/,
+      );
+    },
+    admin_career_history: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_career_history(30)`)).rejects.toThrow(
+        /admin_career_history: no autorizado/,
+      );
+    },
+    // R32-01 (rls/0074): solo tocan la fila de auth.uid(); con A no cambia nada de B.
+    career_prompt_save: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await asUser(
+        A,
+        (tx) => tx`select career_prompt_save(array['otra_ajena'], null, array[]::text[])`,
+      );
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
+    },
+    career_prompt_dismiss: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await asUser(A, (tx) => tx`select career_prompt_dismiss()`);
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
+    },
+    // R32-09: la baja del email actúa sobre el uuid que le pasan (el enlace firmado lo verifica la ruta), así que la
+    // app no tiene EXECUTE: solo la conexión de servicio. A no puede darle de baja el email a B.
+    news_email_unsubscribe: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await expect(
+        asUser(A, (tx) => tx`select news_email_unsubscribe(${B}::uuid)`),
+      ).rejects.toThrow(/permission denied/);
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
     },
     // Sin parámetros: solo responde por la sesión (A no tiene roles).
     my_roles: async () => {

@@ -2,6 +2,7 @@ import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import { createEvaluation, createJob, deleteJob, E2E_USER_ID, login, ownerDb } from "./helpers";
+import { blankProfileFacts } from "./perfil-sin-datos-helper";
 
 /**
  * Flujo 63 (ronda 104): «Requisitos del aviso» sale de `decision.checklist`. Con el checklist se ve
@@ -85,8 +86,13 @@ async function evaluateWithDecision(jobId: string, decision: unknown): Promise<v
 
 test.describe("Flujo 63: requisitos del aviso", () => {
   let dockerBackup: (typeof s.skillLevels.$inferSelect)[] = [];
+  let restoreProfile: () => Promise<void> = async () => {};
 
   test.beforeAll(async () => {
+    // El CTA «Completá este dato en Tu perfil: 5 años» exige «5 años» sin confirmar: el perfil del CI trae
+    // 5 años y el detalle lo superpone a la evaluación (la fila pasa a «Coincide» y no hay CTA). Ver
+    // `perfil-sin-datos-helper.ts`.
+    restoreProfile = await blankProfileFacts();
     const { db, close } = ownerDb();
     try {
       const [docker] = await db
@@ -105,6 +111,7 @@ test.describe("Flujo 63: requisitos del aviso", () => {
   });
 
   test.afterAll(async () => {
+    await restoreProfile();
     const { db, close } = ownerDb();
     try {
       if (dockerBackup.length) {

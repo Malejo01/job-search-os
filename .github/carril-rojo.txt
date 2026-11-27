@@ -216,3 +216,5 @@ packages/pipeline/src/job-card/flag.ts
 packages/adapters/src/reevaluate/reevaluate-cli.ts
 # R32: aviso de pocas ofertas (server action inline)
 apps/web/app/(app)/jobs/few-offers-notice.tsx
+# R33: baja del email de novedades con el rol de servicio (después de verificar el token)
+apps/web/lib/news-email.ts

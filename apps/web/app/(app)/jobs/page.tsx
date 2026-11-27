@@ -30,7 +30,6 @@ import { reviewAgainAction } from "./discard-actions";
 import { Alert, Icon, buttonClasses, textLinkClasses, type IconName } from "@/components/ui";
 import { Suspense } from "react";
 import { AutoRefresh } from "./auto-refresh";
-import { JobsLoading } from "./jobs-loading";
 import { EmailNudge } from "./email-nudge";
 import { FewOffersNotice } from "./few-offers-notice";
 import { FirstSteps, firstStepsHidden } from "./first-steps";
@@ -48,9 +47,11 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Match" };
 
 /**
- * Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente. La sesión
- * se exige antes del `Suspense` (sin sesión sigue siendo una redirección); el estado de carga (R30-05)
- * va acá y no en un `loading.tsx`, que envolvería también a `/jobs/[id]` y sus rutas hijas.
+ * Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente. **La lista sale
+ * completa del HTML del servidor** (e2e 89, sin JavaScript): no hay `Suspense` alrededor de ella, porque un
+ * límite que tarda deja el contenido en un bloque oculto que solo el JavaScript del navegador revela
+ * (R33-12). El estado de carga (R30-05) vive en cada pestaña y chip (`LinkPending`) y no en un
+ * `loading.tsx`, que envolvería también a `/jobs/[id]` y sus rutas hijas.
  */
 export default async function JobsPage({
   searchParams,
@@ -58,11 +59,7 @@ export default async function JobsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const userId = await requireUserId();
-  return (
-    <Suspense fallback={<JobsLoading />}>
-      <JobsContent userId={userId} searchParams={searchParams} />
-    </Suspense>
-  );
+  return <JobsContent userId={userId} searchParams={searchParams} />;
 }
 
 async function JobsContent({
