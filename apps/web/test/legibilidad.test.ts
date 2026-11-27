@@ -44,6 +44,21 @@ function esPantallaDeOfertas(archivo: string): boolean {
 }
 
 /**
+ * Pantallas del CV (R33-10): los dos asistentes (el chat de `/cv/armar` y el coach con el agente de perfil),
+ * «Tu CV», la revisión «Esto es lo que entendí», el diagnóstico, las opciones y las descargas. Modo estricto,
+ * sin excepciones. La vista previa (`components/cv-preview.tsx`) sigue excluida arriba: emula una hoja de papel.
+ */
+function esPantallaDelCv(archivo: string): boolean {
+  return (
+    archivo.startsWith("app/(app)/cv/") ||
+    archivo.startsWith("app/onboarding/cv/") ||
+    archivo.startsWith("components/cv-coach/") ||
+    archivo.startsWith("components/profile-agent/") ||
+    /^components\/cv-[^/]*\.tsx$/.test(archivo)
+  );
+}
+
+/**
  * Hallazgos que todavía tienen las pantallas de ofertas. Se vacía al aplicar la regla (R30-12): `listado` y
  * `detalle` terminan sus pantallas y después se corrige lo que quede. Mientras tanto solo puede bajar.
  */
@@ -61,7 +76,6 @@ const EXCEPCIONES: Readonly<Record<string, number>> = {
   "components/brand/illustration.tsx": 1,
   "components/guided-tour.tsx": 1,
   "components/primer-uso.tsx": 1,
-  "components/profile-agent/cards.tsx": 1,
   "components/specialty-chips-toggle.tsx": 4,
 };
 
@@ -141,12 +155,20 @@ describe("las pantallas cumplen la regla", () => {
   it("hay archivos que medir y las pantallas de ofertas están entre ellos", () => {
     expect(medidos.length).toBeGreaterThan(100);
     expect(medidos.filter(esPantallaDeOfertas).length).toBeGreaterThan(10);
+    // R33-10: las pantallas del CV están entre las medidas, y ninguna tiene excepción
+    expect(medidos.filter(esPantallaDelCv).length).toBeGreaterThan(10);
+    expect(medidos).toContain("app/(app)/cv/armar/review-editor.tsx");
+    expect(Object.keys(EXCEPCIONES).filter(esPantallaDelCv)).toEqual([]);
     expect(medidos).toContain("components/ui/seal.tsx");
   });
 
   it("ningún archivo tiene más hallazgos que los anotados (los que no figuran, cero)", () => {
     const de = (a: string) =>
-      esPantallaDeOfertas(a) ? (PENDIENTES_OFERTAS[a] ?? 0) : (EXCEPCIONES[a] ?? 0);
+      esPantallaDelCv(a)
+        ? 0
+        : esPantallaDeOfertas(a)
+          ? (PENDIENTES_OFERTAS[a] ?? 0)
+          : (EXCEPCIONES[a] ?? 0);
     const mal = medidos
       .filter((a) => cuenta(a) > de(a))
       .map((a) => {

@@ -14,25 +14,60 @@ export const CV_DIAGNOSIS_ITEM_IDS = [
   "structure",
   "keywords",
   "readability",
+  "length",
   "achievements",
   "sections",
 ] as const;
 export type CvDiagnosisItemId = (typeof CV_DIAGNOSIS_ITEM_IDS)[number];
 
-export type CvDiagnosisLevel = "good" | "improvable" | "missing";
+/**
+ * Nivel de un puntaje entero (R33-06, C-36): `good` = «Sólido» (8 a 10), `improvable` = «En camino» (5 a 7),
+ * `missing` = «Para reforzar» (1 a 4) y `empty` = «Sin empezar» (0). Las palabras las pone la web.
+ */
+export type CvDiagnosisLevel = "good" | "improvable" | "missing" | "empty";
+
+/**
+ * Paso concreto de una «falta» (tabla 8.2 del informe). Es un código: la web decide el botón y a qué
+ * campo exacto lleva.
+ */
+export type CvDiagnosisFix =
+  | "add_headline"
+  | "add_contact"
+  | "add_summary"
+  | "add_experience"
+  | "add_education"
+  | "add_skills"
+  | "add_languages"
+  | "mark_keywords"
+  | "write_achievement"
+  | "edit_history";
 
 export type CvDiagnosisItem =
   | {
       id: CvDiagnosisItemId;
       status: "scored";
-      /** 0 a 10, un decimal. */
+      /** Entero de 0 a 10. */
       score: number;
       level: CvDiagnosisLevel;
       advice: string;
+      /** Pasos concretos, del más importante al menos. Vacío si no hace falta nada. */
+      fixes: CvDiagnosisFix[];
     }
   | { id: CvDiagnosisItemId; status: "soon"; score: null; level: null; advice: null }
   /** Hay mercado pero con muy pocos avisos del puesto: no se inventa puntaje («Sin datos suficientes»). */
-  | { id: CvDiagnosisItemId; status: "no_data"; score: null; level: null; advice: null };
+  | { id: CvDiagnosisItemId; status: "no_data"; score: null; level: null; advice: null }
+  /**
+   * Depende de algo que todavía no está cargado (C-40): sin experiencia no se mide la legibilidad, el largo
+   * ni los logros. En vez de tres «Falta», una acción principal y el resto en pausa.
+   */
+  | {
+      id: CvDiagnosisItemId;
+      status: "waiting";
+      score: null;
+      level: null;
+      advice: null;
+      needs: "experience";
+    };
 
 export type CvDiagnosisOptions = {
   /**
@@ -49,7 +84,7 @@ const MAX_BULLETS = 30;
 const MAX_FIELD_CHARS = 1_000;
 const MAX_TOTAL_CHARS = 200_000;
 
-/** Umbrales de nivel. */
+/** Umbrales de nivel, sobre el puntaje entero que ve la persona. */
 export const CV_DIAGNOSIS_GOOD_FROM = 8;
 export const CV_DIAGNOSIS_IMPROVABLE_FROM = 5;
 
@@ -75,17 +110,52 @@ const SECTION_ORDER: readonly CvSectionId[] = [
 /** Secciones donde se mide si las viñetas traen un resultado. */
 const RESULT_SECTIONS: readonly CvSectionId[] = ["experience", "projects", "achievements"];
 
-const round1 = (n: number) => Math.round(Math.min(10, Math.max(0, n)) * 10) / 10;
+/** Entero de 0 a 10 (un puntaje no numérico cuenta como 0). */
+const wholeScore = (n: number) =>
+  Number.isFinite(n) ? Math.round(Math.min(10, Math.max(0, n))) : 0;
 
-function levelOf(score: number): CvDiagnosisLevel {
-  if (score >= CV_DIAGNOSIS_GOOD_FROM) return "good";
-  if (score >= CV_DIAGNOSIS_IMPROVABLE_FROM) return "improvable";
-  return "missing";
+/**
+ * Nivel de un puntaje. Se redondea primero: la palabra sale del entero que se muestra (4,5 → 5 «En camino»;
+ * 0,4 → 0 «Sin empezar»), nunca de un decimal que la persona no ve.
+ */
+export function cvDiagnosisLevel(score: number): CvDiagnosisLevel {
+  const n = wholeScore(score);
+  if (n >= CV_DIAGNOSIS_GOOD_FROM) return "good";
+  if (n >= CV_DIAGNOSIS_IMPROVABLE_FROM) return "improvable";
+  return n === 0 ? "empty" : "missing";
 }
 
-function scored(id: CvDiagnosisItemId, raw: number, advice: string): CvDiagnosisItem {
-  const score = round1(raw);
-  return { id, status: "scored", score, level: levelOf(score), advice };
+/**
+ * `hasContent`: hay algo cargado que medir y dio 0. «Sin empezar» dice «no hay nada cargado»; con contenido
+ * sería mentira, así que el nivel es «Para reforzar» (el 0 se muestra tal cual).
+ */
+function scored(
+  id: CvDiagnosisItemId,
+  raw: number,
+  advice: string,
+  fixes: CvDiagnosisFix[] = [],
+  hasContent = false,
+): CvDiagnosisItem {
+  const score = wholeScore(raw);
+  const level = score === 0 && hasContent ? "missing" : cvDiagnosisLevel(score);
+  return { id, status: "scored", score, level, advice, fixes };
+}
+
+const WAITING = (id: CvDiagnosisItemId): CvDiagnosisItem => ({
+  id,
+  status: "waiting",
+  score: null,
+  level: null,
+  advice: null,
+  needs: "experience",
+});
+
+/**
+ * Si varias barras esperan por lo mismo (no hay experiencia cargada), una sola acción principal (C-40).
+ * `null` si ninguna espera.
+ */
+export function cvDiagnosisMainFix(items: readonly CvDiagnosisItem[]): CvDiagnosisFix | null {
+  return items.some((i) => i.status === "waiting") ? "add_experience" : null;
 }
 
 const clip = (s: string | null) => (s ?? "").slice(0, MAX_FIELD_CHARS);
@@ -104,6 +174,8 @@ type Bounded = {
   texts: string[];
   /** Viñetas de experiencia, proyectos y logros: donde se espera un resultado medible. */
   resultBullets: string[];
+  /** Hay experiencia (o proyectos, que valen igual para quien empieza) con algo escrito. */
+  hasExperience: boolean;
 };
 
 function bound(doc: CvDocument): Bounded {
@@ -123,6 +195,7 @@ function bound(doc: CvDocument): Bounded {
     totalWords: 0,
     texts: [take(clip(doc.headline))],
     resultBullets: [],
+    hasExperience: false,
   };
   for (const sec of doc.sections.slice(0, MAX_SECTIONS) as CvSection[]) {
     let filled = false;
@@ -145,6 +218,7 @@ function bound(doc: CvDocument): Bounded {
       }
     }
     out.sections.push({ id: sec.id, title: sec.title, filled });
+    if (filled && (sec.id === "experience" || sec.id === "projects")) out.hasExperience = true;
   }
   return out;
 }
@@ -159,31 +233,44 @@ function structureItem(b: Bounded): CvDiagnosisItem {
 
   let score = 0;
   const gaps: string[] = [];
+  const fixes: CvDiagnosisFix[] = [];
   if (b.hasName) score += 2;
   else gaps.push("tu nombre arriba de todo");
   if (b.hasContact) score += 3;
-  else gaps.push("un dato de contacto (email o ciudad)");
+  else {
+    gaps.push("un dato de contacto (email o ciudad)");
+    fixes.push("add_contact");
+  }
   if (b.hasHeadline) score += 2;
-  else gaps.push("un titular con el puesto que buscás");
+  else {
+    gaps.push("un titular con el puesto que buscás");
+    fixes.push("add_headline");
+  }
   if (orderOk) score += 1.5;
-  else if (ids.length > 0) gaps.push("el orden estándar: resumen, experiencia, estudios y skills");
+  else if (ids.length > 0) {
+    gaps.push("el orden estándar: resumen, experiencia, estudios y skills");
+    fixes.push("edit_history");
+  }
   if (noEmpty) score += 1.5;
-  else if (b.sections.length > 0) gaps.push("completar o sacar las secciones vacías");
+  else if (b.sections.length > 0) {
+    gaps.push("completar o sacar las secciones vacías");
+    if (!fixes.includes("edit_history")) fixes.push("edit_history");
+  }
 
   const advice =
     gaps.length === 0
       ? "Tiene nombre, contacto, titular y un orden que cualquier sistema de selección lee sin problema."
       : `Sumá o corregí: ${gaps.join("; ")}.`;
-  return scored("structure", score, advice);
+  return scored("structure", score, advice, fixes);
 }
 
 /** Secciones que un CV profesional trae: cada una vale 2 puntos. */
-const EXPECTED: { ids: readonly CvSectionId[]; label: string }[] = [
-  { ids: ["summary"], label: "Resumen" },
-  { ids: ["experience", "projects"], label: "Experiencia (o proyectos)" },
-  { ids: ["education"], label: "Educación" },
-  { ids: ["skills"], label: "Skills" },
-  { ids: ["languages"], label: "Idiomas" },
+const EXPECTED: { ids: readonly CvSectionId[]; label: string; fix: CvDiagnosisFix }[] = [
+  { ids: ["summary"], label: "Resumen", fix: "add_summary" },
+  { ids: ["experience", "projects"], label: "Experiencia (o proyectos)", fix: "add_experience" },
+  { ids: ["education"], label: "Educación", fix: "add_education" },
+  { ids: ["skills"], label: "Skills", fix: "add_skills" },
+  { ids: ["languages"], label: "Idiomas", fix: "add_languages" },
 ];
 
 function sectionsItem(b: Bounded): CvDiagnosisItem {
@@ -193,19 +280,40 @@ function sectionsItem(b: Bounded): CvDiagnosisItem {
     missing.length === 0
       ? "Están todas las secciones que se esperan en un CV profesional."
       : `Te faltan: ${missing.map((m) => m.label).join(", ")}. Cargalas en tu historial o con el coach.`;
-  return scored("sections", score, advice);
+  return scored(
+    "sections",
+    score,
+    advice,
+    missing.map((m) => m.fix),
+  );
 }
 
+/** Legibilidad: qué tan cortas y claras son las viñetas. El largo del CV se mide aparte (`lengthItem`). */
 function readabilityItem(b: Bounded): CvDiagnosisItem {
+  if (!b.hasExperience) return WAITING("readability");
   const total = b.bulletWords.length;
   const good = b.bulletWords.filter(
     (w, i) =>
       w >= BULLET_MIN_WORDS && w <= BULLET_MAX_WORDS && b.bulletChars[i]! <= BULLET_MAX_CHARS,
   ).length;
-  const bulletScore = total === 0 ? 0 : (good / total) * 10;
+  const score = total === 0 ? 0 : (good / total) * 10;
+  let advice = "Viñetas cortas, de una idea por línea.";
+  let fixes: CvDiagnosisFix[] = [];
+  if (total === 0) {
+    advice = "Escribí tus logros en viñetas cortas (una idea por línea).";
+    fixes = ["write_achievement"];
+  } else if (good < total) {
+    advice = `Acortá o ajustá ${total - good} de ${total} viñetas: una idea por línea, entre ${BULLET_MIN_WORDS} y ${BULLET_MAX_WORDS} palabras.`;
+    fixes = ["edit_history"];
+  }
+  return scored("readability", score, advice, fixes, true);
+}
 
+/** Largo: cuántas palabras tiene todo el CV, contra un rango cómodo de leer. */
+function lengthItem(b: Bounded): CvDiagnosisItem {
+  if (!b.hasExperience) return WAITING("length");
   const w = b.totalWords;
-  const lengthScore =
+  const score =
     w === 0
       ? 0
       : w < IDEAL_WORDS_MIN
@@ -213,21 +321,16 @@ function readabilityItem(b: Bounded): CvDiagnosisItem {
         : w <= IDEAL_WORDS_MAX
           ? 10
           : 10 - ((w - IDEAL_WORDS_MAX) / IDEAL_WORDS_MIN) * 2;
-
-  const tips: string[] = [];
-  if (total === 0) tips.push("escribí tus logros en viñetas cortas (una idea por línea)");
-  else if (good < total) {
-    tips.push(
-      `acortá o ajustá ${total - good} de ${total} viñetas: una idea por línea, entre ${BULLET_MIN_WORDS} y ${BULLET_MAX_WORDS} palabras`,
-    );
+  let advice = "Un largo cómodo de leer.";
+  let fixes: CvDiagnosisFix[] = [];
+  if (w < IDEAL_WORDS_MIN) {
+    advice = "El CV quedó corto: sumá detalle a tu experiencia.";
+    fixes = ["write_achievement"];
+  } else if (w > IDEAL_WORDS_MAX) {
+    advice = "El CV quedó largo: dejá lo más relevante para el puesto.";
+    fixes = ["edit_history"];
   }
-  if (w > 0 && w < IDEAL_WORDS_MIN) tips.push("el CV quedó corto: sumá detalle a tu experiencia");
-  if (w > IDEAL_WORDS_MAX) tips.push("el CV quedó largo: dejá lo más relevante para el puesto");
-  const advice =
-    tips.length === 0
-      ? "Viñetas cortas y un largo cómodo de leer."
-      : `${tips.join("; ").replace(/^./, (c) => c.toUpperCase())}.`;
-  return scored("readability", (bulletScore + lengthScore) / 2, advice);
+  return scored("length", score, advice, fixes, true);
 }
 
 const SOON = (id: CvDiagnosisItemId): CvDiagnosisItem => ({
@@ -249,31 +352,38 @@ function keywordsItem(b: Bounded, market: KeywordMarket | null | undefined): CvD
     r.missing.length === 0
       ? "Tu CV nombra las skills más pedidas para tu puesto."
       : `Estas skills se piden mucho para tu puesto y tu CV no las nombra: ${r.missing.join(", ")}. Sumalas solo si de verdad las tenés.`;
-  return scored("keywords", r.score, advice);
+  return scored("keywords", r.score, advice, r.missing.length === 0 ? [] : ["mark_keywords"]);
 }
 
-/** Logros medibles: cuántas viñetas traen un número, un porcentaje, un plazo o una cantidad (`cv-measurable.ts`). */
+/**
+ * Logros medibles: cuántas viñetas traen un número, un porcentaje, un plazo o una cantidad (`cv-measurable.ts`).
+ * Con experiencia y viñetas vagas (C-42) el paso es reescribirlas con ayuda, no «cargar experiencia».
+ */
 function achievementsItem(b: Bounded): CvDiagnosisItem {
+  if (!b.hasExperience) return WAITING("achievements");
   const r = analyzeCvMeasurable(b.resultBullets);
   let advice: string;
+  let fixes: CvDiagnosisFix[] = ["write_achievement"];
   if (r.total === 0) {
     advice =
       "Escribí tus logros en viñetas de experiencia o proyectos y sumales un resultado: un número, un porcentaje, un plazo o una cantidad de personas.";
   } else if (r.example === null) {
     advice = "Tus viñetas muestran resultados que se pueden medir.";
+    fixes = [];
   } else {
     advice = `A «${r.example}» le falta un resultado. Plantilla: lo que hiciste + cuánto cambió (un porcentaje, una cantidad, un plazo o «de X a Y»). Agregalo solo si lo sabés con certeza.`;
   }
-  return scored("achievements", r.score, advice);
+  return scored("achievements", r.score, advice, fixes, true);
 }
 
-/** Diagnóstico del CV: los cinco ítems, siempre en el mismo orden. */
+/** Diagnóstico del CV: los seis ítems, siempre en el mismo orden. */
 export function diagnoseCv(doc: CvDocument, opts: CvDiagnosisOptions = {}): CvDiagnosisItem[] {
   const b = bound(doc);
   return [
     structureItem(b),
     keywordsItem(b, opts.keywords),
     readabilityItem(b),
+    lengthItem(b),
     achievementsItem(b),
     sectionsItem(b),
   ];

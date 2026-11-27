@@ -31,13 +31,27 @@ function months(row: Pick<HistoryRow, "startMonth" | "endMonth" | "kind">): stri
   return [row.startMonth, end].filter(Boolean).join(" a ");
 }
 
-function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
+function EntryFields({
+  row,
+  prefix,
+  presetKind,
+}: {
+  row?: HistoryRow;
+  prefix: string;
+  /** R33-01: «Agregar mis estudios» abre el formulario con el tipo ya elegido. */
+  presetKind?: (typeof HISTORY_KINDS)[number];
+}) {
   const id = (name: string) => `${prefix}-${name}`;
   return (
     <>
       <label htmlFor={id("kind")} className="flex flex-col gap-1.5 text-sm font-medium text-fg">
         Tipo
-        <select id={id("kind")} name="kind" defaultValue={row?.kind ?? "trabajo"} className={INPUT}>
+        <select
+          id={id("kind")}
+          name="kind"
+          defaultValue={row?.kind ?? presetKind ?? "trabajo"}
+          className={INPUT}
+        >
           {HISTORY_KINDS.map((k) => (
             <option key={k} value={k}>
               {HISTORY_KIND_LABELS[k]}
@@ -136,10 +150,12 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
 export default async function HistorialPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; tipo?: string }>;
 }) {
   const userId = await requireUserId();
-  const { error, ok } = await searchParams;
+  const { error, ok, tipo } = await searchParams;
+  // Lista cerrada: cualquier otro valor, sin preselección
+  const presetKind = HISTORY_KINDS.find((k) => k === tipo);
   const rows = await listCareerHistory(userId);
   const errorText = isHistoryField(error)
     ? HISTORY_ERROR_MESSAGES[error]
@@ -236,7 +252,7 @@ export default async function HistorialPage({
           <p className="text-sm text-fg-muted">{HISTORY_ERROR_MESSAGES.limit}</p>
         ) : (
           <form action={addHistoryAction} className="flex flex-col gap-3">
-            <EntryFields prefix="nueva" />
+            <EntryFields prefix="nueva" presetKind={presetKind} />
             <button type="submit" className={PRIMARY}>
               Agregar
             </button>

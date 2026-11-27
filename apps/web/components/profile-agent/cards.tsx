@@ -11,7 +11,43 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { useState } from "react";
-import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { Alert, Badge, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { CV_CALIDAD_TEXTOS } from "@/lib/textos-rediseno";
+
+const R = CV_CALIDAD_TEXTOS.revision;
+
+/** «Sin completar» (R33-05, C-26): un campo vacío no se confunde con uno cargado. */
+function SinCompletar({ value }: { value: string | null | undefined }) {
+  return (value ?? "").trim() === "" ? (
+    <span className="self-start">
+      <Badge tone="neutral">{R.sinCompletar}</Badge>
+    </span>
+  ) : null;
+}
+
+/** Tarjetas nuevas que agrega la persona (R33-05, C-28/C-29): vacías, con id propio, sin datos inventados. */
+function blankCard(kind: "experience" | "education", n: number): ProfileReadCard {
+  return kind === "experience"
+    ? {
+        kind: "experience",
+        id: `exp:nuevo-${n}`,
+        organization: "",
+        title: "",
+        startMonth: null,
+        endMonth: null,
+        isCurrent: false,
+        bullets: [],
+        bulletsFromCv: false,
+      }
+    : {
+        kind: "education",
+        id: `edu:nuevo-${n}`,
+        institution: "",
+        title: "",
+        startMonth: null,
+        endMonth: null,
+      };
+}
 
 /**
  * Tarjetas por sección (ADR-034 §2, R10-2): experiencia (de a un trabajo), proyectos (R12-5), estudios,
@@ -113,6 +149,25 @@ export function ProfileCards({
     setNotes((x) => ({ ...x, [id]: undefined }));
   };
 
+  const [added, setAdded] = useState(0);
+  const addCard = (kind: "experience" | "education") => {
+    setCards((all) => [...all, blankCard(kind, added + 1)]);
+    setAdded((n) => n + 1);
+  };
+  /** «Agregar otro trabajo» / «Agregar estudio o certificación»: la tarjeta nueva nace vacía y sin aceptar. */
+  const adder = (kind: ProfileReadCard["kind"]) =>
+    kind === "experience" || kind === "education" ? (
+      <button
+        type="button"
+        className={`${SM} self-start`}
+        disabled={busy || cards.length >= 40}
+        onClick={() => addCard(kind)}
+        data-testid={`card-add-${kind}`}
+      >
+        {kind === "experience" ? R.agregarTrabajo : R.agregarEstudio}
+      </button>
+    ) : null;
+
   const decided = cards.filter((c) => marks[c.id] !== undefined && !notes[c.id]?.done);
   const next = profileAgentPath(base, "gaps");
 
@@ -213,6 +268,7 @@ export function ProfileCards({
             <section key={section.kind} aria-label={section.title} className="flex flex-col gap-1">
               <h3 className="text-base font-bold text-fg">{section.title}</h3>
               <p className="text-sm text-fg-muted">{section.empty}</p>
+              {adder(section.kind)}
             </section>
           );
         }
@@ -232,7 +288,7 @@ export function ProfileCards({
                     className={cardClasses({
                       level: "list",
                       padding: "sm",
-                      className: `flex flex-col gap-3 ${locked ? "opacity-70" : ""}`,
+                      className: `flex flex-col gap-3 ${locked ? "bg-surface-muted" : ""}`,
                     })}
                   >
                     <CardFields
@@ -275,6 +331,7 @@ export function ProfileCards({
                 );
               })}
             </ul>
+            {adder(section.kind)}
           </section>
         );
       })}
@@ -427,10 +484,14 @@ function CardFields({
               className={FIELD}
               disabled={disabled}
               maxLength={120}
+              placeholder={`${R.ejemplo}${isExp ? "Empresa A" : "Instituto A"}`}
               value={card.kind === "experience" ? card.organization : card.institution}
               onChange={(e) =>
                 onChange(isExp ? { organization: e.target.value } : { institution: e.target.value })
               }
+            />
+            <SinCompletar
+              value={card.kind === "experience" ? card.organization : card.institution}
             />
           </Labeled>
           <Labeled label={isExp ? "Cargo" : "Título"}>
@@ -438,9 +499,11 @@ function CardFields({
               className={FIELD}
               disabled={disabled}
               maxLength={120}
+              placeholder={`${R.ejemplo}${isExp ? "Analista administrativo" : "Tecnicatura en Administración"}`}
               value={card.title}
               onChange={(e) => onChange({ title: e.target.value })}
             />
+            <SinCompletar value={card.title} />
           </Labeled>
           <Labeled label="Desde">
             <input
@@ -495,9 +558,11 @@ function CardFields({
               className={FIELD}
               disabled={disabled}
               maxLength={120}
+              placeholder={`${R.ejemplo}Tablero de ventas`}
               value={card.name}
               onChange={(e) => onChange({ name: e.target.value })}
             />
+            <SinCompletar value={card.name} />
           </Labeled>
           <Labeled label="Tu rol (opcional)">
             <input
@@ -606,14 +671,23 @@ function CardFields({
             />
           </Labeled>
           <Labeled label="Nivel">
-            <input
+            {/* R33-05 (C-31): el nivel con su explicación; lo que el CV decía y no está en la lista se conserva */}
+            <select
               className={FIELD}
               disabled={disabled}
-              maxLength={30}
-              placeholder="Por ejemplo C1"
               value={card.level ?? ""}
               onChange={(e) => onChange({ level: text(e.target.value) })}
-            />
+            >
+              <option value="">{R.idiomaSinNivel}</option>
+              {card.level && !R.niveles.some((n) => n.value === card.level) ? (
+                <option value={card.level}>{card.level}</option>
+              ) : null}
+              {R.niveles.map((n) => (
+                <option key={n.value} value={n.value}>
+                  {n.label}
+                </option>
+              ))}
+            </select>
           </Labeled>
         </div>
       );
