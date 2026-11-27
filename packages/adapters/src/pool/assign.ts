@@ -199,6 +199,11 @@ export async function assignPoolToUser(
           salaryMaxUsd: pj.salaryMaxUsd,
           salaryPeriod: pj.salaryPeriod,
           salaryNote: clip(pj.salaryNote, RAW_SALARY_NOTE_MAX_CHARS),
+          // R32-08: el sueldo en la moneda original pasa tal cual del pool a la copia de la persona
+          salaryOriginalMin: pj.salaryOriginalMin,
+          salaryOriginalMax: pj.salaryOriginalMax,
+          salaryOriginalCurrency: pj.salaryOriginalCurrency,
+          salaryOriginalPeriod: pj.salaryOriginalPeriod,
           weeklyHours: pj.weeklyHours,
           candidatesCount: pj.candidatesCount,
           publicJobId: pj.id,

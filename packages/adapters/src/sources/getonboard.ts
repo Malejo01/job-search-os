@@ -1,4 +1,4 @@
-import type { Modality, RawJob } from "@job-search-os/pipeline";
+import { makeSalaryOriginal, type Modality, type RawJob } from "@job-search-os/pipeline";
 import { sourceErrorCode, type SourceErrorCode } from "./error-code";
 
 /**
@@ -309,6 +309,12 @@ export function mapGobJob(item: GobJobItem, categorySlug: string): RawJob {
     salaryMaxUsd: a.max_salary ?? null,
     salaryPeriod: hasSalary ? "mensual" : null,
     salaryNote: hasSalary ? "USD/mes según Get on Board" : null,
+    salaryOriginal: makeSalaryOriginal({
+      min: a.min_salary,
+      max: a.max_salary,
+      currency: "USD",
+      period: "mensual",
+    }),
     weeklyHours: null,
     candidatesCount: a.applications_count ?? null,
     badges: [],

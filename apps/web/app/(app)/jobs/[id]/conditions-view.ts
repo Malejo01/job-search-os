@@ -1,3 +1,4 @@
+import { formatSalaryOriginal, type SalaryOriginal } from "@job-search-os/pipeline";
 import { ENGLISH_LABEL, MODALITY_LABELS } from "../../../../lib/labels";
 import { DETALLE_TEXTOS, llenarTexto, PANTALLA_TEXTOS } from "../../../../lib/textos-rediseno";
 
@@ -7,6 +8,8 @@ export type ConditionsInput = {
   salaryMinUsd: number | null;
   salaryMaxUsd: number | null;
   salaryPeriod: string | null;
+  /** R32-08: el sueldo tal como lo publica el aviso, en su moneda. Si está, la fila lo muestra tal cual. */
+  salaryOriginal?: SalaryOriginal | null;
   modality: string | null;
   englishRequired: string | null;
   yearsRequired: number | null;
@@ -144,7 +147,11 @@ export function conditionRows(input: ConditionsInput): ConditionRow[] {
   const { salaryMinUsd: min, salaryMaxUsd: max } = input;
   const range = [min, max].filter(Boolean).join("–");
   const period = clean(input.salaryPeriod);
-  const salary = range ? `USD ${range}${period ? ` ${period}` : ""}` : null;
+  const salary = input.salaryOriginal
+    ? formatSalaryOriginal(input.salaryOriginal)
+    : range
+      ? `USD ${range}${period ? ` ${period}` : ""}`
+      : null;
 
   const modality =
     input.modality && input.modality !== "desconocida"

@@ -82,7 +82,12 @@ function JobCard({
   const discarded = job.status === "descartada";
   const excluding = job.requirements.excluding;
   const unconfirmed = job.evaluating ? null : sinConfirmarLine(job.requirements.unconfirmed);
-  const salary = salaryLine(job.salaryMinUsd, job.salaryMaxUsd, job.salaryPeriod);
+  const salary = salaryLine(
+    job.salaryMinUsd,
+    job.salaryMaxUsd,
+    job.salaryPeriod,
+    job.salaryOriginal,
+  );
   const detailHref = `/jobs/${job.id}${query}`;
   const goneText = job.goneFromSource
     ? job.poolSourceName

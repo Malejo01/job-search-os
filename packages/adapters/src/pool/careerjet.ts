@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
-import { siteOrigin, type RawJob } from "@job-search-os/pipeline";
+import { salaryOriginalFromText, siteOrigin, type RawJob } from "@job-search-os/pipeline";
 import type { SourceErrorCode } from "../sources/error-code";
 import { SOURCE_USER_AGENT_BASE } from "../sources/user-agent";
 import { planJoobleQueries, type JoobleQuery } from "./jooble";
@@ -163,6 +163,7 @@ export function mapCareerjetJob(item: CareerjetItem): RawJob | null {
     salaryMaxUsd: null,
     salaryPeriod: null,
     salaryNote: salary.slice(0, 200) || null,
+    salaryOriginal: salaryOriginalFromText(salary.slice(0, 200)),
     weeklyHours: null,
     candidatesCount: null,
     badges: [],

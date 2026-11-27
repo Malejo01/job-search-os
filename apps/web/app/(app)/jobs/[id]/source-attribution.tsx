@@ -26,6 +26,8 @@ export function SourceAttribution({
   exitUrl?: string | null;
   sources: readonly {
     kind: string;
+    /** Nombre de la fuente: con `kind = other` decide la atribución («vía Jooble»). */
+    name?: string | null;
     url: string | null;
     /**
      * Dato que confirma que la fuente pide suscripción para postular (R30-10, plan §7). Hoy ninguna
@@ -40,10 +42,10 @@ export function SourceAttribution({
 }) {
   const seen = new Set<string>();
   const items = sources.flatMap((src) => {
-    const attribution = attributionFor(src.kind, { company });
+    const attribution = attributionFor(src.kind, { company, sourceName: src.name });
     if (!attribution) return [];
     const url = safeHttpUrl(src.url);
-    const key = `${src.kind}|${url ?? ""}`;
+    const key = `${src.kind}|${attribution.name}|${url ?? ""}`;
     if (seen.has(key)) return [];
     seen.add(key);
     return [{ key, attribution, url }];

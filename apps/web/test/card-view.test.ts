@@ -27,6 +27,26 @@ describe("salaryLine (R30-04)", () => {
     expect(salaryLine(350, 870, null)).toBe("USD 350–870");
     expect(salaryLine(350, 870, "quincenal")).toBe("USD 350–870");
   });
+
+  it("R32-08: con el sueldo original dice lo que publica el aviso, en su moneda", () => {
+    const pesos = { min: 1_200_000, max: 1_500_000, currency: "ARS", period: "mensual" as const };
+    expect(salaryLine(null, null, null, pesos)).toBe("$ 1.200.000 a $ 1.500.000 por mes (ARS)");
+    // aunque haya dólares, manda el original: no se muestra una conversión como si fuera el sueldo
+    expect(salaryLine(1200, 1500, "mensual", pesos)).toBe(
+      "$ 1.200.000 a $ 1.500.000 por mes (ARS)",
+    );
+    expect(salaryLine(null, null, null, { ...pesos, currency: "EUR", min: 2000, max: 2500 })).toBe(
+      "€ 2.000 a € 2.500 por mes (EUR)",
+    );
+    expect(salaryLine(null, null, null, { ...pesos, currency: "BRL", min: 8000, max: 9000 })).toBe(
+      "R$ 8.000 a R$ 9.000 por mes (BRL)",
+    );
+  });
+
+  it("R32-08: sin sueldo original (lo guardado antes) la línea es la de siempre", () => {
+    expect(salaryLine(350, 870, "mensual", null)).toBe("USD 350–870 por mes");
+    expect(salaryLine(null, null, null, null)).toBeNull();
+  });
 });
 
 describe("requirementPhrase", () => {

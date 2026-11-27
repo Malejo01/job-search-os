@@ -36,6 +36,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   workable: "Workable",
   recruitee: "Recruitee",
   smartrecruiters: "SmartRecruiters",
+  reliefweb: "ReliefWeb",
   other: "Otra",
 };
 

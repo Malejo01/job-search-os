@@ -73,7 +73,15 @@ describe("languageLine y countriesLine", () => {
 
 describe("parsePoolCliArgs", () => {
   it("fuentes sin token: wwr y las anteriores", () => {
-    for (const s of ["wwr", "getonboard", "remoteok", "jobicy", "himalayas"]) {
+    for (const s of [
+      "wwr",
+      "getonboard",
+      "remoteok",
+      "jobicy",
+      "himalayas",
+      "jooble",
+      "reliefweb",
+    ]) {
       expect(parsePoolCliArgs([s, "--dry-run"])).toEqual({ ok: true, source: s });
     }
   });

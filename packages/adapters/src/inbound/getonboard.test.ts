@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { canonicalUrl } from "@job-search-os/pipeline";
 import { describe, expect, it } from "vitest";
-import { getonboardParser } from "./getonboard";
+import { formaDelEmail, getonboardParser, GOB_CODIGOS_MOTIVO } from "./getonboard";
+import { MAX_REASON_CHARS } from "./motivo";
 import { chooseParserName, EMAIL_PARSERS, type InboundEmailContent } from "./parsers";
 
 const fixture = (name: string) =>
@@ -274,6 +275,138 @@ describe("getonboardParser: falla cerrado", () => {
 
   it("un destacado con seniority desconocido", () => {
     expect(parse(DESTACADO.replace(" | Senior", " | Gurú")).ok).toBe(false);
+  });
+});
+
+/** Código con el que empieza un motivo: lo primero que se lee en la cola manual (R32-07). */
+const codigoDe = (res: ReturnType<typeof parse>): string => {
+  if (res.ok) throw new Error("debía fallar");
+  return res.reason.split(":")[0]!;
+};
+
+describe("getonboardParser: variantes públicas (R32-07)", () => {
+  it("una oferta, varias y una mezcla con y sin sueldo", () => {
+    const una = parse(lista(tarjeta()));
+    if (!una.ok) throw new Error(una.reason);
+    expect(una.jobs).toHaveLength(1);
+
+    const varias = parse(
+      lista(
+        tarjeta({ slug: "puesto-a-empresa-a-remote", company: "Empresa A" }),
+        tarjeta({ slug: "puesto-b-empresa-b-remote", company: "Empresa B", salary: null }),
+        tarjeta({
+          slug: "puesto-c-empresa-c-remote",
+          company: "Empresa C",
+          meta: "Junior | Práctica",
+        }),
+      ),
+    );
+    if (!varias.ok) throw new Error(varias.reason);
+    expect(varias.jobs.map((j) => [j.companyRaw, j.salaryMinUsd, j.contractType])).toEqual([
+      ["Empresa A", 2000, "Full time"],
+      ["Empresa B", null, "Full time"],
+      ["Empresa C", 2000, "Práctica"],
+    ]);
+  });
+
+  it("R32-08: el sueldo queda también en su moneda original (dólares por mes) y sin sueldo no hay original", () => {
+    const con = parse(lista(tarjeta({ salary: "$2200 - 2500\nUSD/mes" })));
+    if (!con.ok) throw new Error(con.reason);
+    expect(con.jobs[0]!.salaryOriginal).toEqual({
+      min: 2200,
+      max: 2500,
+      currency: "USD",
+      period: "mensual",
+    });
+    const sin = parse(lista(tarjeta({ salary: null })));
+    if (!sin.ok) throw new Error(sin.reason);
+    expect(sin.jobs[0]!.salaryOriginal ?? null).toBeNull();
+  });
+
+  it("montos con separadores: miles con punto o coma, y decimales", () => {
+    const monto = (salary: string) => {
+      const res = parse(lista(tarjeta({ salary })));
+      if (!res.ok) throw new Error(res.reason);
+      return [res.jobs[0]!.salaryMinUsd, res.jobs[0]!.salaryMaxUsd];
+    };
+    expect(monto("$1.200 - 1.500\nUSD/mes")).toEqual([1200, 1500]);
+    expect(monto("$1,200 - $1,500\nUSD/mes")).toEqual([1200, 1500]);
+    expect(monto("$2.500,50\nUSD/mes")).toEqual([2501, 2501]);
+    expect(monto("$2500.5\nUSD/mes")).toEqual([2501, 2501]);
+  });
+
+  it("un monto ilegible o un mínimo mayor que el máximo rechaza el email, con el código salario_ilegible", () => {
+    for (const salary of ["$2.50.0 USD/mes", "$3000 - 2000 USD/mes", "$1,2,3 USD/mes"]) {
+      const res = parse(lista(tarjeta({ salary })));
+      expect(res.ok, salary).toBe(false);
+      expect(codigoDe(res), salary).toBe("salario_ilegible");
+    }
+  });
+
+  it("el HTML cambiado deja un motivo con código y una pista de qué parte cambió", () => {
+    // 1. Renombran la clase de las tarjetas: hay links a avisos pero ninguna tarjeta conocida.
+    const sinClase = lista(tarjeta()).replace('class="job"', 'class="oferta"');
+    const r1 = parse(sinClase);
+    expect(codigoDe(r1)).toBe("sin_avisos");
+    if (r1.ok) throw new Error("debía fallar");
+    expect(r1.reason).toMatch(/tarjetas 0, destacados 0, links [1-9]/);
+
+    // 2. Cambian el texto del botón.
+    const r2 = parse(lista(tarjeta()).replace(">Postular", ">Aplicar ahora"));
+    expect(codigoDe(r2)).toBe("tarjeta_sin_postular");
+    if (r2.ok) throw new Error("debía fallar");
+    expect(r2.reason).toContain("tarjeta 1");
+
+    // 3. Cambian <strong> por <b> en la tarjeta.
+    const r3 = parse(lista(tarjeta()).replace(/<(\/?)strong/g, "<$1b"));
+    expect(codigoDe(r3)).toBe("tarjeta_estructura");
+
+    // 4. Los destacados pasan de <h1> a <h2>.
+    const r4 = parse(DESTACADO.replace(/<(\/?)h1/g, "<$1h2"));
+    expect(codigoDe(r4)).toBe("sin_avisos");
+    if (r4.ok) throw new Error("debía fallar");
+    expect(r4.reason).toMatch(/destacados 0, links [1-9]/);
+  });
+
+  it("un email sin avisos de verdad (solo perks) dice cero links a avisos", () => {
+    const html = DESTACADO.replace(/<h4[\s\S]*?<div class="panel"/, '<div class="panel"');
+    const res = parse(html);
+    if (res.ok) throw new Error("debía fallar");
+    expect(res.reason).toMatch(/tarjetas 0, destacados 0, links 0/);
+  });
+
+  it("todo motivo empieza con un código conocido y no pasa de 120 caracteres", () => {
+    const casos = [
+      parse(null),
+      parse(lista(tarjeta({ company: null }))),
+      parse(lista(tarjeta({ meta: "Gurú | Full time" }))),
+      parse(lista(tarjeta({ meta: "Senior | Medio pelo" }))),
+      parse(lista(tarjeta({ title: " " }))),
+      parse(lista(tarjeta({ salary: "a convenir USD/mes" }))),
+      parse(lista(tarjeta({ href: "https://www.getonbrd.com/misempleos" }))),
+      parse(DESTACADO.replace(" | Senior", " | Remoto | Senior")),
+      parse(DESTACADO.replace("<strong>Empresa Oeste</strong>", "")),
+      parse("x".repeat(2_000_000)),
+      parse("<p>nada</p>"),
+    ];
+    for (const res of casos) {
+      if (res.ok) throw new Error("debía fallar");
+      expect(GOB_CODIGOS_MOTIVO as readonly string[]).toContain(codigoDe(res));
+      expect(res.reason.length).toBeLessThanOrEqual(MAX_REASON_CHARS);
+    }
+  });
+
+  it("el motivo de un contrato desconocido nombra el valor que no se entendió", () => {
+    const res = parse(lista(tarjeta({ meta: "Senior | Medio pelo" })));
+    if (res.ok) throw new Error("debía fallar");
+    expect(codigoDe(res)).toBe("contrato_desconocido");
+    expect(res.reason).toContain("Medio pelo");
+  });
+
+  it("formaDelEmail cuenta y no devuelve texto", () => {
+    const f = formaDelEmail(lista(tarjeta(), tarjeta({ slug: "otro-remote" })));
+    expect(f).toEqual({ tarjetas: 2, destacados: 0, linksAAvisos: expect.any(Number) });
+    expect(JSON.stringify(f)).not.toContain("Puesto Demo");
   });
 });
 

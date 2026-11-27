@@ -1,8 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fixtureData from "./__fixtures__/reliefweb-sample.json";
 import {
   fetchReliefWebJobs,
   mapReliefWebJob,
+  parseReliefWebPage,
+  RELIEFWEB_DEFAULT_COUNTRIES_ISO3,
+  RELIEFWEB_MAX_LIMIT,
+  RELIEFWEB_MAX_PAGES_CAP,
   reliefwebUrl,
   type ReliefWebItem,
   type ReliefWebPage,
@@ -22,7 +26,7 @@ describe("ReliefWeb: mapReliefWebJob", () => {
     const raw = mapReliefWebJob(adminJob);
     expect(raw).not.toBeNull();
     expect(raw!.source).toEqual({
-      kind: "other",
+      kind: "reliefweb",
       name: "ReliefWeb",
       externalId: "reliefweb:4098765",
       url: "https://reliefweb.int/job/4098765/finance-and-administration-officer",
@@ -113,9 +117,18 @@ describe("ReliefWeb: fetchReliefWebJobs", () => {
       pagesFetched: 0,
       seen: 0,
       skipped: 0,
+      discardedPages: 0,
       disabled: true,
     });
     expect(networkCalls).toBe(0);
+  });
+
+  it("un appname en blanco también deja la fuente apagada", async () => {
+    process.env.RELIEFWEB_APPNAME = "   ";
+    const fakeFetch = vi.fn();
+    const result = await fetchReliefWebJobs({ fetchImpl: fakeFetch as unknown as typeof fetch });
+    expect(result.disabled).toBe(true);
+    expect(fakeFetch).not.toHaveBeenCalled();
   });
 
   it("se activa si se pasa appname en options o en variable de entorno", async () => {
@@ -201,6 +214,88 @@ describe("ReliefWeb: fetchReliefWebJobs", () => {
 
     expect(headersSent[0]?.["user-agent"]).toBe("JobSearchOS/1.0");
     expect(headersSent[1]?.["user-agent"]).toBeUndefined();
+  });
+
+  it("nunca pide más páginas ni más avisos por pedido que los topes, con cualquier valor", async () => {
+    const urls: string[] = [];
+    const fakeFetch = (async (url: string | URL | Request) => {
+      urls.push(String(url));
+      // Siempre hay más: totalCount enorme y una página llena
+      return new Response(
+        JSON.stringify({ totalCount: 1_000_000, data: [{ id: String(urls.length), fields: {} }] }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const r = await fetchReliefWebJobs({
+      appname: "test-app",
+      limit: 100_000,
+      maxPages: 5000,
+      fetchImpl: fakeFetch,
+    });
+    expect(urls).toHaveLength(RELIEFWEB_MAX_PAGES_CAP);
+    expect(r.pagesFetched).toBe(RELIEFWEB_MAX_PAGES_CAP);
+    for (const u of urls) {
+      expect(new URL(u).searchParams.get("limit")).toBe(String(RELIEFWEB_MAX_LIMIT));
+    }
+    // Con valores inválidos o negativos usa los de por defecto o el mínimo
+    urls.length = 0;
+    await fetchReliefWebJobs({
+      appname: "test-app",
+      limit: Number.NaN,
+      maxPages: 0,
+      fetchImpl: fakeFetch,
+    });
+    expect(urls).toHaveLength(0);
+  });
+
+  it("por defecto consulta Argentina y la región; countriesIso3 vacío saca el filtro", async () => {
+    const urls: string[] = [];
+    const fakeFetch = (async (url: string | URL | Request) => {
+      urls.push(String(url));
+      return new Response(JSON.stringify({ totalCount: 0, data: [] }), { status: 200 });
+    }) as typeof fetch;
+    await fetchReliefWebJobs({ appname: "test-app", fetchImpl: fakeFetch });
+    await fetchReliefWebJobs({ appname: "test-app", countriesIso3: [], fetchImpl: fakeFetch });
+    const withFilter = new URL(urls[0]!).searchParams;
+    expect(withFilter.getAll("filter[value][]")).toEqual([...RELIEFWEB_DEFAULT_COUNTRIES_ISO3]);
+    expect(withFilter.get("filter[field]")).toBe("country.iso3");
+    expect(withFilter.get("filter[operator]")).toBe("OR");
+    expect(withFilter.getAll("filter[value][]")).toContain("ARG");
+    expect(new URL(urls[1]!).searchParams.has("filter[field]")).toBe(false);
+  });
+
+  it("falla cerrado: una página con forma inesperada se descarta entera y no se sigue pidiendo", async () => {
+    for (const body of [
+      "no es json",
+      JSON.stringify([]),
+      JSON.stringify({ resultados: [] }),
+      JSON.stringify({ data: "x" }),
+      JSON.stringify({ data: [adminJob, 5] }),
+      JSON.stringify({ data: [{ id: "1", fields: "x" }] }),
+    ]) {
+      let calls = 0;
+      const fakeFetch = (async () => {
+        calls++;
+        return new Response(body, { status: 200 });
+      }) as typeof fetch;
+      const r = await fetchReliefWebJobs({ appname: "test-app", fetchImpl: fakeFetch });
+      expect(calls).toBe(1);
+      expect(r.discardedPages).toBe(1);
+      expect(r.jobs).toEqual([]);
+    }
+  });
+
+  it("parseReliefWebPage acepta la forma esperada, incluida la vacía", () => {
+    expect(parseReliefWebPage(fixture)).not.toBeNull();
+    expect(parseReliefWebPage({ totalCount: 0, data: [] })).not.toBeNull();
+    expect(parseReliefWebPage(null)).toBeNull();
+  });
+
+  it("el mensaje de error trae el estado y el offset, nunca la URL ni el appname", async () => {
+    const failingFetch = (async () => new Response("x", { status: 403 })) as typeof fetch;
+    await expect(
+      fetchReliefWebJobs({ appname: "app-secreta-de-prueba", fetchImpl: failingFetch }),
+    ).rejects.toThrow(/^ReliefWeb offset 0: HTTP 403$/);
   });
 
   it("lanza error con status HTTP ante fallo de API", async () => {

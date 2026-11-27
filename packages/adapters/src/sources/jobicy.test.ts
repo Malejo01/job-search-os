@@ -70,7 +70,21 @@ describe("Jobicy: contrato con una respuesta de ejemplo (formato a verificar)", 
     expect(raw.salaryMaxUsd).toBeNull();
     expect(raw.salaryPeriod).toBeNull();
     expect(raw.salaryNote).toBe("EUR 40000–60000 por año según Jobicy");
+    // R32-08: y además queda en su moneda original, sin convertir
+    expect(raw.salaryOriginal).toEqual({
+      min: 40000,
+      max: 60000,
+      currency: "EUR",
+      period: "anual",
+    });
     expect(raw.categories).toEqual(["design-creative"]);
+  });
+
+  it("R32-08: sin moneda dicha no hay sueldo original", () => {
+    expect(mapJobicyJob(empty)!.salaryOriginal).toBeNull();
+    expect(
+      mapJobicyJob({ ...anywhere, annualSalaryMin: 0, annualSalaryMax: "abc" })!.salaryOriginal,
+    ).toBeNull();
   });
 
   it("pubDate 'YYYY-MM-DD HH:MM:SS' se toma como UTC", () => {

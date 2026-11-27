@@ -1,4 +1,4 @@
-import { inferSeniorityFromTitle, type RawJob } from "@job-search-os/pipeline";
+import { inferSeniorityFromTitle, makeSalaryOriginal, type RawJob } from "@job-search-os/pipeline";
 import { htmlToText } from "./getonboard";
 
 /**
@@ -90,6 +90,7 @@ export function mapRemoteOkJob(item: RemoteOkItem): RawJob {
     salaryMaxUsd: max,
     salaryPeriod: hasSalary ? "anual" : null,
     salaryNote: hasSalary ? "USD/año según Remote OK" : null,
+    salaryOriginal: makeSalaryOriginal({ min, max, currency: "USD", period: "anual" }),
     weeklyHours: null,
     candidatesCount: null,
     badges: [],

@@ -4,6 +4,7 @@ import {
   CONTRACT_PROMPT_MAX_CHARS,
   COUNTRIES_PROMPT_MAX_ITEMS,
   COUNTRY_PROMPT_MAX_CHARS,
+  makeSalaryOriginal,
   type RawJob,
 } from "@job-search-os/pipeline";
 
@@ -35,6 +36,10 @@ export function clampRawJobFields(raw: RawJob): RawJob {
     companyRaw: clip(raw.companyRaw, RAW_FIELD_MAX_CHARS),
     locationRaw: clip(raw.locationRaw, RAW_FIELD_MAX_CHARS),
     salaryNote: clip(raw.salaryNote, RAW_SALARY_NOTE_MAX_CHARS),
+    // R32-08: se vuelve a validar (moneda de tres letras, montos enteros y en rango) antes de llegar a la base
+    ...(raw.salaryOriginal === undefined
+      ? {}
+      : { salaryOriginal: raw.salaryOriginal ? makeSalaryOriginal(raw.salaryOriginal) : null }),
     contractType: clip(raw.contractType, RAW_CONTRACT_MAX_CHARS),
     countriesAllowed: clipList(
       raw.countriesAllowed,

@@ -1,4 +1,9 @@
-import { alertKeywordsFor, ROLE_KEYS, type RawJob } from "@job-search-os/pipeline";
+import {
+  alertKeywordsFor,
+  ROLE_KEYS,
+  salaryOriginalFromText,
+  type RawJob,
+} from "@job-search-os/pipeline";
 import type { SourceErrorCode } from "../sources/error-code";
 import { SOURCE_USER_AGENT_BASE } from "../sources/user-agent";
 
@@ -183,6 +188,8 @@ export function mapJoobleJob(item: JoobleItem): RawJob | null {
     salaryMaxUsd: null,
     salaryPeriod: null,
     salaryNote: salary.slice(0, 200) || null,
+    // R32-08: solo si el texto dice la moneda y se lee sin ambigüedad; «$» solo no la dice
+    salaryOriginal: salaryOriginalFromText(salary.slice(0, 200)),
     weeklyHours: null,
     candidatesCount: null,
     badges: [],

@@ -15,6 +15,7 @@ import {
   prefilterReasonText,
   gapText,
   riesgosVisibles,
+  salaryOriginalFromColumns,
   translateChecklist,
   type Adjustment,
   type Checklist,
@@ -22,6 +23,7 @@ import {
   type HumanVerdict,
   type JobEvent,
   type JobStatus,
+  type SalaryOriginal,
 } from "@job-search-os/pipeline";
 import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -144,6 +146,8 @@ export type JobDetail = {
   salaryMinUsd: number | null;
   salaryMaxUsd: number | null;
   salaryPeriod: string | null;
+  /** R32-08: el sueldo tal como lo publica el aviso, en su moneda; null en lo anterior o si no la dice. */
+  salaryOriginal: SalaryOriginal | null;
   weeklyHours: number | null;
   candidatesCount: number | null;
   /** Marca «Guardada» (R30-03), de la misma fila: ISO o null. */
@@ -461,6 +465,7 @@ export async function getJobDetail(
       salaryMinUsd: job.salaryMinUsd,
       salaryMaxUsd: job.salaryMaxUsd,
       salaryPeriod: job.salaryPeriod,
+      salaryOriginal: salaryOriginalFromColumns(job),
       weeklyHours: job.weeklyHours,
       candidatesCount: job.candidatesCount,
       savedAt: job.savedAt?.toISOString() ?? null,

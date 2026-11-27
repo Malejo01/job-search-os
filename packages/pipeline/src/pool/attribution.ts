@@ -38,6 +38,19 @@ export const SOURCE_ATTRIBUTION: Record<SourceKind, SourceAttribution | null> = 
   smartrecruiters: { name: "Sitio de empleos", text: ATS_TEXT },
   // Alertas por email de Computrabajo (ADR-024 §4, ADR-043): «vía Computrabajo» y el link al aviso original
   computrabajo_alerts: { name: "Computrabajo", text: "vía Computrabajo" },
+  // ReliefWeb (ADR-028): CC BY 4.0 pide citar a ReliefWeb y enlazar al aviso original; la organización que
+  // publica va como empresa del aviso. Sin sugerir aval de Naciones Unidas.
+  reliefweb: { name: "ReliefWeb", text: "Fuente: ReliefWeb", homeUrl: "https://reliefweb.int" },
+};
+
+/**
+ * Fuentes del pool que comparten `source_kind = other` (sin valor propio en el enum, ADR-039): se
+ * reconocen por el nombre exacto que les pone su adaptador (`source.name`). Solo las conocidas: un
+ * nombre cualquiera con `other` no lleva atribución. Clave en minúsculas.
+ */
+const OTHER_SOURCE_ATTRIBUTION: Readonly<Record<string, SourceAttribution>> = {
+  jooble: { name: "Jooble", text: "vía Jooble" },
+  careerjet: { name: "Careerjet", text: "vía Careerjet" },
 };
 
 /** We Work Remotely pide una suscripción paga para postular; el aviso suele estar gratis en el ATS. */
@@ -109,13 +122,18 @@ const COMPANY_MAX = 80;
 
 /**
  * La atribución de una fuente, o null si no lleva (o si el valor no es una fuente conocida).
- * En los ATS el texto nombra la empresa del aviso; sin empresa dice "la empresa".
+ * En los ATS el texto nombra la empresa del aviso; sin empresa dice "la empresa". Con `kind = other`
+ * y un `sourceName` conocido (Jooble, Careerjet) dice «vía <fuente>».
  */
 export function attributionFor(
   kind: string,
-  opts?: { company?: string | null },
+  opts?: { company?: string | null; sourceName?: string | null },
 ): SourceAttribution | null {
   if (!Object.hasOwn(SOURCE_ATTRIBUTION, kind)) return null;
+  if (kind === "other") {
+    const key = (opts?.sourceName ?? "").trim().toLowerCase();
+    return Object.hasOwn(OTHER_SOURCE_ATTRIBUTION, key) ? OTHER_SOURCE_ATTRIBUTION[key]! : null;
+  }
   const base = SOURCE_ATTRIBUTION[kind as SourceKind];
   if (!base || !ATS_KINDS.has(kind)) return base;
   const company = (opts?.company ?? "").replace(/\s+/g, " ").trim().slice(0, COMPANY_MAX);

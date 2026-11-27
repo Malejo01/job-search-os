@@ -544,6 +544,11 @@ export async function ingestRawJob(input: RawJob, deps: IngestDeps): Promise<Ing
       salaryMaxUsd: raw.salaryMaxUsd,
       salaryPeriod: raw.salaryPeriod,
       salaryNote: raw.salaryNote,
+      // R32-08: el sueldo en la moneda original del aviso (todo null si la fuente no la dice)
+      salaryOriginalMin: raw.salaryOriginal?.min ?? null,
+      salaryOriginalMax: raw.salaryOriginal?.max ?? null,
+      salaryOriginalCurrency: raw.salaryOriginal?.currency ?? null,
+      salaryOriginalPeriod: raw.salaryOriginal?.period ?? null,
       weeklyHours: raw.weeklyHours,
       candidatesCount: raw.candidatesCount,
       badges: raw.badges,

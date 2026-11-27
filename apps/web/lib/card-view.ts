@@ -1,4 +1,8 @@
-import type { CardRequirement } from "@job-search-os/pipeline";
+import {
+  formatSalaryOriginal,
+  type CardRequirement,
+  type SalaryOriginal,
+} from "@job-search-os/pipeline";
 import { LISTADO_TEXTOS, llenarTexto } from "./textos-rediseno";
 
 /**
@@ -17,12 +21,18 @@ function thousands(n: number): string {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-/** Sueldo solo si el aviso lo publica: «USD 350–870 por mes». Sin periodo conocido, no se inventa. */
+/**
+ * Sueldo solo si el aviso lo publica. Con el sueldo original (R32-08) dice lo que el aviso publica, en su
+ * moneda: «$ 1.200.000 a $ 1.500.000 por mes (ARS)». Sin él (lo guardado antes), la línea de siempre en
+ * dólares: «USD 350–870 por mes». Sin periodo conocido, no se inventa.
+ */
 export function salaryLine(
   min: number | null | undefined,
   max: number | null | undefined,
   period: string | null | undefined,
+  original?: SalaryOriginal | null,
 ): string | null {
+  if (original) return formatSalaryOriginal(original);
   const lo = min && min > 0 ? min : null;
   const hi = max && max > 0 ? max : null;
   if (lo === null && hi === null) return null;

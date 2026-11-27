@@ -21,9 +21,11 @@ import {
   cardRequirements,
   riesgosVisibles,
   isGoneFromSource,
+  salaryOriginalFromColumns,
   sortByListingTier,
   type CardChecklistItem,
   type CardRequirements,
+  type SalaryOriginal,
 } from "@job-search-os/pipeline";
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { withUser } from "./db";
@@ -97,6 +99,8 @@ export type JobListRow = {
   salaryMinUsd: number | null;
   salaryMaxUsd: number | null;
   salaryPeriod: string | null;
+  /** R32-08: el sueldo tal como lo publica el aviso, en su moneda; null en lo anterior o si no la dice. */
+  salaryOriginal?: SalaryOriginal | null;
   bloqueadores: string[];
   /** Un punto a favor y uno que falta o frena, en llano (resumen de la tarjeta); sin evaluación, vacío. */
   fit: FitCardSummary;
@@ -321,6 +325,10 @@ export async function listJobs(
         salaryMinUsd: s.jobs.salaryMinUsd,
         salaryMaxUsd: s.jobs.salaryMaxUsd,
         salaryPeriod: s.jobs.salaryPeriod,
+        salaryOriginalMin: s.jobs.salaryOriginalMin,
+        salaryOriginalMax: s.jobs.salaryOriginalMax,
+        salaryOriginalCurrency: s.jobs.salaryOriginalCurrency,
+        salaryOriginalPeriod: s.jobs.salaryOriginalPeriod,
         candidatesCount: s.jobs.candidatesCount,
         firstSeenAt: s.jobs.firstSeenAt,
         postedAt: s.jobs.postedAt,
@@ -415,6 +423,7 @@ export async function listJobs(
       salaryMinUsd: r.salaryMinUsd,
       salaryMaxUsd: r.salaryMaxUsd,
       salaryPeriod: r.salaryPeriod,
+      salaryOriginal: salaryOriginalFromColumns(r),
       bloqueadores: r.bloqueadores ?? [],
       fit: summarizeFitCard({
         matchFuerte: r.matchFuerte ?? [],

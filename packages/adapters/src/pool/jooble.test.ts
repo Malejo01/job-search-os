@@ -66,6 +66,39 @@ describe("Jooble: mapJoobleJob", () => {
   });
 });
 
+describe("Jooble: sueldo en la moneda original (R32-08)", () => {
+  const conSueldo = (salary: string) => mapJoobleJob({ ...fullItem, salary })!;
+
+  it("pesos, dólares, euros y reales se guardan tal cual y la nota de texto sigue igual", () => {
+    expect(conSueldo("1.200.000 - 1.500.000 ARS por mes").salaryOriginal).toEqual({
+      min: 1_200_000,
+      max: 1_500_000,
+      currency: "ARS",
+      period: "mensual",
+    });
+    expect(conSueldo("US$ 3.000 a US$ 4.500 por mes").salaryOriginal).toMatchObject({
+      currency: "USD",
+      min: 3000,
+      max: 4500,
+    });
+    expect(conSueldo("€ 2.000 - 2.500 por mes").salaryOriginal).toMatchObject({ currency: "EUR" });
+    expect(conSueldo("R$ 8.000 - 12.000 por mes").salaryOriginal).toMatchObject({
+      currency: "BRL",
+    });
+    expect(conSueldo("1.200.000 - 1.500.000 ARS por mes").salaryNote).toBe(
+      "1.200.000 - 1.500.000 ARS por mes",
+    );
+    // Jooble no da el sueldo en dólares: los campos en USD siguen vacíos
+    expect(conSueldo("1.200.000 - 1.500.000 ARS por mes").salaryMinUsd).toBeNull();
+  });
+
+  it("sin moneda dicha, ambiguo o «a convenir» no se inventa ningún sueldo original", () => {
+    for (const salary of ["$ 1.200.000 por mes", "a convenir", "1.2.3 ARS", ""]) {
+      expect(conSueldo(salary).salaryOriginal, salary).toBeNull();
+    }
+  });
+});
+
 describe("Jooble: largo de los campos", () => {
   it("recorta título a 300 y la nota de sueldo a 200", () => {
     const raw = mapJoobleJob({

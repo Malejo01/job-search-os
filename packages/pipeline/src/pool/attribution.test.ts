@@ -138,6 +138,7 @@ const SOURCE_KINDS = [
   "recruitee",
   "smartrecruiters",
   "computrabajo_alerts",
+  "reliefweb",
 ] as const;
 
 describe("SOURCE_ATTRIBUTION", () => {
@@ -147,6 +148,16 @@ describe("SOURCE_ATTRIBUTION", () => {
       text: "vía Computrabajo",
     });
     expect(attributionFor("computrabajo_alerts")?.text).toBe("vía Computrabajo");
+  });
+
+  it("ReliefWeb cita la fuente, enlaza a su sitio y no sugiere aval de Naciones Unidas (CC BY 4.0)", () => {
+    const a = attributionFor("reliefweb", { company: "Organización Ficticia" });
+    expect(a).toEqual({
+      name: "ReliefWeb",
+      text: "Fuente: ReliefWeb",
+      homeUrl: "https://reliefweb.int",
+    });
+    expect(JSON.stringify(a)).not.toMatch(/Naciones Unidas|ONU|OCHA/i);
   });
 
   it("tiene una entrada por cada fuente", () => {
@@ -212,6 +223,25 @@ describe("attributionFor", () => {
   it("ATS: el nombre no rompe el reemplazo ni crece sin tope", () => {
     expect(attributionFor("ashby", { company: "A $& B" })?.text).toContain("A $& B");
     expect(attributionFor("ashby", { company: "x".repeat(500) })?.text.length).toBeLessThan(150);
+  });
+
+  it("other + nombre conocido: «vía Jooble» y «vía Careerjet» (condición para prender ADR-039)", () => {
+    expect(attributionFor("other", { sourceName: "Jooble" })?.text).toBe("vía Jooble");
+    expect(attributionFor("other", { sourceName: " careerjet " })?.text).toBe("vía Careerjet");
+    expect(attributionFor("other", { sourceName: "Jooble" })?.name).toBe("Jooble");
+  });
+
+  it("other sin nombre, con nombre desconocido o heredado del prototipo: sin atribución", () => {
+    expect(attributionFor("other")).toBeNull();
+    expect(attributionFor("other", { sourceName: null })).toBeNull();
+    expect(attributionFor("other", { sourceName: "Torre" })).toBeNull();
+    expect(attributionFor("other", { sourceName: "constructor" })).toBeNull();
+    expect(attributionFor("other", { sourceName: "__proto__" })).toBeNull();
+  });
+
+  it("el nombre de la fuente no cambia a las demás fuentes", () => {
+    expect(attributionFor("manual", { sourceName: "Jooble" })).toBeNull();
+    expect(attributionFor("jobicy", { sourceName: "Jooble" })?.text).toBe("Publicado en Jobicy");
   });
 
   it("las demás fuentes ignoran la empresa", () => {

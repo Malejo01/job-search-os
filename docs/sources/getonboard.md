@@ -56,10 +56,10 @@ Distribución observada en 60 avisos de programming: 20 híbridos Chile, 13 `rem
 
 ## Pool global (JS-137)
 
-La fuente también alimenta el pool global (`POOL_SOURCES`; apagada hasta que Mauro define la variable, y se prende de a una tras el `--dry-run`), además de la ingesta por usuario de abajo, que sigue igual hasta que la asignación desde el pool la reemplace.
+La fuente también alimenta el pool global (`POOL_SOURCES`; apagada hasta que el responsable define la variable, y se prende de a una tras el `--dry-run`), además de la ingesta por usuario de abajo, que sigue igual hasta que la asignación desde el pool la reemplace.
 
 - Categorías: `GOB_POOL_CATEGORIES` = `programming`, `mobile-developer`, `machine-learning-ai`, `data-science-analytics`, `design-ux`, `sysadmin-devops-qa`, `customer-support`, más las carreras digitales de la ronda 40 (ADR-015): `digital-marketing`, `hr`, `innovation-agile`, `technical-support`, `cybersecurity`. Desde la ronda 103 (ADR-020) entran `operations-management` (→ `project_manager`) y `advertising-media` (→ `marketing_digital`). Desde la ronda 107 (ADR-022) entra `sales` (→ `ventas_b2b`). Las 15 categorías del pool fueron verificadas en vivo con `pnpm pool:fetch getonboard --dry-run` con 0 errores 404 (ninguna faltante). Siguen fuera únicamente `education-coaching`, `other` y `hardware-electronics`. `GOB_CATEGORIES` no cambia.
-- Backfill de categorías nuevas: `since` sale de la última corrida ok de la fuente, así que una categoría recién sumada solo traería el último día. Después de sumar categorías se reinicia la bitácora de la fuente (lo hace Mauro) para que vuelva a hacer backfill; el dedup del pool absorbe lo repetido.
+- Backfill de categorías nuevas: `since` sale de la última corrida ok de la fuente, así que una categoría recién sumada solo traería el último día. Después de sumar categorías se reinicia la bitácora de la fuente (lo hace el responsable) para que vuelva a hacer backfill; el dedup del pool absorbe lo repetido.
 - Llamada con `remoteOnly: false` (el pool guarda también híbridos y presenciales), `skipMissingCategories: true` (un 404 en la página 1 de una categoría se saltea y queda en `missingCategories`; cualquier otro error corta) y ventana de 48 h.
 - `RawJob.categories` = slugs de las categorías donde apareció el aviso; si aparece en otra, se **suma**.
 - `partialOnError: true`: si una request falla (timeout incluido) después de haber juntado avisos, deja de pedir y devuelve lo juntado con `partial: true` y un código de error cerrado; el pool marca la fuente `partial`. Timeout de la fuente en el pool: 25 s.
@@ -75,7 +75,21 @@ La fuente también alimenta el pool global (`POOL_SOURCES`; apagada hasta que Ma
   - `advertising-media` activa y respondiendo 200 (sin avisos nuevos en la ventana de 48 h).
 
 ### Atribución y términos
-Fuente: `ops/rondas/37-38-39/informes/riesgos-fuentes.md` §1 (consultado el 2026-10-12; no es asesoramiento legal). Es la fuente menos clara: la ayuda oficial invita a mostrar avisos en otro sitio, pero los Términos (sección 7) prohíben la descarga automática de su propiedad intelectual y entrenar modelos, y no publican límites ni atribución. Condiciones sugeridas: mostrar "Get on Board" y el link a `links.public_url`; consulta moderada con `User-Agent` identificable y retroceso ante 429; confirmación escrita del uso previsto (la decide y hace Mauro).
+Fuente: `ops/rondas/37-38-39/informes/riesgos-fuentes.md` §1 (consultado el 2026-10-12; no es asesoramiento legal). Es la fuente menos clara: la ayuda oficial invita a mostrar avisos en otro sitio, pero los Términos (sección 7) prohíben la descarga automática de su propiedad intelectual y entrenar modelos, y no publican límites ni atribución. Condiciones sugeridas: mostrar "Get on Board" y el link a `links.public_url`; consulta moderada con `User-Agent` identificable y retroceso ante 429; confirmación escrita del uso previsto (la decide y hace el responsable).
+
+## Emails de Get on Board que terminan en la cola manual (R32-07)
+
+El lector (`packages/adapters/src/inbound/getonboard.ts`) falla cerrado: si algo del email no se entiende, el email entero va a la cola manual y el motivo queda en `inbound_emails.error` como `estructura no reconocida (getonboard): <código>: <detalle>. Cola manual` (120 caracteres como máximo, el código siempre primero).
+
+| Código | Qué pasó | Qué revisar |
+|---|---|---|
+| `sin_html`, `html_grande` | el email no trae HTML, o pasa el tope de tamaño | nada del lector: es el email |
+| `sin_avisos` | no se encontró ninguna tarjeta ni destacado. Trae conteos `tarjetas N, destacados N, links N` | `links > 0` con `tarjetas 0, destacados 0` = **el HTML cambió** (renombraron la clase de la tarjeta o pasaron el título a otra etiqueta); `links 0` = el email de verdad no traía avisos |
+| `tarjeta_sin_link`, `tarjeta_sin_postular`, `tarjeta_estructura`, `titulo_formato` | cambió la estructura de una tarjeta (el número de tarjeta va en el detalle) | comparar con las fixtures de `fixtures/getonboard/` |
+| `contrato_desconocido`, `seniority_desconocido` | un valor nuevo (se cita el valor) | sumarlo a `CONTRATOS` o `SENIORITIES` |
+| `sin_titulo`, `sin_empresa` | tarjeta incompleta | |
+| `salario_ilegible` | el sueldo trae un formato que no se entiende (monto raro o mínimo mayor que el máximo; se cita el texto) | ajustar `salario()` |
+| `demasiados_avisos` | más de 100 destacados | |
 
 ## Ingesta
 

@@ -286,11 +286,26 @@ type ContentFields = {
   salaryMaxUsd: number | null;
   salaryPeriod: string | null;
   salaryNote: string | null;
+  salaryOriginalMin: number | null;
+  salaryOriginalMax: number | null;
+  salaryOriginalCurrency: string | null;
+  salaryOriginalPeriod: string | null;
   postedAt: Date | null;
   categories: string[] | null;
   tags: string[] | null;
   jdHash: string | null;
 };
+
+/** Las cuatro columnas del sueldo original (R32-08) a partir del `RawJob`; todo null si la fuente no lo dice. */
+function originalColumns(raw: RawJob) {
+  const o = raw.salaryOriginal;
+  return {
+    salaryOriginalMin: o?.min ?? null,
+    salaryOriginalMax: o?.max ?? null,
+    salaryOriginalCurrency: o?.currency ?? null,
+    salaryOriginalPeriod: o?.period ?? null,
+  };
+}
 
 function contentSignature(f: ContentFields): string {
   return JSON.stringify([
@@ -305,6 +320,10 @@ function contentSignature(f: ContentFields): string {
     f.salaryMaxUsd,
     f.salaryPeriod,
     f.salaryNote,
+    f.salaryOriginalMin,
+    f.salaryOriginalMax,
+    f.salaryOriginalCurrency,
+    f.salaryOriginalPeriod,
     f.postedAt?.toISOString() ?? null,
     f.categories,
     f.tags,
@@ -350,6 +369,7 @@ function contentColumns(raw: RawJob, n: Normalized, companyId: string | null) {
     salaryMaxUsd: raw.salaryMaxUsd,
     salaryPeriod: raw.salaryPeriod,
     salaryNote: raw.salaryNote,
+    ...originalColumns(raw),
     weeklyHours: raw.weeklyHours,
     candidatesCount: raw.candidatesCount,
     jdText: n.jdText,
@@ -438,6 +458,10 @@ async function upsertOne(ctx: Ctx, original: RawJob): Promise<Outcome> {
           salaryMaxUsd: t.salaryMaxUsd,
           salaryPeriod: t.salaryPeriod,
           salaryNote: t.salaryNote,
+          salaryOriginalMin: t.salaryOriginalMin,
+          salaryOriginalMax: t.salaryOriginalMax,
+          salaryOriginalCurrency: t.salaryOriginalCurrency,
+          salaryOriginalPeriod: t.salaryOriginalPeriod,
           postedAt: t.postedAt,
           categories: t.categories,
           tags: t.tags,
@@ -450,6 +474,7 @@ async function upsertOne(ctx: Ctx, original: RawJob): Promise<Outcome> {
         .where(eq(t.id, decision.id));
       const incoming = contentSignature({
         ...raw,
+        ...originalColumns(raw),
         categories: raw.categories ?? null,
         jdHash: n.hash,
       });
@@ -625,6 +650,10 @@ async function processBatch(
     salaryMaxUsd: number | null;
     salaryPeriod: string | null;
     salaryNote: string | null;
+    salaryOriginalMin: number | null;
+    salaryOriginalMax: number | null;
+    salaryOriginalCurrency: string | null;
+    salaryOriginalPeriod: string | null;
     postedAt: Date | null;
     categories: string[] | null;
     tags: string[] | null;
@@ -684,6 +713,10 @@ async function processBatch(
         salaryMaxUsd: t.salaryMaxUsd,
         salaryPeriod: t.salaryPeriod,
         salaryNote: t.salaryNote,
+        salaryOriginalMin: t.salaryOriginalMin,
+        salaryOriginalMax: t.salaryOriginalMax,
+        salaryOriginalCurrency: t.salaryOriginalCurrency,
+        salaryOriginalPeriod: t.salaryOriginalPeriod,
         postedAt: t.postedAt,
         categories: t.categories,
         tags: t.tags,
@@ -741,6 +774,7 @@ async function processBatch(
       const stored = storedById.get(decision.id);
       const incoming = contentSignature({
         ...raw,
+        ...originalColumns(raw),
         categories: raw.categories ?? null,
         jdHash: n.hash,
       });

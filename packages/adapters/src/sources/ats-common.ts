@@ -1,5 +1,6 @@
 import {
   isPoolRemoteCandidate,
+  makeSalaryOriginal,
   type Modality,
   type RawJob,
   type SourceKind,
@@ -349,10 +350,13 @@ function positive(value: unknown): number | null {
 
 export type AtsSalaryFields = Pick<
   RawJob,
-  "salaryMinUsd" | "salaryMaxUsd" | "salaryPeriod" | "salaryNote"
+  "salaryMinUsd" | "salaryMaxUsd" | "salaryPeriod" | "salaryNote" | "salaryOriginal"
 >;
 
-/** Solo USD con período claro llena los números; si no, va a `salaryNote` (D-017). */
+/**
+ * Solo USD con período claro llena los números; si no, va a `salaryNote` (D-017). Además (R32-08), si la
+ * fuente dice la moneda, el sueldo queda en `salaryOriginal` tal como lo publica (pesos, euros, reales…).
+ */
 export function atsSalary(input: {
   min?: unknown;
   max?: unknown;
@@ -375,13 +379,22 @@ export function atsSalary(input: {
       : null;
   const interval = typeof input.interval === "string" ? input.interval.trim() : "";
   const period = salaryPeriodOf(interval);
+  const original = makeSalaryOriginal({ min, max, currency, period });
+  const withOriginal = original ? { salaryOriginal: original } : {};
   if (currency === "USD" && period) {
-    return { salaryMinUsd: min, salaryMaxUsd: max, salaryPeriod: period, salaryNote: null };
+    return {
+      salaryMinUsd: min,
+      salaryMaxUsd: max,
+      salaryPeriod: period,
+      salaryNote: null,
+      ...withOriginal,
+    };
   }
   const per = interval ? ` (${interval.slice(0, 40)})` : "";
   return {
     ...none,
     salaryNote: `${currency ?? "moneda no indicada"} ${min ?? "?"}–${max ?? "?"}${per} según ${input.sourceName}`,
+    ...withOriginal,
   };
 }
 

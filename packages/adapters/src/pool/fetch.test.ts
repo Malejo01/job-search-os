@@ -10,6 +10,7 @@ import {
   parsePoolSources,
   poolErrorCode,
   poolIntervalMs,
+  reliefwebDownloader,
   POOL_ATS_SOURCE_MAX_MS,
   POOL_MAX_JOBS_PER_SOURCE,
   POOL_RECOMMENDED_SOURCES,
@@ -70,6 +71,7 @@ function downloaders(partial: Partial<PoolDownloaders>): PoolDownloaders {
     workable: none,
     recruitee: none,
     smartrecruiters: none,
+    reliefweb: none,
     ...partial,
   };
 }
@@ -153,7 +155,77 @@ describe("POOL_SOURCE_KIND", () => {
       workable: "workable",
       recruitee: "recruitee",
       smartrecruiters: "smartrecruiters",
+      reliefweb: "reliefweb",
     });
+  });
+});
+
+describe("reliefweb (ADR-028, R32-05)", () => {
+  const page = {
+    totalCount: 1,
+    data: [
+      {
+        id: "7001",
+        fields: {
+          title: "Oficial de Administración",
+          url: "https://reliefweb.example.test/job/7001",
+          date: { created: "2026-11-20T10:00:00+00:00" },
+          source: [{ name: "Organización Ficticia" }],
+          country: [{ name: "Argentina", iso3: "ARG" }],
+        },
+      },
+    ],
+  };
+  const run = (fetchImpl: unknown, opts: Parameters<typeof reliefwebDownloader>[0] = {}) =>
+    reliefwebDownloader(opts)({
+      since: new Date("2026-11-01T00:00:00Z"),
+      fetchImpl: fetchImpl as typeof fetch,
+      userAgent: "Test/1.0",
+    });
+
+  it("se reconoce, no está entre las recomendadas y tiene su propio valor de source_kind", () => {
+    expect(parsePoolSources("remoteok, ReliefWeb").enabled).toEqual(["remoteok", "reliefweb"]);
+    expect(POOL_RECOMMENDED_SOURCES).not.toContain("reliefweb");
+    expect(POOL_SOURCE_KIND.reliefweb).toBe("reliefweb");
+    expect(POOL_SOURCE_KIND.reliefweb).not.toBe(POOL_SOURCE_KIND.jooble);
+    expect(POOL_MIN_INTERVAL_MS.reliefweb).toBe(5 * 3_600_000);
+  });
+
+  it("sin RELIEFWEB_APPNAME no toca la red ni devuelve ofertas", async () => {
+    vi.stubEnv("RELIEFWEB_APPNAME", "");
+    const fetchImpl = vi.fn();
+    expect(await run(fetchImpl)).toEqual([]);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+
+  it("con appname baja los avisos y los marca con su propia fuente", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(page), { status: 200 }));
+    const out = await run(fetchImpl, { appname: "app-de-prueba" });
+    if (Array.isArray(out)) throw new Error("debía devolver el detalle");
+    expect(out.jobs).toHaveLength(1);
+    expect(out.jobs[0]!.source.kind).toBe("reliefweb");
+    expect(out.partialError).toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("una página con forma inesperada deja el código «parse» y conserva lo ya traído", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ resultados: [] })));
+    const out = await run(fetchImpl, { appname: "app-de-prueba" });
+    if (Array.isArray(out)) throw new Error("debía devolver el detalle");
+    expect(out.jobs).toEqual([]);
+    expect(out.partialError).toBe("parse");
+  });
+
+  it("runPoolFetch: usa su kind y su intervalo", async () => {
+    const reliefweb = vi.fn(async () => [] as RawJob[]);
+    const { deps, rows } = makeDeps();
+    await runPoolFetch(
+      { ...base, enabled: ["reliefweb"], downloaders: downloaders({ reliefweb }) },
+      deps,
+    );
+    expect(reliefweb).toHaveBeenCalledTimes(1);
+    expect(rows[0]!.source).toBe("reliefweb");
   });
 });
 

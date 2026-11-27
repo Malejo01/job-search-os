@@ -6,6 +6,8 @@ import {
   withCurrentProfileFacts,
   englishIsNotAGap,
   fitCrossSentence,
+  formatSalaryEquivalence,
+  formatSalaryOriginal,
   isEnglishGap,
   isEnglishSkillSlug,
   visibleRisks,
@@ -223,10 +225,25 @@ export default async function JobDetailPage({
       : null;
   const risks = ev ? visibleRisks(ev.riesgos.map(riskLabel), requisitos?.items) : [];
   const noEnglishGap = englishIsNotAGap(job.jdText, null);
-  const salary =
-    job.salaryMinUsd || job.salaryMaxUsd
+  // R32-08: el sueldo tal como lo publica el aviso, en su moneda; sin él, lo de siempre (lo guardado antes)
+  const salary = job.salaryOriginal
+    ? formatSalaryOriginal(job.salaryOriginal)
+    : job.salaryMinUsd || job.salaryMaxUsd
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
       : null;
+  // Una equivalencia en dólares, solo si existe, aparte y marcada como aproximada
+  const salaryEquivalence = job.salaryOriginal
+    ? formatSalaryEquivalence(job.salaryOriginal, {
+        min: job.salaryMinUsd,
+        max: job.salaryMaxUsd,
+        period:
+          job.salaryPeriod === "mensual" ||
+          job.salaryPeriod === "anual" ||
+          job.salaryPeriod === "hora"
+            ? job.salaryPeriod
+            : null,
+      })
+    : null;
   // R30-09: las habilidades salen de la tabla de requisitos (las que el aviso menciona). Separar las
   // del puesto de las que hablan de la empresa queda para la R31.
   // R31-07: con ficha lista, solo las habilidades ligadas al puesto; sin ficha (o apagada), como la R30
@@ -322,6 +339,11 @@ export default async function JobDetailPage({
             .filter(Boolean)
             .join(" · ")}
         </p>
+        {salaryEquivalence ? (
+          <p className="text-xs text-fg-subtle" data-testid="salario-equivalencia">
+            {salaryEquivalence}
+          </p>
+        ) : null}
         <div className="mt-1 flex flex-wrap gap-1 text-xs">
           {ev?.model === DEMO_MODEL ? (
             <span className={DEMO_BADGE_CLASSES} title="Evaluación falsa del modo demo, sin LLM">
@@ -358,6 +380,7 @@ export default async function JobDetailPage({
           salaryMinUsd: job.salaryMinUsd,
           salaryMaxUsd: job.salaryMaxUsd,
           salaryPeriod: job.salaryPeriod,
+          salaryOriginal: job.salaryOriginal,
           modality: job.modality,
           englishRequired: ev?.englishRequired ?? null,
           yearsRequired: ev?.yearsRequired ?? null,

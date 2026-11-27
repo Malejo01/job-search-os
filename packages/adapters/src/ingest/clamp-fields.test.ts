@@ -73,4 +73,18 @@ describe("clampRawJobFields", () => {
     expect(clampRawJobFields(base)).toEqual(base);
     expect(clampRawJobFields({ ...base, locationRaw: null }).locationRaw).toBeNull();
   });
+
+  it("R32-08: el sueldo original se vuelve a validar antes de llegar a la base", () => {
+    const ok = { min: 1_200_000, max: 1_500_000, currency: "ARS", period: "mensual" as const };
+    expect(clampRawJobFields({ ...base, salaryOriginal: ok }).salaryOriginal).toEqual(ok);
+    // moneda mal escrita, sin moneda o mínimo mayor que el máximo: se descarta entero
+    for (const bad of [
+      { ...ok, currency: "pesos" },
+      { ...ok, currency: "" },
+      { ...ok, min: 5, max: 1 },
+    ]) {
+      expect(clampRawJobFields({ ...base, salaryOriginal: bad }).salaryOriginal).toBeNull();
+    }
+    expect(clampRawJobFields({ ...base, salaryOriginal: null }).salaryOriginal).toBeNull();
+  });
 });

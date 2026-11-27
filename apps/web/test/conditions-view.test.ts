@@ -38,6 +38,36 @@ describe("conditionRows", () => {
     expect(get({ salaryMaxUsd: 22 }, "salary")?.value).toMatch(/^USD 22$/);
   });
 
+  it("R32-08: con el sueldo original, la fila lo muestra tal cual y en su moneda (pesos, dólares, euros, reales)", () => {
+    const row = (original: NonNullable<ConditionsInput["salaryOriginal"]>) =>
+      get(
+        { salaryMinUsd: 11, salaryMaxUsd: 22, salaryPeriod: "mensual", salaryOriginal: original },
+        "salary",
+      );
+    expect(row({ min: 1_200_000, max: 1_500_000, currency: "ARS", period: "mensual" })?.value).toBe(
+      "$ 1.200.000 a $ 1.500.000 por mes (ARS)",
+    );
+    expect(row({ min: 3000, max: 4500, currency: "USD", period: "mensual" })?.value).toBe(
+      "US$ 3.000 a US$ 4.500 por mes (USD)",
+    );
+    expect(row({ min: 45_000, max: 60_000, currency: "EUR", period: "anual" })?.value).toBe(
+      "€ 45.000 a € 60.000 por año (EUR)",
+    );
+    expect(row({ min: 8000, max: null, currency: "BRL", period: null })?.value).toBe(
+      "desde R$ 8.000 (BRL)",
+    );
+    expect(row({ min: 1, max: 2, currency: "ARS", period: "mensual" })?.informed).toBe(true);
+  });
+
+  it("R32-08: sin sueldo original (lo guardado antes) la fila sigue como siempre", () => {
+    expect(
+      get(
+        { salaryMinUsd: 11, salaryMaxUsd: 22, salaryPeriod: "mensual", salaryOriginal: null },
+        "salary",
+      )?.value,
+    ).toBe("USD 11–22 mensual");
+  });
+
   it("modalidad desconocida no se informa", () => {
     expect(get({ modality: "desconocida" }, "modality")?.informed).toBe(false);
     expect(get({ modality: "hibrido" }, "modality")?.value).toBe("híbrido");
