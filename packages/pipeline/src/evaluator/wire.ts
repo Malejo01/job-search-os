@@ -85,6 +85,7 @@ function wireSchemaFor(promptRef: string): z.ZodType<unknown> {
     case "v1.3.4":
       return EvaluationV12OutputSchema.extend({ ...relaxed, gaps: z.array(GapSchema) });
     case "v1.4.0":
+    case "v1.5.0":
       return EvaluationV14OutputSchema.extend({ ...relaxed, gaps: z.array(GapSchema) });
     default:
       throw new Error(`sin schema de salida para ${promptRef}`);

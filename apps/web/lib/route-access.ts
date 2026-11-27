@@ -65,6 +65,8 @@ export const PRIVATE_PREFIXES: readonly string[] = [
   "/academy",
   // Recorrido para revisar (R26-03): privado; además, 404 para quien no es admin ni tester
   "/recorrido",
+  // Calibrar la evaluación nueva (R31-10): privado; además, 404 para quien no es admin ni tester o no tiene JOB_CARD
+  "/calibracion",
   "/settings",
   // Panel de administración (ADM-1): privado; además, 404 para quien no es admin
   "/admin",

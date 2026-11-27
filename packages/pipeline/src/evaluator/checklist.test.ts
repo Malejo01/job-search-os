@@ -3,6 +3,9 @@ import criteria from "../../../db/seeds/criteria.example.json";
 import type { CriteriaRules } from "../criteria";
 import { decide, type DecideContext } from "../decide";
 import type { Evaluation } from "../evaluation";
+import { EMPTY_JOB_CARD } from "../job-card/fixtures";
+import type { JobCardRequirement } from "../job-card/schema";
+import { requirementKey } from "../requirements/card-rows";
 import { compileTaxonomy } from "../skills/match";
 import { MAX_JD_CHARS } from "../pool/career/english";
 import {
@@ -379,5 +382,120 @@ describe("buildChecklist: topes de largo", () => {
     }
     expect(byId(c, "pais")?.pide).toBe("Disponible en Pais0, Pais1, Pais2, Pais3, Pais4 y 35 más");
     expect(byId(c, "autorizacion")?.pide.endsWith("…")).toBe(true);
+  });
+});
+
+describe("buildChecklist: fase B, filas del aviso (R31-05)", () => {
+  const cardReqs: JobCardRequirement[] = [
+    {
+      texto: "Inglés avanzado",
+      nivel: "indispensable",
+      categoria: "idioma",
+      anos: null,
+      idioma: "ingles",
+      cita: "Advanced English",
+    },
+    {
+      texto: "Título universitario",
+      nivel: "deseable",
+      categoria: "formacion",
+      anos: null,
+      idioma: null,
+      cita: "Título universitario",
+    },
+  ];
+  const cardOf = (requisitos: JobCardRequirement[]) => ({
+    requisitos,
+    condiciones: EMPTY_JOB_CARD.condiciones,
+  });
+
+  it("sin ficha (ficha apagada) la tabla queda igual que antes", () => {
+    const ev = { ...base, ingles_requerido: "avanzado" as const };
+    const sin = run(ev, ctxBase({ jdText: "Python" })).c;
+    const conVacio = run(ev, { ...ctxBase({ jdText: "Python" }), jobCard: null }).c;
+    expect(conVacio).toEqual(sin);
+    expect(sin.items.some((i) => i.id.startsWith("req:"))).toBe(false);
+  });
+
+  it("suma las filas req:<n>; el inglés queda una sola vez (la fila fija) y el resto entra", () => {
+    const ev = { ...base, ingles_requerido: "avanzado" as const };
+    const ctx = { ...ctxBase({ jdText: "Python" }), jobCard: cardOf(cardReqs) };
+    const { c } = run(ev, ctx);
+    expect(c.items.filter((i) => /ingl/i.test(i.pide))).toHaveLength(1);
+    expect(byId(c, "req:1")).toBeUndefined();
+    expect(byId(c, "req:2")).toMatchObject({
+      kind: "texto",
+      nivel: "deseable",
+      status: "no_se_sabe",
+      evidencia: "Título universitario",
+      bloquea: false,
+    });
+    expect(c.deseable.no_se_sabe).toBeGreaterThanOrEqual(1);
+  });
+
+  it("si la fila fija de inglés no está, el inglés del aviso entra como req:<n>", () => {
+    const ctx = { ...ctxBase(), jobCard: cardOf(cardReqs) };
+    const { c } = run(base, ctx);
+    expect(byId(c, "ingles")).toBeUndefined();
+    expect(byId(c, "req:1")).toMatchObject({ status: "no_cumple", tenes: "B2", nivel: "must" });
+  });
+
+  it("la respuesta de un toque cambia el estado y no toca el descarte rápido", () => {
+    const answers = new Map([[requirementKey(cardReqs[1]!), { valor: "no" as const }]]);
+    const ctx = { ...ctxBase(), jobCard: cardOf(cardReqs), requirementAnswers: answers };
+    const { c } = run(base, ctx);
+    expect(byId(c, "req:2")).toMatchObject({ status: "no_cumple", tenes: "Tu respuesta: No" });
+    expect(c.descarte_rapido?.id ?? null).not.toBe("req:2");
+  });
+
+  describe("el área del puesto es un dato, no un requisito (R31-06)", () => {
+    const sinDisciplina = {
+      ...criteria,
+      allowed_disciplines: undefined,
+    } as unknown as CriteriaRules;
+
+    it("sin ficha la fila «disciplina» queda como siempre", () => {
+      const { c } = run(base, ctxBase());
+      expect(byId(c, "disciplina")).toMatchObject({ status: "cumple" });
+    });
+    it("con ficha, el área que coincide no se muestra como requisito cumplido", () => {
+      const { c } = run(base, { ...ctxBase(), jobCard: cardOf([]) });
+      expect(byId(c, "disciplina")).toBeUndefined();
+      expect(c.must.cumple).toBe(run(base, ctxBase()).c.must.cumple - 1);
+    });
+    it("con ficha, el área sin dato del perfil tampoco es un requisito", () => {
+      const ev = base;
+      const d = decide(ev, sinDisciplina, { jobFacts: ctxBase().job });
+      const c = buildChecklist(ev, d, sinDisciplina, { ...ctxBase(), jobCard: cardOf([]) });
+      expect(byId(c, "disciplina")).toBeUndefined();
+    });
+    it("con ficha, el oficio distinto que bloquea se mantiene: es una condición del aviso", () => {
+      const ev = { ...base, disciplina: "creative_production" as const };
+      const { c } = run(ev, { ...ctxBase(), jobCard: cardOf([]) });
+      expect(byId(c, "disciplina")).toMatchObject({ status: "no_cumple", bloquea: true });
+      expect(c.descarte_rapido?.id).toBe("disciplina");
+    });
+  });
+
+  it("con las filas de skills al tope no pasa de 40", () => {
+    const jd = Array.from({ length: 60 }, (_, i) => `Tecnologia${i}x`).join(", ");
+    const bigTerms = compileTaxonomy(
+      Array.from({ length: 60 }, (_, i) => ({
+        slug: `tec${i}x`,
+        name: `Tecnologia${i}x`,
+        aliases: [],
+      })),
+    );
+    const many: JobCardRequirement[] = Array.from({ length: 30 }, (_, i) => ({
+      texto: `Requisito ${i}`,
+      nivel: "deseable",
+      categoria: "otro",
+      anos: null,
+      idioma: null,
+      cita: `Requisito ${i}`,
+    }));
+    const ctx = { ...ctxBase({ jdText: jd }), terms: bigTerms, jobCard: cardOf(many) };
+    const { c } = run(base, ctx);
+    expect(c.items.length).toBeLessThanOrEqual(CHECKLIST_MAX_ITEMS);
   });
 });
