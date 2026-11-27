@@ -231,13 +231,10 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
   test("un CV pegado se deriva y no llega al modelo", async ({ page }) => {
     requireAdmin();
     await login(page);
-    await page.goto("/cv");
-    // R12-6: la persona seed es admin (tester del agente de perfil): entra por «No tengo CV»
-    await page
-      .getByTestId("cv-door")
-      .getByRole("link", { name: "No tengo CV", exact: true })
-      .click();
-    await page.waitForURL(/\/cv\/armar$/);
+    // R34-08: se entra directo al chat. La puerta de `/cv` sale solo sin nada cargado (R33-01) y la persona
+    // seed del CI siempre tiene datos; la puerta y su link «No tengo CV» se prueban en el 142 con una persona
+    // vacía. Lo que este test exige (el CV pegado se deriva y no llega al modelo) no cambia.
+    await page.goto("/cv/armar");
     await expectNoOverflowNorAxe(page);
     await page.getByRole("button", { name: "Empezar" }).click();
     const answer = page.getByLabel("Tu respuesta");

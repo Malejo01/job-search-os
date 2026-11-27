@@ -26,7 +26,11 @@ async function expectInlineAndClear(page: Page) {
   const bar = page.getByTestId("tabbar");
   if (enDetalle) {
     await expect(bar).toHaveCount(0);
-    await expect(page.getByTestId("salida-cel")).toBeVisible();
+    // R34-08: el botón de salida sale solo si la oferta tiene URL del aviso (`jobUrl`); en el CI la primera
+    // oferta del listado puede no tenerla. Que aparezca con URL lo exige el 360 con una oferta que la trae; acá,
+    // si está, tiene que verse, y en los dos casos se sigue exigiendo que nada fijo tape el botón de feedback.
+    const salida = page.getByTestId("salida-cel");
+    if ((await salida.count()) > 0) await expect(salida).toBeVisible();
   } else {
     const b = await bar.boundingBox();
     expect(b).not.toBeNull();
