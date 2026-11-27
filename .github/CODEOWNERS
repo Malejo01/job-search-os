@@ -154,6 +154,7 @@
 /packages/prompts/** @Malejo01
 /evals/** @Malejo01
 /packages/pipeline/src/decide.ts @Malejo01
+/packages/pipeline/src/decide-rules.ts @Malejo01
 /packages/pipeline/src/evaluation.ts @Malejo01
 /packages/pipeline/src/evaluator/** @Malejo01
 /packages/pipeline/src/prefilter/** @Malejo01

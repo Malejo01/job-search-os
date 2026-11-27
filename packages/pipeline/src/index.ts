@@ -4,6 +4,7 @@ export * from "./quota";
 export * from "./normalize";
 export * from "./evaluation";
 export * from "./decide";
+export * from "./decide-rules";
 export * from "./evaluator/injection";
 export * from "./evaluator/sanitize";
 export * from "./evaluator/checklist";

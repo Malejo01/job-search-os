@@ -5,6 +5,7 @@ import {
   buildEvaluateJobVars,
   canTransition,
   checkJdSize,
+  checkDecideRules,
   checkPromptSize,
   compileTaxonomy,
   decide,
@@ -26,6 +27,7 @@ import {
   type Term,
   type Checklist,
   type CriteriaRules,
+  type DecideRulesError,
   type Evaluation,
   type JobCard,
   type RequirementAnswer,
@@ -273,6 +275,8 @@ export type EvaluateForProfileResult =
       injection: InjectionInfo;
       /** El prompt completo se pasa del máximo: reintentar no sirve, hay que cambiar el perfil o el aviso. */
       promptTooLarge?: true;
+      /** R34-07: criterios sin las reglas que decide() necesita. No se llama al modelo ni se decide nada. */
+      invalidRules?: DecideRulesError;
     };
 
 /**
@@ -307,6 +311,21 @@ export async function evaluateForProfile(
   ];
   const flagsChanged =
     flags.length !== (job.flags ?? []).length || flags.some((f) => !(job.flags ?? []).includes(f));
+
+  // R34-07: reglas vacías o incompletas fallan cerrado antes de llamar al modelo (sin costo, sin inventar reglas)
+  const rulesCheck = checkDecideRules(rules);
+  if (!rulesCheck.ok) {
+    return {
+      ok: false,
+      error: {
+        kind: "prompt",
+        task: "evaluate_job",
+        detail: `criterios: ${rulesCheck.error.code}`,
+      },
+      injection,
+      invalidRules: rulesCheck.error,
+    };
+  }
 
   const vars = buildEvaluateJobVars({
     promptRef: promptVersion,
@@ -557,7 +576,22 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   if (!profile || !criteria) {
     return { ok: false, jobId, error: "usuario sin perfil o criterios activos", retry: "failed" };
   }
-  const rules = criteria.rules as CriteriaRules;
+  // R34-07: con reglas vacías o incompletas no se evalúa: la oferta queda como está («Sin evaluar»), sin llamar al
+  // modelo (tampoco para la ficha) y sin inventar reglas. Solo el código del error y los campos, nunca valores.
+  const rulesCheck = checkDecideRules(criteria.rules);
+  if (!rulesCheck.ok) {
+    log.error(
+      {
+        user_id: job.userId,
+        job_id: job.id,
+        code: rulesCheck.error.code,
+        missing: rulesCheck.error.missing,
+      },
+      "criterios sin reglas: la oferta queda sin evaluar",
+    );
+    return { ok: false, jobId, error: `criterios: ${rulesCheck.error.code}`, retry: "skipped" };
+  }
+  const rules: CriteriaRules = rulesCheck.value;
 
   // R31-03: la ficha del aviso, siempre antes de evaluar. Solo con JOB_CARD encendida; nunca frena la evaluación.
   await ensureJobCardBeforeEvaluation(

@@ -157,6 +157,7 @@ apps/web/app/terminos-actualizados/page.tsx
 packages/prompts/**
 evals/**
 packages/pipeline/src/decide.ts
+packages/pipeline/src/decide-rules.ts
 packages/pipeline/src/evaluation.ts
 packages/pipeline/src/evaluator/**
 packages/pipeline/src/prefilter/**
