@@ -20,10 +20,18 @@ function cleanPart(raw: string): string {
     .replace(/-+$/g, "");
 }
 
-/** `CV-<puesto>-<empresa>.docx`: solo letras sin tilde, números y guiones; `CV.docx` si no queda nada. */
-export function cvOfferFileName(title: string, company: string): string {
+/**
+ * `CV-<puesto>-<empresa>.docx` (o `.pdf`): solo letras sin tilde, números y guiones; `CV.docx` si no queda
+ * nada. Con `adapted`, suma `-adaptado` para no confundirlo con el CV base (R34-02).
+ */
+export function cvOfferFileName(
+  title: string,
+  company: string,
+  ext: "docx" | "pdf" = "docx",
+  adapted = false,
+): string {
   const parts = [cleanPart(title), cleanPart(company)].filter((p) => p !== "");
-  return `${["CV", ...parts].join("-")}.docx`;
+  return `${["CV", ...parts, ...(adapted ? ["adaptado"] : [])].join("-")}.${ext}`;
 }
 
 /** Copia del CV con las viñetas de cada bloque ordenadas por coincidencia con la oferta (estable). */

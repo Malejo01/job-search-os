@@ -1334,3 +1334,20 @@ export const cvDrafts = pgTable("cv_drafts", {
   check("cv_drafts_kind", sql`${t.kind} in ('chat', 'coach')`),
   check("cv_drafts_payload", sql`jsonb_typeof(${t.payload}) = 'object' and octet_length(${t.payload}::text) <= 60000`),
 ]);
+
+// Versión del CV adaptada a una oferta (R34-02, rls/0076). Guarda solo la propuesta que la persona decidió (qué
+// viñetas van y en qué orden; forma `CvTailorOutput` de packages/pipeline), NO un CV: el CV base no se pisa y cada
+// vez que se lee se vuelve a verificar contra el CV de hoy. Una por persona y oferta. Cae con la cuenta y con la oferta.
+export const cvOfferVersions = pgTable("cv_offer_versions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  proposal: jsonb("proposal").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  // Hasta 3 versiones por persona y oferta (R34-02, decisión del 27/11): el tope lo pone el trigger de rls/0077.
+  index("cv_offer_versions_user_job_created").on(t.userId, t.jobId, t.createdAt),
+  index("cv_offer_versions_job").on(t.jobId),
+  check("cv_offer_versions_proposal", sql`jsonb_typeof(${t.proposal}) = 'object' and octet_length(${t.proposal}::text) <= 60000`),
+]);

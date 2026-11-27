@@ -75,6 +75,7 @@ export * from "./cv-keywords";
 export * from "./cv-measurable";
 export * from "./cv-ats";
 export * from "./cv-for-offer";
+export * from "./cv-offer-review";
 export * from "./cv-offer-download";
 export * from "./alerts/portal-guide";
 export * from "./alerts/few-offers";

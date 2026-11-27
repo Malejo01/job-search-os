@@ -645,6 +645,20 @@
       "when": 1795743715749,
       "tag": "0091_remarkable_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1795803872485,
+      "tag": "0092_absent_millenium_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1795809732609,
+      "tag": "0093_parched_shockwave",
+      "breakpoints": true
     }
   ]
 }

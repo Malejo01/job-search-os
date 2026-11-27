@@ -28,6 +28,14 @@ describe("cvOfferFileName", () => {
     expect(cvOfferFileName("Analista", "***")).toBe("CV-Analista.docx");
   });
 
+  it("sirve para PDF y marca la versión adaptada (R34-02)", () => {
+    expect(cvOfferFileName("Analista", "Empresa A", "pdf")).toBe("CV-Analista-Empresa-A.pdf");
+    expect(cvOfferFileName("Analista", "Empresa A", "docx", true)).toBe(
+      "CV-Analista-Empresa-A-adaptado.docx",
+    );
+    expect(cvOfferFileName("¿¿??", "", "pdf", true)).toBe("CV-adaptado.pdf");
+  });
+
   it("2 MB de texto en menos de 100 ms", () => {
     const t0 = performance.now();
     cvOfferFileName("x ".repeat(1024 * 1024), "y ".repeat(1024 * 1024));

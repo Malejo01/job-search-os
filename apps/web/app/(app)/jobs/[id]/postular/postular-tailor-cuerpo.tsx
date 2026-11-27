@@ -1,42 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import type { CvTailorOutput } from "@job-search-os/pipeline";
-import { buttonClasses } from "@/components/ui";
 import { CvTailorPanel } from "@/components/cv-tailor/cv-tailor-panel";
 
 /**
- * Cuerpo de la versión adaptada con IA dentro de «Preparar mi postulación» (R20-04b). Vive aparte de
- * `PostularTailor` para que todo esto viaje en un chunk lazy (R24-04b). Cuando hay una propuesta ya
- * verificada, ofrece bajar el .docx: un formulario POST normal manda la propuesta a la ruta de descarga,
- * que la vuelve a verificar contra el CV de hoy y, si no sirve, cae en la versión sin IA. El navegador
- * no guarda nada.
+ * Cuerpo de «Adaptar a esta oferta» dentro de «Preparar mi postulación» (R20-04b, R34-02). Vive aparte de
+ * `PostularTailor` para que todo esto viaje en un chunk lazy (R24-04b). Las sugerencias se deciden de a una y
+ * se guardan como otra versión; la descarga (PDF o DOCX, base o adaptada) está en su propia sección, que se
+ * arma en el servidor. El navegador no guarda nada.
  */
 export default function PostularTailorCuerpo({ jobId }: { jobId: string }) {
-  const [proposal, setProposal] = useState<CvTailorOutput | null>(null);
   return (
     <div className="flex flex-col gap-3" data-testid="postular-tailor">
-      <CvTailorPanel jobId={jobId} onResult={setProposal} />
-      {proposal ? (
-        <form
-          method="post"
-          action={`/jobs/${jobId}/postular/descargar`}
-          className="flex flex-col gap-1"
-        >
-          <input type="hidden" name="proposal" value={JSON.stringify(proposal)} />
-          <button
-            type="submit"
-            data-testid="descargar-cv-adaptado"
-            className={`${buttonClasses({ size: "sm" })} w-fit`}
-          >
-            Descargar la versión adaptada (.docx)
-          </button>
-          <p className="text-xs text-fg-subtle">
-            Se vuelve a verificar contra tu CV al descargar. Si algo no coincide, baja la versión
-            sin IA.
-          </p>
-        </form>
-      ) : null}
+      <CvTailorPanel jobId={jobId} />
     </div>
   );
 }

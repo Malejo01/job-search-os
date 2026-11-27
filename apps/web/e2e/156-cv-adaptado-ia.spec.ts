@@ -138,8 +138,13 @@ test("la versión adaptada se verifica y muestra qué cambió y por qué", async
   await expect(result.getByText("Qué cambió y por qué")).toBeVisible();
   await expect(result.getByText("Cómo queda")).toBeVisible();
 
+  // R34-02: una propuesta por cambio, para aceptar de a una; sin decidir, nada se aplica
+  const preview = page.getByTestId("tailor-preview");
+  await expect(preview).toContainText("Todavía no aceptaste ninguna propuesta");
+  await page.getByTestId("tailor-accept-experience-0").click();
+
   // El modelo simulado da vuelta las viñetas: la primera ahora es la última del CV, y todas son del CV
-  const items = result.locator("ul").last().getByRole("listitem");
+  const items = preview.getByRole("listitem");
   await expect(items).toHaveCount(3);
   await expect(items.first()).toHaveText(BULLETS[2]!);
   await expect(items.last()).toHaveText(BULLETS[0]!);
@@ -174,19 +179,89 @@ test("si el modelo inventa un dato se descarta y sigue la versión sin IA", asyn
   await expect(page.getByText("50 personas")).toHaveCount(0);
 });
 
-test("la versión adaptada se descarga como .docx y no hay descarga antes de pedirla", async ({
+test("la versión adaptada se guarda como otra versión y se descarga en PDF y DOCX (R34-02)", async ({
   page,
 }) => {
   await loginAsSecondUser(page);
   await page.goto(`/jobs/${normalJobId}/postular`);
-  await expect(page.getByTestId("descargar-cv-adaptado")).toHaveCount(0);
+  // Antes de guardar no hay versión adaptada para descargar, solo la base
+  await expect(page.getByTestId("descargar-adaptada")).toHaveCount(0);
+  await expect(page.getByTestId("descargar-adaptada-vacia")).toBeVisible();
+  await expect(page.getByTestId("descargar-base")).toBeVisible();
   await page.getByTestId("cv-tailor-button").click();
   await expect(page.getByTestId("cv-tailor-result")).toBeVisible();
-  const [download] = await Promise.all([
+  // Sin ninguna decisión no hay nada para guardar: el botón está deshabilitado (aria-disabled, que Playwright no
+  // deja tocar) y no hay aviso de guardado
+  await expect(page.getByTestId("tailor-save")).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByTestId("tailor-saved")).toHaveCount(0);
+  // R34-02: el tope de versiones se explica antes de guardar
+  await expect(page.getByTestId("tailor-suggestions")).toContainText(
+    "hasta 3 versiones por oferta",
+  );
+  await page.getByTestId("tailor-accept-experience-0").click();
+  await page.getByTestId("tailor-save").click();
+  await expect(page.getByTestId("tailor-saved")).toContainText("Tu CV base quedó como estaba");
+  await expect(page.getByTestId("tailor-saved")).not.toContainText("borramos la más vieja");
+  // Tope de 3 por oferta (decisión del 27/11): la cuarta reemplaza a la más vieja y lo avisa. Cada guardado se
+  // espera en la base antes del siguiente (un clic mientras guarda no hace nada).
+  const versiones = async () => {
+    const { db, close } = ownerDb();
+    try {
+      return (
+        await db
+          .select({ id: s.cvOfferVersions.id })
+          .from(s.cvOfferVersions)
+          .where(eq(s.cvOfferVersions.jobId, normalJobId))
+      ).length;
+    } finally {
+      await close();
+    }
+  };
+  await expect.poll(versiones).toBe(1);
+  for (const n of [2, 3]) {
+    await page.getByTestId("tailor-save").click();
+    await expect.poll(versiones).toBe(n);
+    await expect(page.getByTestId("tailor-saved")).not.toContainText("borramos la más vieja");
+  }
+  await page.getByTestId("tailor-save").click();
+  await expect(page.getByTestId("tailor-saved")).toContainText(
+    "ya tenías 3 para esta oferta, borramos la más vieja",
+  );
+  expect(await versiones()).toBe(3);
+  // La pantalla se actualiza sola y ofrece la versión guardada
+  const adaptada = page.getByTestId("descargar-adaptada");
+  await expect(adaptada).toBeVisible();
+  const [docx] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByTestId("descargar-cv-adaptado").click(),
+    adaptada.getByTestId("descargar-adaptada-docx").click(),
   ]);
-  expect(download.suggestedFilename()).toMatch(/^CV-[A-Za-z0-9-]+\.docx$/);
+  expect(docx.suggestedFilename()).toMatch(/^CV-[A-Za-z0-9-]+-adaptado\.docx$/);
+  const [pdf] = await Promise.all([
+    page.waitForEvent("download"),
+    adaptada.getByTestId("descargar-adaptada-pdf").click(),
+  ]);
+  expect(pdf.suggestedFilename()).toMatch(/^CV-[A-Za-z0-9-]+-adaptado\.pdf$/);
+  // El CV base no se tocó: sus viñetas siguen en el orden original
+  const base = await page.request.get(`/jobs/${normalJobId}/postular/descargar?formato=pdf`);
+  expect(base.status()).toBe(200);
+  expect(base.headers()["content-type"]).toContain("application/pdf");
+});
+
+test("editar una propuesta con algo que el CV no dice no se guarda (el CV no inventa)", async ({
+  page,
+}) => {
+  await loginAsSecondUser(page);
+  await page.goto(`/jobs/${normalJobId}/postular`);
+  await page.getByTestId("cv-tailor-button").click();
+  await expect(page.getByTestId("cv-tailor-result")).toBeVisible();
+  await page.getByTestId("tailor-edit-experience-0").click();
+  await page.getByTestId("tailor-edit-text-experience-0").fill("Lideré un equipo de 12 personas");
+  await page.getByTestId("tailor-edit-ok-experience-0").click();
+  await page.getByTestId("tailor-save").click();
+  await expect(page.getByTestId("tailor-save-error")).toContainText(
+    "traía algo que no está en tu CV",
+  );
+  await expect(page.getByTestId("tailor-saved")).toHaveCount(0);
 });
 
 test("un POST con una propuesta basura cae a la versión sin IA", async ({ page }) => {

@@ -57,7 +57,7 @@ export function FormReview({ jobId }: { jobId: string }) {
     <div className="flex flex-col gap-3">
       <form action={analyze} className="flex flex-col gap-2">
         <label className="flex flex-col gap-1 text-xs text-fg-subtle">
-          Pegá el formulario (texto o HTML)
+          Pegá las preguntas del formulario (texto o HTML)
           <textarea
             name="raw"
             rows={6}
@@ -136,7 +136,7 @@ export function FormReview({ jobId }: { jobId: string }) {
               disabled={generating}
               className="rounded-control border border-line-control px-3 py-2 text-sm text-fg disabled:border-line disabled:text-fg-subtle"
             >
-              {generating ? "Generando…" : "Generar borradores"}
+              {generating ? "Armando…" : "Armar borradores"}
             </button>
           </div>
         </>

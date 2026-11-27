@@ -1,6 +1,35 @@
 import { schema as s } from "@job-search-os/db";
-import { and, asc, eq } from "drizzle-orm";
+import { summarizeRequirements, type OfferRequirementInput } from "@job-search-os/pipeline";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { withUser } from "@/lib/db";
+
+const checklistItemSchema = z.object({
+  id: z.string().max(120),
+  kind: z.enum(["estructurado", "skill", "texto"]),
+  nivel: z.enum(["must", "deseable"]),
+  pide: z.string().max(400),
+  evidencia: z.string().nullable().optional(),
+  tenes: z.string().nullable(),
+  status: z.enum(["cumple", "no_cumple", "no_se_sabe"]),
+  fuente: z.object({ pide: z.enum(["fuente", "modelo"]), tenes: z.string().nullable() }),
+  bloquea: z.boolean(),
+});
+
+/** Filas de la tabla de requisitos guardada (entrada no confiable: se valida; lo que no cumple el esquema se ignora). */
+function parseRequirementRows(raw: unknown): OfferRequirementInput[] {
+  if (!Array.isArray(raw)) return [];
+  const items = raw.slice(0, 60).flatMap((x) => {
+    const r = checklistItemSchema.safeParse(x);
+    return r.success ? [r.data] : [];
+  });
+  return summarizeRequirements({ items: items as never }).rows.map((r) => ({
+    code: r.code,
+    nivel: r.nivel,
+    state: r.state,
+    pide: r.item.pide,
+  }));
+}
 
 export type PostularData = {
   id: string;
@@ -14,6 +43,8 @@ export type PostularData = {
   coverNote: string | null;
   /** Skills que pide el aviso, con sus alias de la taxonomía. */
   offerSkills: { name: string; aliases: string[]; isMust: boolean }[];
+  /** Filas de la tabla de requisitos (R34-02); vacío si la oferta todavía no se evaluó. */
+  requirements: OfferRequirementInput[];
 };
 
 /**
@@ -61,7 +92,16 @@ export async function getPostularData(userId: string, jobId: string): Promise<Po
       .where(eq(s.jobSkills.jobId, jobId))
       .limit(60);
 
+    // R34-02: filas de la tabla de requisitos de la última evaluación (si hay), solo para «Revisar mi CV»
+    const [lastEval] = await tx
+      .select({ checklist: sql<unknown>`${s.evaluations.decision} -> 'checklist' -> 'items'` })
+      .from(s.evaluations)
+      .where(and(eq(s.evaluations.userId, userId), eq(s.evaluations.jobId, jobId)))
+      .orderBy(desc(s.evaluations.createdAt))
+      .limit(1);
+
     return {
+      requirements: parseRequirementRows(lastEval?.checklist),
       offerSkills,
       id: job.id,
       title: job.title,

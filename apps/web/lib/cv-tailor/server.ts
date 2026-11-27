@@ -7,6 +7,7 @@ import {
   type CvTailorFailure,
 } from "@job-search-os/adapters";
 import {
+  buildTailorSuggestions,
   cvTailorAllowed,
   cvTailorMode,
   cvTailorRefs,
@@ -14,6 +15,7 @@ import {
   type CvDocument,
   type CvTailorChange,
   type CvTailorOutput,
+  type TailorSuggestion,
 } from "@job-search-os/pipeline";
 import { asc } from "drizzle-orm";
 import { buildUserCv, type CvOptions } from "@/lib/cv-source";
@@ -54,6 +56,8 @@ export type CvTailorOutcome =
       changes: CvTailorChange[];
       /** `false` si la versión quedó igual al CV confirmado. */
       changed: boolean;
+      /** Una tarjeta por cambio, para aceptar, editar o descartar de a una (R34-02). */
+      suggestions: TailorSuggestion[];
     }
   | { kind: "fallback"; reason: CvTailorFallbackReason };
 
@@ -122,6 +126,7 @@ export async function runCvTailorForJob(userId: string, jobId: string): Promise<
       document: result.value.verified.document,
       changes: result.value.verified.changes,
       changed: result.value.verified.changed,
+      suggestions: buildTailorSuggestions(cv, result.value.verified.document),
     };
   } catch (e) {
     createLogger({ user_id: userId }).error(
@@ -150,5 +155,38 @@ export async function applyCvTailorProposal(
     return verified.ok ? verified.value : null;
   } catch {
     return null;
+  }
+}
+
+export type VerifyForSave =
+  | { ok: true; proposal: CvTailorOutput }
+  | { ok: false; reason: "off" | "no_cv" | "stale" | "rejected" | "server"; ref?: string };
+
+/**
+ * Antes de guardar una versión (R34-02): vuelve a verificar la propuesta ya decidida (con las ediciones de la
+ * persona) contra el CV de hoy, sin modelo y sin cupo. Dice cuál entrada no pasó, para que la pantalla la
+ * señale; nunca devuelve el texto que se rechazó. Lo que no pasa no se guarda.
+ */
+export async function verifyTailorForSave(
+  userId: string,
+  proposal: CvTailorOutput,
+): Promise<VerifyForSave> {
+  if (!(await cvTailorAllowedFor(userId))) return { ok: false, reason: "off" };
+  try {
+    const cv = await buildUserCv(userId, CV_TAILOR_BASE_OPTIONS);
+    if (!cv) return { ok: false, reason: "no_cv" };
+    const verified = verifyCvTailor(cv, proposal, { knownTerms: await loadKnownTerms(userId) });
+    if (verified.ok) return { ok: true, proposal };
+    const e = verified.error;
+    if (
+      e.reason === "unknown_ref" ||
+      e.reason === "skill_not_in_cv" ||
+      e.reason === "invalid_output"
+    ) {
+      return { ok: false, reason: "stale" };
+    }
+    return { ok: false, reason: "rejected", ...(e.ref ? { ref: e.ref } : {}) };
+  } catch {
+    return { ok: false, reason: "server" };
   }
 }
