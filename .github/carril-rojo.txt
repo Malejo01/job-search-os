@@ -214,3 +214,5 @@ apps/web/lib/feedback-report-email.ts
 apps/web/lib/job-card.ts
 packages/pipeline/src/job-card/flag.ts
 packages/adapters/src/reevaluate/reevaluate-cli.ts
+# R32: aviso de pocas ofertas (server action inline)
+apps/web/app/(app)/jobs/few-offers-notice.tsx

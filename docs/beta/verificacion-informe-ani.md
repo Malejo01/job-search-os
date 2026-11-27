@@ -11,6 +11,8 @@ Una fila por cada uno de los 159 puntos del informe de revisión: **R-01 a R-38*
 
 Estado al cierre de la R31 (26/11): se actualizaron las filas R-02, R-25 a R-29, S-02, S-05 a S-08, S-12, S-18, S-21 y S-22. Lo de la R31 solo se ve con `JOB_CARD=testers` (apagada, la app es la de la R30) y necesita las migraciones 0087 y 0088 y las RLS 0071 a 0073 aplicadas (`docs/beta/pasos-manuales-r31.md`). Las filas que dependen de `evaluate_job@v1.5.0` quedan `parcial` hasta medirla y promoverla.
 
+Estado al cierre de la R32 (26/11): **ninguna fila cambia.** La R32 (inventario, alta por carrera, cobertura, fuentes y sueldo en la moneda original) no cubre ningún ID de los 159: el plan y `docs/beta/prompt-r32.md` no citan ninguno. Si al cotejar con el informe de revisión alguna fila resulta cubierta por R32-01 a R32-09, se actualiza acá. Ver `docs/beta/informe-r32.md`.
+
 Estado al cierre de la R30 (26/11). `hecho` en una fila de la R30 quiere decir que el código está en la rama de cierre y probado con tests unitarios; los e2e los completa el lead en `docs/beta/informe-r30.md`. `parcial` quiere decir que falta otro ticket de la cadena o que el texto está sin cotejar con el informe.
 
 ## Parte 1 · Listado y detalle de la oferta (R-01 a R-38)

@@ -23,6 +23,11 @@ process.env.E2E_CV_TAILOR_MODE = "testers";
 process.env.E2E_VOICE_SERVER_MODE = "testers";
 // R31: el runner sabe que el server corre con JOB_CARD=testers (ficha del aviso, e2e 370-387)
 process.env.E2E_JOB_CARD_MODE = "testers";
+// R32-09: email de novedades para testers con el adaptador simulado; el runner firma la baja con el mismo valor
+// (de prueba, solo e2e: no es un secreto)
+const NEWS_EMAIL_SECRET_E2E = "e2e-novedades-valor-de-prueba";
+process.env.E2E_NEWS_EMAIL_MODE = "testers";
+process.env.NEWS_EMAIL_SECRET = NEWS_EMAIL_SECRET_E2E;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -76,6 +81,9 @@ export default defineConfig({
       VOICE_SERVER_TRANSCRIBE: "testers",
       // R31: ficha del aviso para testers (admins y ASSISTANT_TESTER_EMAILS), modelo simulado. Flujos 370-387
       JOB_CARD: "testers",
+      // R32-09: email de novedades (flujo 397)
+      NEWS_EMAIL: "testers",
+      NEWS_EMAIL_SECRET: NEWS_EMAIL_SECRET_E2E,
       // R26-01: fichas de prueba de Academy (todas en borrador), en vez de las del repo. Solo vale con
       // DB_TARGET=local (lib/academy.ts). Flujos 230-234
       ACADEMY_DIR: join(__dirname, "e2e", "fixtures", "academy"),

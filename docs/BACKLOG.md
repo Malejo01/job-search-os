@@ -2304,3 +2304,26 @@ Informe de la tanda: [`docs/beta/informe-r31.md`](beta/informe-r31.md). Pasos ma
 
 ### R31 · Cierre de la tanda
 `estado:` en rama (26/11) · `ronda/r31-cierre`
+
+## Bloque 50 · Tanda R32 «Inventario y alta» (27/11)
+
+Informe de la tanda: [`docs/beta/informe-r32.md`](beta/informe-r32.md). Pasos manuales: [`docs/beta/pasos-manuales-r32.md`](beta/pasos-manuales-r32.md). Cadena sobre `ronda/r31-cierre`; ningún PR mergeado por agentes. Migraciones 0089 y 0090 y RLS 0074 sin aplicar en Neon. Ningún modelo ni pedido a portales; nada abre solo.
+
+### Pedido
+- **R32-01** · Carrera obligatoria en el alta y pedida una sola vez a las cuentas sin carrera · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-02** · Reglas de vigente, tomable y para quien empieza, y `/admin/cobertura` con semáforo por carrera · `estado:` en rama (27/11) · `ronda/r32-02-cobertura`
+- **R32-03** · Apertura por carrera desde el admin, con historial y lista de espera por carrera · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-04** · Pocas ofertas y guía de alertas por carrera · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-05** · Jooble, ReliefWeb y Computrabajo listas para prender, con `docs/sources/` · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-06** · Empresas regionales propuestas (en ops, sin verificar) · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-07** · Lector de Get on Board con motivos claros en la cola manual · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-08** · Sueldo en la moneda original (0090) · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-09** · Email de novedades semanal con baja en un clic · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-10** · e2e de la tanda · `estado:` en rama (27/11) · `ronda/r32-cierre`
+
+### Pendientes que salen de la tanda
+- Decidir `news_email` por defecto antes de prender el email; sumar el paso semanal al `cron.yml`.
+- Los ATS del pool solo guardan avisos remotos: ampliar a lugar de trabajo en Argentina necesita un ADR.
+
+### R32 · Cierre de la tanda
+`estado:` en rama (27/11) · `ronda/r32-cierre`

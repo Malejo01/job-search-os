@@ -211,3 +211,5 @@
 /apps/web/lib/job-card.ts @Malejo01
 /packages/pipeline/src/job-card/flag.ts @Malejo01
 /packages/adapters/src/reevaluate/reevaluate-cli.ts @Malejo01
+# R32: aviso de pocas ofertas (server action inline)
+/apps/web/app/(app)/jobs/few-offers-notice.tsx @Malejo01
