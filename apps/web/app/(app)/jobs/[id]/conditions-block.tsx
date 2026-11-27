@@ -1,5 +1,6 @@
 import { ContextHelp } from "@/components/context-help";
 import { DETALLE_TEXTOS } from "@/lib/textos-rediseno";
+import { Cita } from "./ficha-bloques";
 import { conditionRows, type ConditionKey, type ConditionsInput } from "./conditions-view";
 
 /** Ficha de Academy que explica cada campo (solo aparece si está aprobada). */
@@ -35,7 +36,11 @@ export function ConditionsBlock({ input }: { input: ConditionsInput }) {
                 <ContextHelp slug={HELP[r.key]!.slug} term={HELP[r.key]!.term} desde="avisos" />
               ) : null}
             </dt>
-            <dd className={r.informed ? "text-fg" : "text-fg-subtle"}>{r.value}</dd>
+            {/* La cita va dentro del <dd>: un <dl> solo admite dt, dd y div (axe: definition-list) */}
+            <dd className={r.informed ? "text-fg" : "text-fg-subtle"}>
+              {r.value}
+              {r.cita ? <Cita cita={r.cita} /> : null}
+            </dd>
           </div>
         ))}
       </dl>

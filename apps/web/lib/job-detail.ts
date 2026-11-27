@@ -63,6 +63,14 @@ const checklistItemSchema = z.object({
   bloquea: z.boolean(),
   // Aclaración del código (por ejemplo «salario leído del texto del aviso»); opcional
   nota: z.string().max(200).optional(),
+  // R31-05: pregunta de un toque de las filas «Sin confirmar» que vienen del aviso (ficha)
+  pregunta: z
+    .object({
+      clave: z.string().max(160),
+      respuesta: z.enum(["si", "no", "en_parte"]).nullable(),
+      nota: z.string().max(200).nullable(),
+    })
+    .optional(),
 });
 const checklistSchema = z.object({
   items: z.array(checklistItemSchema).max(40),

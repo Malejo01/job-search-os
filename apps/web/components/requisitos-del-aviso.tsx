@@ -3,7 +3,12 @@ import { Icon, type IconName } from "@/components/ui";
 import { summarizeRequirements, type RequirementState } from "@job-search-os/pipeline";
 import type { ChecklistItemView, ChecklistView } from "@/lib/job-detail";
 import { CHECKLIST_PIDE_SOURCE, CHECKLIST_TENES_SOURCE } from "@/lib/labels";
-import { DETALLE_TEXTOS, ESTADO_REQUISITO_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
+import {
+  DETALLE_TEXTOS,
+  ESTADO_REQUISITO_TEXTOS,
+  EVALUACION_TEXTOS,
+  llenarTexto,
+} from "@/lib/textos-rediseno";
 import dynamic from "next/dynamic";
 
 const T = DETALLE_TEXTOS.requisitos;
@@ -11,6 +16,11 @@ const T = DETALLE_TEXTOS.requisitos;
 // R-1: el modal de nivel se baja solo cuando hay una skill para cargar (en /jobs, con el panel abierto)
 const SkillLevelButton = dynamic(() =>
   import("./skill-level-modal").then((mod) => mod.SkillLevelButton),
+);
+
+// R31-05: igual que el modal de nivel, se baja solo cuando hay una pregunta para mostrar
+const PreguntaUnToque = dynamic(() =>
+  import("./pregunta-un-toque").then((mod) => mod.PreguntaUnToque),
 );
 
 /**
@@ -127,6 +137,17 @@ function Item({
           <p data-testid="requisito-nota" className="break-words text-xs text-fg-subtle">
             {item.nota}
           </p>
+        ) : null}
+        {/* R31-05: pregunta de un toque en las filas del aviso que no se pueden comparar */}
+        {item.pregunta && !compact && modal ? (
+          <PreguntaUnToque
+            jobId={modal.jobId}
+            clave={item.pregunta.clave}
+            pide={item.pide}
+            respuesta={item.pregunta.respuesta}
+            nota={item.pregunta.nota}
+            textos={EVALUACION_TEXTOS.pregunta}
+          />
         ) : null}
         {/* El botón solo si el slug está en la taxonomía (`skillInfo`); si no, el link de siempre */}
         {cta && "slug" in cta && modal && modal.skillInfo[cta.slug] ? (

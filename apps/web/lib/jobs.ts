@@ -17,6 +17,7 @@ import {
   type ReviewProgress,
   summarizeFitCard,
   type FitCardSummary,
+  cardItemsNow,
   cardRequirements,
   riesgosVisibles,
   isGoneFromSource,
@@ -26,6 +27,7 @@ import {
 } from "@job-search-os/pipeline";
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { withUser } from "./db";
+import { loadFichaContext } from "./ficha-context";
 import { ACTIVE_STATUSES, riskLabel } from "./labels";
 import { preScoresFor } from "./prescore";
 
@@ -208,6 +210,8 @@ export async function listJobs(
   filters: JobFilters,
   options: ListOptions = {},
 ): Promise<JobListRow[]> {
+  // R31-07: respuestas de un toque y datos de hoy para la línea «Sin confirmar» (vacío con JOB_CARD apagada)
+  const ficha = await loadFichaContext(userId);
   return withUser(userId, async (tx) => {
     const timeZone = await profileTimeZone(tx);
     const since = resolveSince(
@@ -442,7 +446,7 @@ export async function listJobs(
       preScore: pre.get(r.id)?.score ?? null,
       evaluating: Boolean(r.evaluating),
       savedAt: r.savedAt?.toISOString() ?? null,
-      requirements: cardRequirements(checklistItemsOf(r.checklistOpen)),
+      requirements: cardRequirements(cardItemsNow(checklistItemsOf(r.checklistOpen), ficha)),
       goneFromSource: isGoneFromSource({
         fromPool: r.publicJobId !== null,
         lastSeenAt: toDate(r.poolLastSeenAt),
@@ -502,6 +506,10 @@ function checklistItemsOf(v: unknown): CardChecklistItem[] {
       bloquea: o.bloquea,
       tenes: o.tenes as string | null,
       pide: o.pide,
+      // R31-07: solo la clave de la pregunta de un toque (las filas del aviso que el perfil no compara)
+      ...(typeof (o.pregunta as { clave?: unknown } | undefined)?.clave === "string"
+        ? { pregunta: { clave: (o.pregunta as { clave: string }).clave } }
+        : {}),
     });
   }
   return out;

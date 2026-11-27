@@ -613,6 +613,143 @@ export const DETALLE_TEXTOS = {
   },
 } as const;
 
+/**
+ * Textos de la ficha del aviso en el detalle (R31-04, R31-07, R31-08). Lo edita solo `pantalla`.
+ * Lo que dice la ficha sale del aviso, con su cita; acá solo van los rótulos y los estados.
+ */
+export const PANTALLA_TEXTOS = {
+  pocasPalabras: { titulo: "La oferta en pocas palabras" },
+  queVasAHacer: { titulo: "Qué vas a hacer", vacio: "No especificado" },
+  queBuscan: {
+    titulo: "Qué buscan",
+    indispensable: "Indispensable",
+    deseable: "Deseable",
+    sinDistinguir: "El aviso no distingue entre indispensable y deseable.",
+    vacio: "No especificado",
+  },
+  /** Cita literal del aviso, plegada bajo cada dato. */
+  cita: { rotulo: "Así lo dice el aviso", ver: "Ver cita" },
+  /** Valores de «Lo importante para decidir» cuando salen de la ficha (el aviso, con su cita). */
+  valores: {
+    jornada: {
+      completa: "Jornada completa",
+      parcial: "Jornada parcial",
+      por_horas: "Por horas",
+      por_turnos: "Por turnos",
+      flexible: "Horario flexible",
+    },
+    contratacion: {
+      relacion_dependencia: "Relación de dependencia",
+      freelance: "Freelance",
+      temporal: "Temporal",
+      pasantia: "Pasantía",
+      otro: "Otro",
+    },
+    alcance: {
+      cualquier_pais: "Desde cualquier país",
+      paises: "Solo desde:",
+      ciudad: "Solo desde:",
+      contradictorio: "El aviso dice cosas distintas",
+    },
+    periodo: { hora: "por hora", mes: "por mes", anio: "por año" },
+  },
+  /** Estados de la ficha: nunca mueven la página (el esqueleto ocupa el mismo lugar). */
+  estados: {
+    preparando: "Preparando el resumen…",
+    preparandoAyuda: "Lo leemos del aviso. Puede tardar unos segundos.",
+    error: "No pudimos preparar el resumen.",
+    reintentar: "Reintentar",
+    reintentando: "Reintentando…",
+    sinTexto: "Pegá la descripción para ver el resumen",
+    pegar: "Pegar la descripción",
+    tope: "Hoy llegamos al límite de resúmenes. Probá de nuevo mañana: el resto de la app sigue igual.",
+  },
+  /** «Esto mismo te pasa en N de tus M ofertas» (R31-08). */
+  repetido: {
+    texto: "Esto mismo te pasa en {n} de tus {m} ofertas",
+    textoUna: "Esto mismo te pasa en 1 de tus {m} ofertas",
+    boton: "Actualizar {campo}",
+    guardar: "Guardar",
+    guardando: "Guardando…",
+    cancelar: "Cancelar",
+    guardado: "Listo. Actualizamos tus ofertas sin volver a leer los avisos.",
+    error: "No pudimos guardar. Probá de nuevo; lo que escribiste sigue acá.",
+    errorValor: "Revisá el dato: no es un valor válido.",
+    modalTitulo: "Actualizar {campo}",
+    modalAyuda: "Solo cambia este dato de tu perfil. No volvemos a leer los avisos.",
+    etiquetas: {
+      ingles: "Tu nivel de inglés",
+      anos: "Tus años de experiencia",
+      pais: "Tu país (código de 2 letras, por ejemplo AR)",
+    },
+    ingles: {
+      elegir: "Elegí tu nivel",
+      A1: "A1 · Principiante",
+      A2: "A2 · Básico",
+      B1: "B1 · Intermedio",
+      B2: "B2 · Intermedio alto",
+      C1: "C1 · Avanzado",
+      C2: "C2 · Dominio",
+    },
+    campos: {
+      ingles: "mi inglés",
+      anos: "mis años de experiencia",
+      pais: "mi país",
+      residencia: "mi lugar de residencia",
+      autorizacion: "mi autorización de trabajo",
+      habilidad: "mi nivel en {nombre}",
+    },
+  },
+} as const;
+
+/**
+ * Textos de la evaluación con la ficha del aviso (R31-05, R31-10). Lo edita solo `evaluacion`.
+ * La pregunta de un toque aparece en las filas «Sin confirmar» de lo que pide el aviso.
+ */
+export const EVALUACION_TEXTOS = {
+  pregunta: {
+    // PENDIENTE-INFORME: S-02 (texto exacto de la pregunta)
+    enunciado: "¿Tenés esto?",
+    grupo: "Tu respuesta sobre: {pide}",
+    si: "Sí",
+    no: "No",
+    enParte: "En parte",
+    notaEtiqueta: "Contanos en qué medida (opcional)",
+    guardar: "Guardar",
+    guardando: "Guardando…",
+    ayuda: "Tu respuesta se guarda en tu perfil y vale para las demás ofertas que pidan lo mismo.",
+    respondida: "Tu respuesta: {valor}",
+    cambiar: "Cambiar mi respuesta",
+    guardado: "Listo. Guardamos tu respuesta.",
+    error: "No pudimos guardar. Probá de nuevo; lo que escribiste sigue acá.",
+    errorNota: "La nota es demasiado larga. Acortala y probá de nuevo.",
+  },
+  /** Kit para calibrar la evaluación nueva (R31-10): solo testers y admins, con `JOB_CARD` encendida. */
+  calibracion: {
+    titulo: "Calibrar la evaluación nueva",
+    intro:
+      "Estas son ofertas tuyas evaluadas con la versión nueva. Marcá en cada una si la evaluación está bien y, si no, escribí el motivo en pocas palabras. Lo que marques no cambia ningún puntaje.",
+    consejoMotivo: "En el motivo no escribas datos personales: ni tuyos ni de otras personas.",
+    queMirar: "Qué mirar en cada oferta",
+    queMirarItems: [
+      "Que la oferta tenga el requisito que la evaluación dice que pide, con la cita del aviso.",
+      "Que lo que no coincide sea un dato tuyo y no una suposición.",
+      "Que las condiciones del aviso (modalidad, lugar, jornada) estén aparte y no bajen el puntaje.",
+      "Que «Muchos candidatos» aparezca solo si el aviso trae el número.",
+    ],
+    progreso: "Marcaste {x} de {y}",
+    resumen: "De acuerdo en {a} y en desacuerdo en {d}.",
+    sinOfertas:
+      "Todavía no tenés ofertas evaluadas con la versión nueva. Cuando las haya, aparecen acá, entre 20 y 30, variadas.",
+    abrir: "Abrir la oferta",
+    condiciones: "Condiciones del aviso: {n}",
+    sinCondiciones: "Sin condiciones excluyentes",
+    exportar: "Exportar lo marcado (CSV)",
+    exportarAyuda:
+      "Solo para admins. Trae lo que marcaron todas las personas, sin email, nombre ni datos del perfil.",
+  },
+} as const;
+
 /** Interview pulido (R23-08): espera, vacío, 404 propio. «analizando» y «retry» viajan al cliente: están en `textos-interview.ts` (R23-09). */
 export const INTERVIEW_TEXTOS = {
   ...INTERVIEW_CLIENTE,

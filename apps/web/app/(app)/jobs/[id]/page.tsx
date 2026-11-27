@@ -1,5 +1,9 @@
 import {
   affinityBreakdown,
+  applyRequirementAnswers,
+  fieldKeyOf,
+  summarizeRequirements,
+  withCurrentProfileFacts,
   englishIsNotAGap,
   fitCrossSentence,
   isEnglishGap,
@@ -36,7 +40,11 @@ import {
   SOURCE_LABELS,
   STATUS_LABELS,
 } from "@/lib/labels";
+import { loadPerfilActual } from "@/lib/ficha-context";
+import { getJobCardFor } from "@/lib/job-card";
+import { loadOpenOfferTables } from "@/lib/ofertas-abiertas";
 import { canViewRecorrido } from "@/lib/recorrido-access";
+import { loadRequirementAnswers, requirementAnswersAllowedFor } from "@/lib/requirement-answers";
 import { requireUserId } from "@/lib/session";
 import { DETALLE_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
 import { AfiFestejo } from "@/components/afi-festejo";
@@ -52,6 +60,11 @@ import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
 import { EvaluateNow } from "./evaluate-now";
 import { ProponerPuntaje } from "./proponer-puntaje";
+import { FichaEstadoView, PocasPalabras, QueBuscan, QueVasAHacer } from "./ficha-bloques";
+import { retryJobCardAction } from "./ficha-actions";
+import { fichaView, habilidadesDelPuesto } from "./ficha-view";
+import { RepetidoCampo } from "./repetido-campo";
+import { editableField, repetidoView } from "./repetido-view";
 import { postularChecklist } from "./postular/postular-view";
 import { ListingState } from "../listing-state";
 import { SaveButton, SavedMark } from "../save-button";
@@ -145,10 +158,12 @@ export default async function JobDetailPage({
   // respetan, y el orden sale de la misma consulta que la lista.
   const filters = parseJobFilters(sp);
   const query = listQuery(filters);
-  const [job, around, savedForm] = await Promise.all([
+  const [job, around, savedForm, fichaView0] = await Promise.all([
     getJobDetail(userId, id),
     jobNeighbors(userId, id, filters),
     getSavedFormAnswers(userId, id),
+    // R31: la ficha del aviso. Con `JOB_CARD` apagada responde `apagada` sin consultar nada
+    getJobCardFor(userId, id),
   ]);
   if (!job) notFound();
   const flagTexts = job.flags.flatMap((f) => flagLabel(f) ?? []);
@@ -177,8 +192,35 @@ export default async function JobDetailPage({
   );
   // R11-11: los niveles de hoy y los excluyentes que nombra la evaluación («X (must)») entran en
   // la cuenta de «Requisitos»; los riesgos que hablan de un tema con excluyente no van en «no frenan»
-  const checklistNow = ev?.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null;
+  const skillsAll = ev?.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null;
+  // Sin JOB_CARD para esta persona no se ofrece la pregunta de un toque: la tabla es la de la R30
+  const fichaAllowed = skillsAll ? await requirementAnswersAllowedFor(userId) : false;
+  const skillsNow =
+    skillsAll && !fichaAllowed
+      ? { ...skillsAll, items: skillsAll.items.map(({ pregunta: _p, ...rest }) => rest) }
+      : skillsAll;
+  // R31-05 y R31-08 (solo con JOB_CARD): las respuestas de un toque y el inglés y los años de hoy se
+  // superponen a la tabla guardada, sin volver a evaluar. Apagada, la tabla queda como en la R30.
+  const fichaOn = fichaAllowed;
+  const answers = fichaOn ? await loadRequirementAnswers(userId) : null;
+  const perfilActual = fichaOn ? await loadPerfilActual(userId) : null;
+  const checklistNow =
+    skillsNow && answers && perfilActual
+      ? applyRequirementAnswers(withCurrentProfileFacts(skillsNow, perfilActual), answers)
+      : skillsNow;
   const requisitos = checklistNow && ev ? withMustGaps(checklistNow, ev.gaps) : null;
+  // R31-08: «Esto mismo te pasa en N de tus M ofertas» junto a lo que más pesa
+  const repetido =
+    requisitos && answers && perfilActual
+      ? await (async () => {
+          const pesa = summarizeRequirements(requisitos).weighing.find(
+            (r) => r.state !== "coincide" && editableField(fieldKeyOf(r.id)) !== null,
+          );
+          if (!pesa) return null;
+          const tables = await loadOpenOfferTables(userId, perfilActual, answers);
+          return repetidoView(tables, fieldKeyOf(pesa.id));
+        })()
+      : null;
   const risks = ev ? visibleRisks(ev.riesgos.map(riskLabel), requisitos?.items) : [];
   const noEnglishGap = englishIsNotAGap(job.jdText, null);
   const salary =
@@ -187,7 +229,13 @@ export default async function JobDetailPage({
       : null;
   // R30-09: las habilidades salen de la tabla de requisitos (las que el aviso menciona). Separar las
   // del puesto de las que hablan de la empresa queda para la R31.
-  const skillRows = (requisitos?.items ?? []).filter((i) => i.kind === "skill");
+  // R31-07: con ficha lista, solo las habilidades ligadas al puesto; sin ficha (o apagada), como la R30
+  const card = fichaView0.status === "lista" ? fichaView0.card : null;
+  const fichaVista = card ? fichaView(card) : null;
+  const skillRows = habilidadesDelPuesto(
+    (requisitos?.items ?? []).filter((i) => i.kind === "skill"),
+    card ? card.habilidades : null,
+  );
   // R30-10: pasos finales (hasta 5) de la sección «Preparar mi postulación»
   const pasos = postularChecklist({ hasAnswers: savedForm.length > 0, hasCover: false });
 
@@ -293,7 +341,16 @@ export default async function JobDetailPage({
         </div>
       </div>
 
-      {/* R31: aquí va «La oferta en pocas palabras». Sin la ficha del aviso no se muestra nada. */}
+      {/* R31-04: «La oferta en pocas palabras», o el estado de la ficha. Apagada: nada (R30 igual). */}
+      {fichaVista ? (
+        <PocasPalabras view={fichaVista} />
+      ) : fichaView0.status !== "apagada" && fichaView0.status !== "lista" ? (
+        <FichaEstadoView
+          status={fichaView0.status}
+          jobId={job.id}
+          retryAction={retryJobCardAction}
+        />
+      ) : null}
 
       {/* 3 · Lo importante para decidir: las 7 filas, solo con lo que dice el aviso */}
       <ConditionsBlock
@@ -307,6 +364,8 @@ export default async function JobDetailPage({
           contractType: job.contractType,
           countriesAllowed: job.countriesAllowed,
           weeklyHours: job.weeklyHours,
+          ficha: card?.condiciones ?? null,
+          fichaRequisitos: card?.requisitos,
         }}
       />
 
@@ -314,6 +373,9 @@ export default async function JobDetailPage({
         <>
           {/* 4 · Cómo encaja: veredicto y lo que más pesa, desde la tabla de requisitos */}
           <ComoEncaja checklist={requisitos} />
+          {repetido ? (
+            <RepetidoCampo field={repetido.field} jobId={job.id} textos={repetido.textos} />
+          ) : null}
           {crossLine ? (
             <p data-testid="encaje-cruce" className="text-sm text-fg-muted">
               {crossLine}{" "}
@@ -419,7 +481,13 @@ export default async function JobDetailPage({
         </Seccion>
       ) : null}
 
-      {/* R31: aquí van «Qué vas a hacer» y «Qué buscan». Sin la ficha del aviso no se muestran. */}
+      {/* R31-04: «Qué vas a hacer» y «Qué buscan», solo con la ficha lista */}
+      {fichaVista ? (
+        <>
+          <QueVasAHacer view={fichaVista} />
+          <QueBuscan view={fichaVista} />
+        </>
+      ) : null}
 
       {/* R17-05: transparencia del aviso, calculada al mostrar */}
       <TransparencyBlock
