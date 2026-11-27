@@ -583,9 +583,10 @@ export function sealSentence(state: SealState, value: number | null): string {
   return `Puntaje ${formatAffinityScore(value)} de 10, ${sealPhrase(state)}`;
 }
 
-// PENDIENTE-INFORME: S-01, R-05 (redacción de `COMO_CALCULAMOS_TEXTOS` y de las palabras del sello: el plan fija
-// el sentido y la aclaración, no el texto de cada línea; cotejar con el informe original)
-/** «Cómo calculamos la afinidad» (R30-02): qué sale del aviso, qué del perfil y qué está sin confirmar. */
+/**
+ * «Cómo calculamos la afinidad» (R30-02): qué sale del aviso, qué del perfil y qué está sin confirmar. El informe
+ * (R-05) fija el sentido y el título, no el texto de cada línea; las líneas son las del plan.
+ */
 export const COMO_CALCULAMOS_TEXTOS = {
   summary: "Cómo calculamos la afinidad",
   intro:
@@ -671,10 +672,10 @@ export const LISTADO_TEXTOS = {
     ordenRecientes: "Orden: más recientes",
     ordenAyuda: "Cambiar el orden",
     paisSinDato: "Cargá tu país en tu perfil para usar este filtro",
-    cargando: "Cargando ofertas…",
-    // PENDIENTE-INFORME: R-19 (texto del estado vacío del listado)
-    vacioTitulo: "Ninguna oferta coincide con estos filtros",
-    vacioTexto: "Probá sacar algún filtro para ver más ofertas.",
+    /** Informe R-18: estado de carga y estado vacío, tal cual. */
+    cargando: "Buscando ofertas…",
+    vacioTitulo: "No encontramos ofertas con estos filtros.",
+    vacioTexto: "Probá quitar alguno para ver más opciones.",
   },
   /** «+ Agregar una oferta» (R30-05). */
   agregar: {
@@ -695,14 +696,14 @@ export const DETALLE_TEXTOS = {
     titulo: "Lo importante para decidir",
     nota: "Esto es lo que dice el aviso, sin mezclar tu perfil.",
     noEspecificado: "No especificado",
-    // PENDIENTE-INFORME: S-19 (rótulos de las 7 filas)
+    /** Rótulos de las 7 filas, tal cual el informe (R-26); el valor ausente es «No especificado» (glosario). */
     filas: {
       modality: "Modalidad",
       location: "Desde dónde podés trabajar",
       salary: "Salario",
       seniority: "Experiencia",
       language: "Inglés",
-      hours: "Jornada",
+      hours: "Jornada y horario",
       contract: "Tipo de contratación",
     },
     todoElMundo: "Desde cualquier país",
@@ -712,7 +713,7 @@ export const DETALLE_TEXTOS = {
   /** «Cómo encaja» (R30-08): sale solo de la tabla de requisitos. */
   encaja: {
     titulo: "Cómo encaja",
-    // PENDIENTE-INFORME: S-17 (frases del veredicto)
+    /** El informe (S-16, R-06, R-30) da ejemplos de un caso concreto, no una frase por estado: estas son las del plan. */
     veredicto: {
       excluyente: "Hay una condición del aviso que hoy no coincide con tu perfil.",
       noCoincide: "Algunos requisitos del aviso no coinciden con tu perfil.",
@@ -736,7 +737,7 @@ export const DETALLE_TEXTOS = {
     si: "Sí",
     no: "No",
     gracias: "Gracias",
-    // PENDIENTE-INFORME: S-43 (los cuatro motivos, tal cual el plan §6)
+    /** Los cuatro motivos, tal cual el informe (S-43). La ayuda es la del plan §6 (gana sobre «Nos ayuda a mejorarla»). */
     motivosTitulo: "¿Qué pasó? (opcional)",
     motivos: [
       "Leyeron mal un requisito",
@@ -821,7 +822,7 @@ export const DETALLE_TEXTOS = {
   /** «Proponer otro puntaje» (R30-11): solo testers y admins. */
   proponerPuntaje: {
     titulo: "Proponer otro puntaje",
-    // PENDIENTE-INFORME: S-45 (aclaración)
+    /** El informe (S-44, S-45) pide que diga qué efecto tiene, sin dar el texto: este es el del plan. */
     aclaracion:
       "Es una propuesta para revisar la evaluación. No cambia el puntaje que ves ni lo que decide la app.",
     campoPuntaje: "Tu puntaje (0–10)",
@@ -927,7 +928,7 @@ export const PANTALLA_TEXTOS = {
  */
 export const EVALUACION_TEXTOS = {
   pregunta: {
-    // PENDIENTE-INFORME: S-02 (texto exacto de la pregunta)
+    /** El informe (S-23) pide un botón de carga en la fila, sin dar el texto; la pregunta Sí, No o En parte es del plan §8. */
     enunciado: "¿Tenés esto?",
     grupo: "Tu respuesta sobre: {pide}",
     si: "Sí",

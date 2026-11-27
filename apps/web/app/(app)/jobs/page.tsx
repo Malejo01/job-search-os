@@ -395,7 +395,7 @@ function EmptyList({
   hasChips: boolean;
   saved: boolean;
 }) {
-  // R30-05: con chips activos, el vacío lo dice y ofrece limpiar (texto del informe: PENDIENTE-INFORME R-19)
+  // R30-05: con chips activos, el vacío lo dice y ofrece limpiar (texto del informe, R-18)
   if (hasChips) {
     return (
       <EstadoMarca
