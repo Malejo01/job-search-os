@@ -1,5 +1,13 @@
+import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
-import { ensureSecondUser, loginAsSecondUser, removeSecondUser } from "./helpers";
+import { eq } from "drizzle-orm";
+import {
+  E2E_B_USER_ID,
+  ensureSecondUser,
+  loginAsSecondUser,
+  ownerDb,
+  removeSecondUser,
+} from "./helpers";
 import { reach } from "./teclado-helpers";
 
 /**
@@ -13,6 +21,13 @@ test.setTimeout(90_000);
 
 test.beforeAll(ensureSecondUser);
 test.afterAll(async () => {
+  // R33-02: el borrador automático del chat se borra
+  const { db, close } = ownerDb();
+  try {
+    await db.delete(s.cvDrafts).where(eq(s.cvDrafts.userId, E2E_B_USER_ID));
+  } finally {
+    await close();
+  }
   await removeSecondUser().catch(() => {});
 });
 
@@ -31,8 +46,8 @@ test("empezar, responder y recibir la pregunta siguiente, con foco y anuncio", a
   const antes = await mensajes.locator("p").count();
 
   await page.keyboard.insertText("Analista de datos");
-  const enviar = page.getByRole("button", { name: "Enviar", exact: true });
-  await reach(page, enviar, "Enviar");
+  const enviar = page.getByRole("button", { name: "Responder y seguir", exact: true });
+  await reach(page, enviar, "Responder y seguir");
   await page.keyboard.press("Enter");
 
   // La respuesta llega a la región en vivo y el foco vuelve al campo (se deshabilita mientras piensa)

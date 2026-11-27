@@ -24,6 +24,13 @@ import {
 } from "@/lib/cv-coach/storage";
 import { marcarFestejoPendiente } from "@/lib/festejo-pendiente";
 import { isInternalPath } from "@/lib/internal-path";
+import { CV_ASISTENTE_TEXTOS } from "@/lib/textos-rediseno";
+
+const T = CV_ASISTENTE_TEXTOS.borrador;
+const P = CV_ASISTENTE_TEXTOS.pregunta;
+const F = CV_ASISTENTE_TEXTOS.terminar;
+/** R33-02: guarda y lee las propuestas sin confirmar (`/api/cv-coach/borrador`). */
+const COACH_DRAFT_API = "/api/cv-coach/borrador";
 
 type Notice = { message: string; links: { label: string; href: string }[] };
 type Line = { id: number; who: "coach" | "me" | "ack"; text: string };
@@ -94,8 +101,16 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
   const [notice, setNotice] = useState<Notice | null>(null);
   const [expired, setExpired] = useState(false);
   const [done, setDone] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [restored, setRestored] = useState(0);
+  // R33-03: volver a la pregunta anterior, avisar tras dictar y confirmar antes de armar
+  const [back, setBack] = useState<{ state: CvCoachState; lines: Line[] }[]>([]);
+  const [dictated, setDictated] = useState(false);
+  const [confirmFinish, setConfirmFinish] = useState(false);
   const started = useRef(false);
   const nextId = useRef(0);
+  const draftAsked = useRef(false);
+  const lastSaved = useRef("");
 
   const say = (who: Line["who"], text: string) =>
     setLines((prev) => [...prev, { id: nextId.current++, who, text }]);
@@ -171,18 +186,68 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stored.ready]);
 
+  // R33-02: las propuestas sin confirmar de antes vuelven como tarjetas pendientes (siguen necesitando su clic)
+  useEffect(() => {
+    if (!stored.ready || draftAsked.current) return;
+    draftAsked.current = true;
+    void (async () => {
+      try {
+        const res = await fetch(COACH_DRAFT_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "load" }),
+        });
+        const data = (await res.json()) as Api;
+        const old = res.ok && data.ok === true && Array.isArray(data.cards) ? data.cards : [];
+        if (old.length > 0) {
+          setCards((prev) => [
+            ...(old as CvCoachCard[]).map((card) => ({ card, status: "pending" as const })),
+            ...prev,
+          ]);
+          setRestored(old.length);
+          lastSaved.current = JSON.stringify(old);
+        }
+      } catch {
+        // sin borrador la charla sigue igual
+      }
+      setDraftLoaded(true);
+    })();
+  }, [stored.ready]);
+
+  // Cada cambio en las propuestas pendientes se guarda como borrador; sin pendientes, el borrador se borra
+  useEffect(() => {
+    if (!draftLoaded) return;
+    const pendientes = cards
+      .filter((c) => c.status === "pending" || c.status === "saving")
+      .map((c) => c.card);
+    const json = JSON.stringify(pendientes);
+    if (json === lastSaved.current || (json === "[]" && lastSaved.current === "")) return;
+    lastSaved.current = json;
+    void fetch(COACH_DRAFT_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "save", cards: pendientes }),
+    }).catch(() => {
+      // el borrador es una ayuda: si no se guarda, la charla sigue
+    });
+  }, [cards, draftLoaded]);
+
   async function answer(body: Api, mine: string | null) {
     if (!state) return;
     setError(null);
     setNotice(null);
     setBusy(true);
     if (mine) say("me", mine);
+    const before = { state, lines };
     const data = await call({ action: "answer", state, answer: body });
     setBusy(false);
     if (!data) return;
     const s = data.state as CvCoachState;
     saveCoachState(s);
     setState(s);
+    setBack((b) => [...b, before].slice(-25));
+    setDictated(false);
+    setConfirmFinish(false);
     if (data.finished === true) {
       marcarFestejoPendiente("cv");
       router.push(CV_COACH_PAGES.done);
@@ -198,6 +263,31 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
     setQuestion(q);
     if (q) say("coach", q.text);
     if (data.closeReason) setDone(true);
+  }
+
+  /** «Volver a la pregunta anterior» (C-11): se retoma el avance de antes; lo ya confirmado no se toca. */
+  async function goBack() {
+    const prev = back[back.length - 1];
+    if (!prev || busy) return;
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    const data = await call({ action: "start", state: prev.state });
+    setBusy(false);
+    if (!data) return;
+    const s = data.state as CvCoachState;
+    saveCoachState(s);
+    setState(s);
+    setLines(prev.lines);
+    setBack((b) => b.slice(0, -1));
+    setConflict(null);
+    setDone(false);
+    setDraft("");
+    setDictated(false);
+    setConfirmFinish(false);
+    const q = (data.question as CoachQuestion | null) ?? null;
+    setQuestion(q);
+    if (q && !prev.lines.some((l) => l.who === "coach" && l.text === q.text)) say("coach", q.text);
   }
 
   async function send() {
@@ -241,14 +331,81 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
     );
   }
 
+  /** Lleva al cierre con lo confirmado. Si la charla seguía abierta, primero la cierra («Ya está, armalo»). */
+  function finishNow() {
+    if (!done && state?.stage === "chat") void answer({ kind: "finish" }, null);
+    else {
+      marcarFestejoPendiente("cv");
+      router.push(CV_COACH_PAGES.done);
+    }
+  }
   const handled = (state?.resolved.length ?? 0) + (state?.skipped.length ?? 0);
+  const views = stored.views?.views ?? [];
+  // «Falta» de «Terminar y armar»: los temas de la revisión que todavía no se hicieron
+  const pendingTitles = views
+    .filter((v) => !state?.resolved.includes(v.id) && !state?.skipped.includes(v.id))
+    .map((v) => v.title);
   const pending = cards.some((c) => c.status === "pending" || c.status === "saving");
 
   return (
     <div className="flex flex-col gap-4" data-testid="coach-chat">
+      {/* C-13: la honestidad, corta y arriba */}
+      <p className="text-base font-semibold text-fg" data-testid="coach-honestidad">
+        {CV_ASISTENTE_TEXTOS.bienvenida.honestidad}
+      </p>
       {total > 0 ? (
         <p className="text-sm text-fg-muted" data-testid="coach-progress">
           {handled} de {total} revisados
+        </p>
+      ) : null}
+      {/* C-10: el avance como lista de temas, con el actual marcado y los hechos tildados */}
+      {views.length > 0 ? (
+        <ol
+          className="flex flex-col gap-1 text-sm text-fg-muted"
+          aria-label={CV_ASISTENTE_TEXTOS.avance.titulo}
+          data-testid="coach-topics"
+        >
+          {views.map((v) => {
+            const status = state?.resolved.includes(v.id)
+              ? "done"
+              : state?.skipped.includes(v.id)
+                ? "skipped"
+                : state?.current === v.id
+                  ? "current"
+                  : "pending";
+            return (
+              <li
+                key={v.id}
+                data-status={status}
+                aria-current={status === "current" ? "step" : undefined}
+                className={status === "current" ? "font-semibold text-fg" : ""}
+              >
+                <span aria-hidden="true">
+                  {{ done: "✓", skipped: "↺", current: "●", pending: "○" }[status]}{" "}
+                </span>
+                {v.title}
+                <span className="sr-only">: {CV_ASISTENTE_TEXTOS.avance.estados[status]}</span>
+              </li>
+            );
+          })}
+        </ol>
+      ) : null}
+      <p className="text-sm text-fg-muted" data-testid="coach-draft-note">
+        {T.aviso} {T.volverAclaracion}{" "}
+        <Link href="/cv" className="font-semibold underline underline-offset-2">
+          {T.volver}
+        </Link>
+      </p>
+      {restored > 0 ? (
+        <p
+          role="status"
+          className="text-sm font-semibold text-fg"
+          data-testid="coach-draft-restored"
+        >
+          {T.hay}{" "}
+          {restored === 1
+            ? T.coachPendientesUna
+            : T.coachPendientes.replace("{n}", String(restored))}
         </p>
       ) : null}
       {error ? (
@@ -388,30 +545,61 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
             disabled={busy}
             data-testid="coach-answer"
           />
+          {/* C-12: el aviso de privacidad del dictado, una sola vez y detrás del ⓘ; C-09: lo dictado no se envía solo */}
           <VoiceInput
             serverTranscribe={serverTranscribe}
-            onText={(spoken) => setDraft((prev) => joinDictated(prev, spoken).slice(0, 2000))}
+            privacy="info"
+            onText={(spoken) => {
+              setDraft((prev) => joinDictated(prev, spoken).slice(0, 2000));
+              setDictated(true);
+            }}
             disabled={busy}
           />
-          <div className="flex flex-wrap gap-2">
+          {dictated && draft.trim() !== "" ? (
+            <p
+              role="status"
+              className="text-sm font-semibold text-fg"
+              data-testid="coach-dictado-revisar"
+            >
+              {P.dictadoRevisar}
+            </p>
+          ) : null}
+          {/* C-06: una sola acción principal por pregunta */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <button
               type="submit"
               className={buttonClasses()}
               disabled={busy || draft.trim() === ""}
               data-testid="coach-send"
             >
-              {busy ? "Pensando…" : "Responder"}
+              {busy ? "Pensando…" : P.responder}
             </button>
+            {/* C-07: «Saltear» como enlace secundario, con su apoyo */}
+            <span className="flex flex-col">
+              <button
+                type="button"
+                className="min-h-11 self-start rounded-control px-1 text-sm font-semibold text-link underline underline-offset-2 disabled:cursor-not-allowed"
+                disabled={busy || !state?.current}
+                onClick={() => void answer({ kind: "none", issueId: state?.current }, P.saltear)}
+                data-testid="coach-none"
+              >
+                {P.saltear}
+              </button>
+              <span className="text-sm text-fg-muted">{P.salteaApoyo}</span>
+            </span>
+          </div>
+          {/* C-11: volver a la pregunta anterior, sin reiniciar */}
+          {back.length > 0 ? (
             <button
               type="button"
-              className={buttonClasses({ variant: "secondary" })}
-              disabled={busy || !state?.current}
-              onClick={() => void answer({ kind: "none", issueId: state?.current }, "No tengo")}
-              data-testid="coach-none"
+              onClick={() => void goBack()}
+              disabled={busy}
+              className="min-h-11 self-start rounded-control px-1 text-sm font-semibold text-link underline underline-offset-2 disabled:cursor-not-allowed"
+              data-testid="coach-volver-pregunta"
             >
-              No tengo
+              {P.volverAnterior}
             </button>
-          </div>
+          ) : null}
         </form>
       ) : null}
 
@@ -422,22 +610,53 @@ export function CvCoachChat({ serverTranscribe }: { serverTranscribe: boolean })
             : "Listo: ya podemos armar tu CV con lo que confirmaste."}
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          className={buttonClasses({ variant: done ? "primary" : "ghost" })}
-          disabled={busy}
-          onClick={() => {
-            if (!done && state?.stage === "chat") void answer({ kind: "finish" }, null);
-            else {
-              marcarFestejoPendiente("cv");
-              router.push(CV_COACH_PAGES.done);
+      {/* C-08: «Terminar y armar» aparte; antes de que se termine la revisión, pide confirmación */}
+      <div
+        className="flex flex-col gap-2 border-t border-line pt-3"
+        data-testid="coach-terminar-zona"
+      >
+        {confirmFinish && !done ? (
+          <div role="group" aria-label={F.boton} className="flex flex-col gap-2">
+            <p className="text-sm text-fg" data-testid="coach-terminar-confirmar">
+              {pendingTitles.length > 0
+                ? F.pregunta.replace("{faltan}", pendingTitles.join(", "))
+                : F.preguntaSinFaltantes}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                className={buttonClasses()}
+                disabled={busy}
+                onClick={() => setConfirmFinish(false)}
+              >
+                {F.seguir}
+              </button>
+              <button
+                type="button"
+                className={buttonClasses({ variant: "secondary" })}
+                disabled={busy}
+                onClick={finishNow}
+                data-testid="coach-terminar-armar"
+              >
+                {F.armar}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className={
+              done
+                ? buttonClasses()
+                : "min-h-11 self-start rounded-control px-1 text-sm font-semibold text-link underline underline-offset-2 disabled:cursor-not-allowed"
             }
-          }}
-          data-testid="coach-chat-finish"
-        >
-          Ya está, armalo
-        </button>
+            disabled={busy}
+            onClick={done ? finishNow : () => setConfirmFinish(true)}
+            data-testid="coach-chat-finish"
+          >
+            {F.boton}
+          </button>
+        )}
       </div>
     </div>
   );

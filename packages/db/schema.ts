@@ -1316,3 +1316,21 @@ export const requirementAnswers = pgTable("requirement_answers", {
   check("requirement_answers_answer", sql`${t.answer} in ('si', 'no', 'en_parte')`),
   check("requirement_answers_note", sql`${t.note} is null or (${t.answer} = 'en_parte' and char_length(${t.note}) <= 200)`),
 ]);
+
+// Borrador automático del CV (R33-02, rls/0075). Lo que la persona responde en los dos asistentes (el chat de
+// /cv/armar y el coach de /cv/coach) se guarda acá mientras avanza. NO es el CV: nada entra a career_history hasta
+// que la persona lo confirma. Un borrador por persona y asistente; `updated_at` es la última vez que se usó y a los
+// 30 días sin uso lo borra `purgeStaleCvDrafts` (packages/adapters/src/retention/cv-drafts.ts). Cae con la cuenta.
+export const cvDrafts = pgTable("cv_drafts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),                              // chat | coach
+  payload: jsonb("payload").notNull(),                       // forma en packages/pipeline/src/cv-draft; se valida al leer
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("cv_drafts_user_kind").on(t.userId, t.kind),
+  index("cv_drafts_updated_at").on(t.updatedAt),
+  check("cv_drafts_kind", sql`${t.kind} in ('chat', 'coach')`),
+  check("cv_drafts_payload", sql`jsonb_typeof(${t.payload}) = 'object' and octet_length(${t.payload}::text) <= 60000`),
+]);

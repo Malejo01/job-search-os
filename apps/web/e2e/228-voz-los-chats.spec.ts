@@ -28,6 +28,8 @@ let sessionId = "";
 async function cleanHistory(): Promise<void> {
   const { db, close } = ownerDb();
   try {
+    // R33-02: el borrador automático del chat y del coach también se borra
+    await db.delete(s.cvDrafts).where(eq(s.cvDrafts.userId, E2E_B_USER_ID));
     await db
       .delete(s.careerHistory)
       .where(

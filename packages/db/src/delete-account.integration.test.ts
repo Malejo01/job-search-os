@@ -78,6 +78,8 @@ async function seed(id: string, tag: string): Promise<void> {
   await owner`insert into application_settings (user_id, availability) values (${id}, 'inmediata')`;
   await owner`insert into requirement_answers (user_id, req_key, answer)
                values (${id}, 'formacion:titulo ficticio', 'si')`;
+  // R33-02: borrador automático del CV, se va con la cuenta
+  await owner`insert into cv_drafts (user_id, kind, payload) values (${id}, 'chat', '{"v":1}'::jsonb)`;
   await owner`insert into contacts (user_id, name) values (${id}, 'Contacto A')`;
   await owner`insert into talent_platforms (user_id, name, status) values (${id}, 'Plataforma A', 'pendiente')`;
   const [skill] = await owner<{ id: string }[]>`

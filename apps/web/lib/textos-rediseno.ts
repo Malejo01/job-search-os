@@ -29,11 +29,12 @@ export const TRANSPARENCY_WORDS = {
   opaque: "Aviso opaco",
 } as const;
 
-/** Niveles del diagnóstico del CV. */
+/** Niveles del diagnóstico del CV (R33-06, C-36): 8 a 10, 5 a 7, 1 a 4 y 0. */
 export const CV_LEVEL_WORDS = {
-  good: "Bien",
-  improvable: "Mejorable",
-  missing: "Falta",
+  good: "Sólido",
+  improvable: "En camino",
+  missing: "Para reforzar",
+  empty: "Sin empezar",
 } as const;
 
 /** Palabra de cada puntaje de la devolución de Interview: en `textos-interview.ts` (R23-09). */
@@ -50,6 +51,224 @@ export const NO_DATA_LABEL = "Sin datos";
 
 /** Nivel de un ítem del diagnóstico del CV cuando el mercado del puesto tiene pocos avisos: sin puntaje. */
 export const CV_NOT_ENOUGH_DATA_LABEL = "Sin datos suficientes";
+
+/** R33 · calidad: «Tu CV» (R33-01), revisión «Esto es lo que entendí» (R33-05) y diagnóstico (R33-06). */
+export const CV_CALIDAD_TEXTOS = {
+  tuCv: {
+    seguir: "Seguir armando mi CV",
+    faltanTitulo: "Lo que falta para un CV completo",
+    borrador: "Tenés un borrador sin confirmar.",
+    retomar: "Retomarlo",
+    completoTitulo: "Tu CV está completo",
+    completoTexto: "Mirá cómo lo leen los sistemas de selección y descargalo.",
+    /** Cada faltante con su botón al campo exacto (C-04). */
+    pendientes: {
+      summary: { text: "tu resumen", cta: "Escribir mi resumen" },
+      experience: { text: "tu experiencia laboral", cta: "Agregar mi experiencia" },
+      education: { text: "tus estudios", cta: "Agregar mis estudios" },
+      skills: { text: "tus habilidades", cta: "Agregar mis habilidades" },
+      languages: { text: "tu nivel de inglés", cta: "Agregar mi nivel de inglés" },
+    },
+  },
+  /** «Esto es lo que entendí» (R33-05, C-26 a C-35). */
+  revision: {
+    titulo: "Esto es lo que entendí",
+    regla: "Corregí lo que haga falta. Si algo está vacío, queda vacío: no lo completo yo.",
+    ejemplo: "Ejemplo: ",
+    ejemploAviso: "Los ejemplos en gris son una guía: no entran a tu CV.",
+    sinCompletar: "Sin completar",
+    quitarTrabajo: "Quitar este trabajo",
+    quitarPregunta: "¿Quitar este trabajo?",
+    quitar: "Quitar",
+    cancelar: "Cancelar",
+    deshacer: "Deshacer",
+    trabajoQuitado: "Quitaste el trabajo.",
+    agregarTrabajo: "Agregar otro trabajo",
+    agregarEstudio: "Agregar estudio o certificación",
+    estudiosVacio: "Nada cargado todavía.",
+    estudioIncompleto: "Se suma a tu CV cuando completes la institución y el título.",
+    tipoEstudio: "Estudio",
+    tipoCertificacion: "Certificación",
+    resumenTitulo: "Resumen profesional",
+    resumenLabel: "Resumen (2 o 3 frases)",
+    resumenEjemplo: "Administrativa con experiencia en atención y organización de tareas.",
+    resumenAyuda: "Es un borrador con lo que contaste: corregilo con tus palabras.",
+    blandasTitulo: "Habilidades blandas que confirmaste",
+    blandasAyuda: "Solo están las que elegiste con «Usarla». Quitá las que no quieras.",
+    skillsTitulo: "Habilidades",
+    skillsAgregar: "Agregar habilidad",
+    skillsAyuda:
+      "Escribí una habilidad y tocá «Agregar habilidad» (o Enter). Quitá las que no uses.",
+    skillsSugerencias: "Sugerencias",
+    skillsSugerenciaAviso: "Sugerencia: verificá que corresponda a tu caso",
+    idiomasTitulo: "Idiomas",
+    idiomaNombre: "Idioma",
+    idiomaNivel: "Nivel",
+    idiomaSinNivel: "Sin nivel",
+    idiomaAgregar: "Agregar otro idioma",
+    idiomaQuitar: "Quitar idioma",
+    /** Nivel (MCER) con su explicación (C-31). */
+    niveles: [
+      { value: "A1", label: "A1: principiante" },
+      { value: "A2", label: "A2: básico" },
+      { value: "B1", label: "B1: intermedio" },
+      { value: "B2", label: "B2: intermedio alto" },
+      { value: "C1", label: "C1: avanzado" },
+      { value: "C2", label: "C2: casi nativo" },
+      { value: "Nativo", label: "Nativo" },
+    ],
+    linksTitulo: "Links",
+    linkLinkedin: "LinkedIn",
+    linkGithub: "GitHub",
+    linkPortfolio: "Portfolio",
+    linkError: "Tiene que empezar con https://",
+    linkAyuda: "Opcional. Se escribe completo, empezando con https://",
+    cierre: "Guardar y ver mi CV",
+    cierreAviso: "Nada entra a tu CV hasta que toques «Guardar y ver mi CV».",
+  },
+  /** Diagnóstico (R33-06, C-36 a C-42). */
+  diagnostico: {
+    frase:
+      "Estos niveles miden cómo lo lee un sistema automático. No miden si sos buen o buena candidata.",
+    /** Significado de cada palabra, para quien la toca. */
+    significados: {
+      good: "Está listo, sin cambios urgentes",
+      improvable: "Tiene base, conviene mejorarlo",
+      missing: "Falta contenido importante",
+      empty: "No hay nada cargado",
+    },
+    /** Qué mide cada barra (C-38), con su ⓘ. */
+    labels: {
+      structure: "Estructura",
+      keywords: "Palabras clave de tu carrera",
+      readability: "Legibilidad",
+      length: "Largo",
+      achievements: "Logros medibles",
+      sections: "Secciones profesionales",
+    },
+    mide: {
+      structure: "Si el CV tiene las secciones y el orden que esperan los sistemas.",
+      keywords: "Cuántas de las habilidades más pedidas para tu puesto nombra tu CV.",
+      readability: "Si las viñetas son cortas y de una idea por línea, fáciles de leer.",
+      length:
+        "Si el CV tiene un largo cómodo: ni tan corto que falte detalle, ni tan largo que se pierda lo importante.",
+      achievements: "Cuántas viñetas muestran un resultado que se puede medir.",
+      sections:
+        "Si están las secciones que se esperan en un CV: resumen, experiencia, estudios, habilidades e idiomas.",
+    },
+    ayuda: "Qué mide",
+    enPausa: "Se calcula cuando tengas experiencia cargada.",
+    principalTitulo: "Cargá tu experiencia laboral",
+    principalTexto:
+      "Legibilidad, largo y logros se calculan con tu experiencia. Cuando la cargues, los vemos.",
+    /** Botón de cada paso concreto (tabla 8.2). */
+    pasos: {
+      add_headline: "Agregar titular",
+      add_contact: "Agregar un dato de contacto",
+      add_summary: "Escribir mi resumen",
+      add_experience: "Agregar mi experiencia",
+      add_education: "Agregar mis estudios",
+      add_skills: "Agregar mis habilidades",
+      add_languages: "Agregar mi nivel de inglés",
+      mark_keywords: "Marcar las que tengo",
+      write_achievement: "Escribir un logro con ayuda",
+      edit_history: "Revisar mi historial",
+    },
+  },
+} as const;
+
+/** R33 · documento: descarga del CV en PDF y DOCX (R33-08), contacto y links (R33-07). */
+export const CV_DOCUMENTO_TEXTOS = {
+  descarga: {
+    pdf: "Descargar PDF",
+    docx: "Descargar DOCX",
+    generando: "Generando tu archivo…",
+    listo: "Listo: el archivo se descargó.",
+    errorGenerico: "No pudimos generar el archivo. Probá de nuevo o descargá el otro formato.",
+    errorSesion: "Tu sesión venció. Volvé a iniciar sesión y probá de nuevo.",
+    errorSinPerfil: "Completá tu perfil para armar el CV y después descargalo.",
+    /** `{n}` es la cantidad de segundos. */
+    errorRitmo: "Descargaste muchas veces seguidas. Esperá {n} segundos y probá de nuevo.",
+  },
+  /** Opciones del CV (R33-07): la vista previa se actualiza sola al cambiarlas. */
+  opciones: {
+    titulo: "Opciones del CV",
+    idioma: "Idioma",
+    email: "Incluir mi email",
+    basicas: "Incluir habilidades básicas",
+    lugar: "Incluir ciudad y país",
+    lugarAyuda: "Incluye ciudad y país, no tu dirección.",
+    /** Una por link cargado. */
+    incluirLink: {
+      linkedin: "Incluir mi LinkedIn",
+      github: "Incluir mi GitHub",
+      portfolio: "Incluir mi portfolio",
+      otro: "Incluir mi otro link",
+    },
+    telefono: "Incluir mi teléfono",
+    telefonoAyuda: "Viene sin marcar: lo sumás solo si querés que aparezca en tu CV.",
+    actualizando: "Actualizando la vista previa…",
+  },
+  /** Links del CV (R33-07, C-45). */
+  links: {
+    titulo: "Tus links",
+    ayuda:
+      "Escribilos completos, con https://. Algunos sistemas de selección no leen los links ocultos, por eso el CV muestra la dirección entera, debajo de tu nombre.",
+    campo: {
+      linkedin: "LinkedIn",
+      github: "GitHub",
+      portfolio: "Portfolio o sitio web",
+      otro: "Otro link (Behance, blog, etc.)",
+    },
+    otroEtiqueta: "Nombre del otro link, por ejemplo Behance",
+    telefono: "Teléfono (opcional)",
+    telefonoAyuda:
+      "Con código de área o de país. No se muestra en tu CV hasta que marques «Incluir mi teléfono».",
+    errorEtiqueta: "Usá un nombre corto, solo con letras, números y espacios.",
+    errorTelefono: "Escribilo solo con números, espacios, + - y paréntesis (de 6 a 15 dígitos).",
+    guardar: "Guardar links",
+    guardando: "Guardando…",
+    guardado: "Guardado.",
+    errorFormato:
+      "Tiene que ser una dirección completa que empiece con https://, sin usuario ni espacios.",
+    abrir: "Abrir para probarlo",
+  },
+  /** Aviso antes de descargar un CV incompleto (R33-07, C-46). */
+  aviso: {
+    /** `{lista}` va con los faltantes separados por « / ». */
+    titulo: "Tu CV todavía no tiene {lista}.",
+    pregunta: "¿Completarlo antes?",
+    completar: "Completar",
+    igual: "Descargar igual",
+    items: {
+      education: "Educación",
+      summary: "Resumen",
+      results: "resultados en tus logros",
+    },
+  },
+  /** Avisos suaves de calidad del CV (R33-09): orientan, no cambian el CV ni sacan nada. */
+  calidad: {
+    titulo: "Para que tu CV se lea mejor",
+    sinTitular: "Falta un titular con el puesto que buscás, debajo de tu nombre.",
+    /** `{lista}` son las habilidades separadas por coma. */
+    sinRespaldo:
+      "Estas habilidades no aparecen en ninguna viñeta de tu experiencia: {lista}. Si de verdad las usaste, contalo ahí. No las sacamos.",
+    tareas:
+      "Estas viñetas cuentan tareas, no logros. Con unas preguntas la completás sin inventar nada.",
+    preguntas: "Preguntas para completarla",
+    soloVerdad: "Respondé solo lo que pasó de verdad. Lo que no mediste, no lo sumes.",
+  },
+  /** Antes y después de una reescritura (R33-09, C-68). */
+  reescritura: {
+    antes: "Antes",
+    despues: "Después",
+    dejarMio: "Dejar la mía",
+    usarNueva: "Usar la nueva",
+    /** `{lista}` son palabras tuyas. */
+    conserva: "Conserva tus palabras: {lista}.",
+    pierde: "La nueva sacó varias palabras tuyas: {lista}.",
+  },
+} as const;
 
 /** Recorrido de primer uso tras el rediseño (R23-05): cuatro pasos cortos, sin promesas. */
 export const PRIMER_USO = {
@@ -952,5 +1171,109 @@ export const COBERTURA_TEXTOS = {
     algunas: "{verdes} de {total} carreras en verde; faltan: {faltan}.",
     noLeyo: "No se pudo leer la cobertura del pool.",
     todo: "Sumá fuentes para esas carreras y volvé a mirar el panel de cobertura. Abrir una carrera lo decide el responsable.",
+  },
+} as const;
+
+/**
+ * Los dos asistentes del CV (R33-02 a R33-04): el coach de «Tengo CV» (`/cv/coach`) y el chat de «No tengo CV»
+ * (`/cv/armar`). Los textos salen del informe de revisión (C-03 a C-20), tal cual, con el glosario del plan.
+ * Lo edita solo `asistente`.
+ */
+export const CV_ASISTENTE_TEXTOS = {
+  borrador: {
+    aviso:
+      "Guardamos un borrador para que no pierdas nada. Nada entra a tu CV hasta que lo confirmes.",
+    hay: "Tenés un borrador sin confirmar.",
+    retomar: "Retomarlo",
+    empezarDeNuevo: "Empezar de nuevo",
+    descartando: "Descartando…",
+    descartadoError: "No pudimos descartar el borrador. Probá de nuevo en un rato.",
+    retomarError: "No pudimos retomar el borrador. Podés empezar de nuevo.",
+    volver: "Volver a Tu CV",
+    volverAclaracion: "Tu progreso queda guardado como borrador.",
+    // «Tu CV»: lo que está en el borrador deja de figurar como faltante y dice que está sin confirmar
+    sinConfirmar: "{seccion}: sin confirmar, está en tu borrador",
+    secciones: {
+      resumen: "Resumen",
+      experiencia: "Experiencia",
+      estudios: "Estudios",
+    },
+    coachPendientes: "Tenés {n} propuestas del coach sin confirmar.",
+    coachPendientesUna: "Tenés 1 propuesta del coach sin confirmar.",
+    coachRetomar: "Retomar propuestas",
+  },
+  /** Bienvenida (C-13): la honestidad, corta y arriba. */
+  bienvenida: {
+    honestidad:
+      "Vos revisás todo antes de usarlo. Nada entra a tu CV hasta que lo confirmes. La IA no agrega datos que no dijiste. No te asegura pasar ningún filtro.",
+    comoFunciona:
+      "Te hago preguntas de a una, vos corregís lo que entendí y al final armo un CV legible por ATS (los sistemas que leen CV: sin tablas ni columnas). Son 7 temas: puesto, resumen, experiencia, estudios, habilidades, idiomas y links.",
+    empezar: "Empezar",
+  },
+  /** Botones de cada pregunta (C-06 a C-11). */
+  pregunta: {
+    etiqueta: "Tu respuesta",
+    responder: "Responder y seguir",
+    saltear: "Saltear esta pregunta",
+    salteaApoyo: "Podés volver a esto más tarde",
+    volverAnterior: "Volver a la pregunta anterior",
+    escribiYa: "Escribí una respuesta o tocá «Saltear esta pregunta».",
+    // C-09: el dictado no envía solo
+    dictadoRevisar: "Revisá lo que dijimos y apretá Responder y seguir",
+  },
+  /** Avance como lista de temas (C-10). */
+  avance: {
+    titulo: "Avance",
+    resumen: "{hechos} de {total} temas",
+    temas: {
+      puesto: "Puesto",
+      resumen: "Resumen profesional",
+      experiencia: "Experiencia",
+      estudios: "Estudios",
+      habilidades: "Habilidades",
+      idiomas: "Idiomas",
+      links: "Links",
+    },
+    estados: {
+      done: "Hecho",
+      current: "Ahora",
+      skipped: "Salteado",
+      pending: "Pendiente",
+    },
+    volverAEsto: "Volver a este tema",
+  },
+  /** «Terminar y armar» (C-08): solo con datos suficientes y con confirmación. */
+  terminar: {
+    boton: "Terminar y armar",
+    pregunta: "Vas a armar tu CV con lo que contaste hasta ahora. Falta: {faltan}. ¿Armarlo igual?",
+    preguntaSinFaltantes: "Vas a armar tu CV con lo que contaste hasta ahora. ¿Armarlo igual?",
+    seguir: "Seguir respondiendo",
+    armar: "Armar ahora",
+  },
+  /** Resumen profesional en la revisión (C-16 y C-17): un solo bloque, sin «Objetivo» aparte. */
+  resumen: {
+    titulo: "Resumen profesional",
+    ayuda:
+      "Es un borrador con lo que contaste, en tus palabras. Editalo como quieras: si lo dejás vacío, queda vacío.",
+    etiqueta: "Resumen",
+  },
+  /** Habilidades blandas por situaciones (C-18 a C-20). */
+  blandas: {
+    titulo: "Habilidades que contaste",
+    intro:
+      "Por lo que contaste, estas habilidades podrían ir en tu CV. Entra solo la que vos elijas.",
+    origen: "La sugerimos por lo que contaste en {empresa}",
+    origenSinEmpresa: "La sugerimos por lo que contaste",
+    vineta: "Viñeta que sumaríamos: «{texto}»",
+    // Cuando la viñeta no entra, se dice antes del clic: la habilidad entra igual, nunca se omite en silencio
+    vinetaSinLugar:
+      "Ya tenés 4 tareas en este trabajo: la viñeta no se sumó; podés reemplazar una al revisar. La habilidad entra igual.",
+    vinetaSinTrabajo:
+      "Todavía no hay una experiencia cargada: la habilidad entra, pero la viñeta no se suma.",
+    vinetaYaEsta: "Esa viñeta ya figura en las tareas de este trabajo.",
+    usar: "Usarla",
+    noGracias: "No, gracias",
+    limite: "Como máximo 4 habilidades blandas: no llenamos el CV de adjetivos.",
+    elegidas: "Habilidades que elegiste: {lista}",
   },
 } as const;

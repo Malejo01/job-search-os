@@ -5,8 +5,12 @@
  * temario ni dispara una acción. El respaldo de proveedor lo hace el cliente antes de devolver nada.
  */
 import {
+  applyCvAnswer,
   applyCvModelTurn,
   classifyCvChatInput,
+  CV_FIXED_ACK,
+  cvLocalAnswer,
+  isCvLocalTopic,
   resolveCvConflict,
   cvChatCloseReason,
   cvInterviewTurnSchema,
@@ -112,6 +116,17 @@ export async function runCvInterviewTurn(
   if (p.state.conflict) {
     const resolved = resolveCvConflict(p.state, p.message);
     return advance(resolved.state, resolved.ack, {
+      followUpDraft: null,
+      model: null,
+      usedFallback: false,
+      costUsd: 0,
+    });
+  }
+
+  // R33-04: el resumen y las situaciones de habilidades blandas se resuelven con el código, con las palabras de la
+  // persona: sin modelo, sin gasto y sin nada que inventar
+  if (isCvLocalTopic(p.topic.kind)) {
+    return advance(applyCvAnswer(p.state, p.topic, cvLocalAnswer(p.message)), CV_FIXED_ACK, {
       followUpDraft: null,
       model: null,
       usedFallback: false,

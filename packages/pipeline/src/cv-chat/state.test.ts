@@ -210,7 +210,7 @@ describe("historial y tarjeta", () => {
     ]);
     expect(card.sections[1]!.items[0]).toMatchObject({
       heading: "Analista",
-      detail: "Empresa A | 03/2021 – Actual",
+      detail: "Empresa A | 03/2021 – Actualidad",
     });
     expect(card.missing).toEqual([]);
     expect(buildCvUnderstoodCard(initialCvChatState()).missing).toContain("experience");

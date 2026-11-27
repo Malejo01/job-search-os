@@ -4,6 +4,8 @@ export * from "./conflicts";
 export * from "./extras";
 export * from "./follow-up";
 export * from "./grounding";
+export * from "./guided";
+export * from "./guided-text";
 export * from "./input";
 export * from "./limits";
 export * from "./merge";

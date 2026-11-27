@@ -40,7 +40,8 @@ export function cvTopicQuestion(topic: CvTopic, s: CvChatState): string {
     case "title":
       return `¿Qué cargo tenías${at}?`;
     case "dates":
-      return `¿Desde cuándo y hasta cuándo trabajaste${at}? Si seguís ahí, decímelo.`;
+      // R33 (C-62): «¿Es tu trabajo actual?» llena «Actualidad»; si ya no, se pide hasta cuándo
+      return `¿Desde cuándo trabajaste${at}? ¿Es tu trabajo actual? Si ya no, decime hasta cuándo.`;
     case "duties":
       return `¿Qué hacías${at}? Contame las tareas principales, de una a cuatro.`;
     case "achievement":
@@ -48,7 +49,24 @@ export function cvTopicQuestion(topic: CvTopic, s: CvChatState): string {
     case "more_work":
       return "¿Querés sumar otro trabajo anterior?";
     case "education":
-      return "¿Qué estudios tenés? Institución, título y años. Si no tenés, decímelo.";
+      // R33-03 (C-14): sin experiencia no es haber «fallado»: se ofrece el camino de proyectos, estudios, voluntariado y cursos
+      return s.guided && s.works.length === 0 && s.workDone
+        ? "Está bien, hay otros caminos para mostrar lo que sabés. Contame tus estudios (institución, título y años). Después podés sumar proyectos, voluntariado o cursos."
+        : "¿Qué estudios tenés? Institución, título y años. Si no tenés, decímelo.";
+    case "summary_experience":
+      return "¿Hace cuánto trabajás en esto y en qué áreas?";
+    case "summary_goal":
+      return "¿Qué te gustaría hacer en tu próximo trabajo? Podés contarme el tipo de empresa o de equipo.";
+    case "summary_strengths":
+      return "¿Qué dos o tres cosas hacés bien en tu trabajo?";
+    case "soft_lead":
+      return "¿Alguna vez coordinaste personas o capacitaste a alguien? Contame cómo fue. Si no, podés saltearla.";
+    case "soft_problem":
+      return "¿Qué problema resolviste en tu último trabajo y cómo? Si no se te ocurre, podés saltearla.";
+    case "soft_clients":
+      return "¿Trabajaste con clientes u otras áreas? ¿Cómo? Si no, podés saltearla.";
+    case "soft_organize":
+      return "¿Algo que hayas organizado o mejorado? Si no, podés saltearla.";
     case "certifications":
       return "¿Tenés certificaciones o cursos que quieras incluir? Si no, decímelo.";
     case "skills":

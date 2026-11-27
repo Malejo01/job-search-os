@@ -75,6 +75,8 @@ async function removeNonTester(): Promise<void> {
 async function cleanSeedChats(): Promise<void> {
   const { db, close } = ownerDb();
   try {
+    // R33-02: el borrador automático del chat también se borra
+    await db.delete(s.cvDrafts).where(eq(s.cvDrafts.userId, E2E_USER_ID));
     await db
       .delete(s.llmCalls)
       .where(and(eq(s.llmCalls.userId, E2E_USER_ID), like(s.llmCalls.label, "cv:%")));
@@ -155,7 +157,7 @@ test.describe("Flujo 142: puerta «Tengo CV» / «No tengo CV» en Tu CV", () =>
     await page.getByRole("button", { name: "Empezar" }).click();
     const answer = page.getByLabel("Tu respuesta");
     await answer.fill(PASTED_CV);
-    await page.getByRole("button", { name: "Enviar", exact: true }).click();
+    await page.getByRole("button", { name: "Responder y seguir", exact: true }).click();
     const alert = page.locator("main").getByRole("alert");
     await expect(alert).toContainText("pegaste un CV entero");
     await expect(alert).toContainText("lectura de CV");

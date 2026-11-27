@@ -50,6 +50,9 @@ test.describe.configure({ mode: "serial" });
 async function clean() {
   const { db, close } = ownerDb();
   try {
+    // R33-02: el borrador automático del chat también se borra (personas A y B)
+    await db.delete(s.cvDrafts).where(eq(s.cvDrafts.userId, E2E_B_USER_ID));
+    await db.delete(s.cvDrafts).where(eq(s.cvDrafts.userId, E2E_USER_ID));
     await db
       .delete(s.llmCalls)
       .where(and(eq(s.llmCalls.userId, E2E_B_USER_ID), like(s.llmCalls.label, "cv:%")));
@@ -86,6 +89,14 @@ async function expectNoOverflowNorAxe(page: Page) {
 /** La respuesta guionada de cada tema, según la pregunta fija que muestra la página. */
 function answerFor(question: string): string {
   const q = question.toLowerCase();
+  // R33-04: resumen profesional y situaciones de habilidades blandas (antes que «empresa»: «tipo de empresa o de equipo»)
+  if (q.includes("hace cuánto trabajás")) return "Tres años en administración y reportes";
+  if (q.includes("próximo trabajo")) return "Quiero sumarme a un equipo de datos";
+  if (q.includes("cosas hacés bien")) return "Ordeno información y detecto errores";
+  if (q.includes("coordinaste personas")) return "no";
+  if (q.includes("problema resolviste")) return "no";
+  if (q.includes("clientes u otras áreas")) return "no";
+  if (q.includes("organizado o mejorado")) return "no";
   if (q.includes("desde cuándo")) return "03/2021 - actual";
   if (q.includes("qué cargo")) return "Analista Junior";
   if (q.includes("qué hacías")) {
@@ -117,7 +128,7 @@ async function answerAll(page: Page, answer: Locator): Promise<string[]> {
     const question = await lastMessage(page);
     asked.push(question.toLowerCase());
     await answer.fill(answerFor(question));
-    await page.getByRole("button", { name: "Enviar", exact: true }).click();
+    await page.getByRole("button", { name: "Responder y seguir", exact: true }).click();
     await expect
       .poll(
         async () =>
@@ -241,7 +252,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
       "Trabajé en reportes y tableros para equipos comerciales de varias sucursales. ".repeat(20),
     ].join("\n");
     await answer.fill(cv);
-    await page.getByRole("button", { name: "Enviar", exact: true }).click();
+    await page.getByRole("button", { name: "Responder y seguir", exact: true }).click();
     await expect(page.locator("main").getByRole("alert")).toContainText("pegaste un CV entero");
     // No contó como turno: la pregunta sigue siendo la misma
     await expect(page.getByTestId("cv-messages").locator("p")).toHaveCount(1);
@@ -334,7 +345,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
       await antes.close();
     }
 
-    await page.getByRole("button", { name: "Confirmar y guardar en mi historial" }).click();
+    await page.getByRole("button", { name: "Guardar y ver mi CV" }).click();
     await expect(page.getByTestId("cv-saved")).toContainText("Guardamos");
 
     const { db, close } = ownerDb();

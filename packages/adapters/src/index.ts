@@ -46,6 +46,7 @@ export * from "./auth/secret";
 export * from "./auth/reset-url";
 export * from "./auth/reset-tokens";
 export * from "./retention/purge";
+export { purgeStaleCvDrafts } from "./retention/cv-drafts";
 export {
   parsePoolSources,
   POOL_RECOMMENDED_SOURCES,
