@@ -8,6 +8,7 @@ import type { FormActionError } from "@/app/components/guarded-form";
 import { closeAllSessions } from "@/lib/close-sessions";
 import { deleteAccount } from "@/lib/delete-account";
 import { assignRandomInboundAddress } from "@/lib/inbound-address";
+import { setNewsEmailPref } from "@/lib/news-email";
 import { createPaymentNotice } from "@/lib/payment-notices";
 import { getTargetRolesLimit, setTargetRoles, specialtiesFromForm } from "@/lib/onboarding";
 import { reassignForRoleChange, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
@@ -31,6 +32,18 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
   const back = DELETE_RETURN_TO.find((p) => p === formData.get("returnTo")) ?? "/settings";
   if (!result.ok) redirect(`${back}?error=confirmacion`);
   await signOut({ redirectTo: "/login" });
+}
+
+/**
+ * Preferencia del email de novedades (R32-09). El usuario sale de la sesión; solo cambia su propia fila (la policy
+ * del dueño de `profiles` lo exige también). Una casilla: marcada = quiere recibirlo. Vuelve a su sección.
+ */
+export async function saveNewsEmailAction(formData: FormData): Promise<void> {
+  const userId = await requireActiveUserId();
+  const on = formData.get("newsEmail") === "on";
+  const saved = await setNewsEmailPref(userId, on).catch(() => false);
+  revalidatePath("/settings");
+  redirect(`/settings?novedades=${saved ? "guardado" : "error"}#novedades`);
 }
 
 /** «Cerrar todas las sesiones»: corta las de todos los dispositivos, incluida esta. */

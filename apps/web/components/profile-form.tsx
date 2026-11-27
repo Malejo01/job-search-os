@@ -148,7 +148,10 @@ export function ProfileForm({
   selectedRoles,
   spanishCounts,
   roleLabels,
+  extraMessages,
 }: {
+  /** Textos de error que pisan o suman a los de siempre (R32-01: «Otra» en el onboarding). */
+  extraMessages?: Readonly<Record<string, string>> | undefined;
   /** Puestos elegidos al abrir el formulario; después se leen de las casillas `targetRoles`. */
   selectedRoles?: readonly string[] | undefined;
   /** Ofertas en español por puesto (30 días), para el aviso de «Solo en español». */
@@ -217,6 +220,7 @@ export function ProfileForm({
     maxWeeklyHours: "Las horas máximas tienen que ser un entero entre 1 y 80 (o dejalo vacío).",
     perfil: "No encontramos tu perfil. Escribile a quien te invitó.",
     _error: "No se pudo guardar. Probá de nuevo; lo que cargaste sigue acá.",
+    ...extraMessages,
   };
   function messageOf(e: ProfileFormError): string {
     if (e.field === "summary") {

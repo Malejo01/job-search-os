@@ -18,13 +18,24 @@ const POOL_LABELS: Record<string, string> = {
   smartrecruiters: "SmartRecruiters",
 };
 
+/**
+ * Portales cuyo lector deja el rótulo «{Portal} (email)» en la fuente de la oferta (los lectores de
+ * `adapters/src/inbound`). Solo el rótulo exacto cuenta: un nombre parecido no se atribuye a ningún portal.
+ */
+const EMAIL_PORTAL_LABELS = ["Indeed", "Bumeran", "Computrabajo", "ZonaJobs"] as const;
+
 /** Grupo («portal») de una oferta según su primera fuente. Pura. */
 export function sourceGroupOf(kind: string, sourceName: string | null): string {
   switch (kind) {
     case "email_linkedin":
       return "LinkedIn";
-    case "email_generic":
-      return sourceName?.trim().toLowerCase() === "indeed (email)" ? "Indeed" : "Email";
+    case "email_generic": {
+      const name = sourceName?.trim().toLowerCase();
+      const portal = EMAIL_PORTAL_LABELS.find((p) => `${p.toLowerCase()} (email)` === name);
+      return portal ?? "Email";
+    }
+    case "computrabajo_alerts":
+      return "Computrabajo";
     case "email_getonboard":
     case "getonboard_api":
       return "Get on Board";

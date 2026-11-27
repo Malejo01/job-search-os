@@ -39,6 +39,7 @@ async function ensureNonTester(): Promise<void> {
         userId: C_ID,
         displayName: "Persona C",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: "u_puerta_c@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona C para el e2e de la puerta de Tu CV. No corresponde a nadie real.",

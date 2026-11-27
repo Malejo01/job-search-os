@@ -32,6 +32,7 @@ import { Suspense } from "react";
 import { AutoRefresh } from "./auto-refresh";
 import { JobsLoading } from "./jobs-loading";
 import { EmailNudge } from "./email-nudge";
+import { FewOffersNotice } from "./few-offers-notice";
 import { FirstSteps, firstStepsHidden } from "./first-steps";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
@@ -190,6 +191,10 @@ async function JobsContent({
           ) : null}
           <FirstSteps userId={userId} />
           <RoleNudge userId={userId} />
+          {/* R32-04: pocas ofertas de su carrera en su idioma; fuera del camino de la lista (Suspense) */}
+          <Suspense fallback={null}>
+            <FewOffersNotice userId={userId} />
+          </Suspense>
           {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
           {stepsHidden ? <EmailNudge userId={userId} /> : null}
           {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}

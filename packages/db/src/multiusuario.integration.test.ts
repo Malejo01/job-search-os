@@ -59,6 +59,10 @@ const CATALOG_TABLES = [
   "academy_reviews",
   // Revisión de los textos del rediseño (R26-02): igual que academy_reviews (rls/0066).
   "text_reviews",
+  // Carreras abiertas y su historial (R32-03): sin user_id, sin policy para la app; se leen y escriben solo por
+  // funciones SECURITY DEFINER (rls/0074).
+  "open_careers",
+  "career_opening_events",
 ];
 
 /**

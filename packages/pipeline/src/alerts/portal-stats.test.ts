@@ -6,6 +6,13 @@ describe("sourceGroupOf", () => {
     expect(sourceGroupOf("email_linkedin", "alerta")).toBe("LinkedIn");
     expect(sourceGroupOf("email_generic", "Indeed (email)")).toBe("Indeed");
     expect(sourceGroupOf("email_generic", "Otro portal")).toBe("Email");
+    // R32-04: los portales de la guía con lector propio se cuentan con su nombre
+    expect(sourceGroupOf("email_generic", "Bumeran (email)")).toBe("Bumeran");
+    expect(sourceGroupOf("email_generic", "Computrabajo (email)")).toBe("Computrabajo");
+    expect(sourceGroupOf("email_generic", "ZonaJobs (email)")).toBe("ZonaJobs");
+    expect(sourceGroupOf("computrabajo_alerts", null)).toBe("Computrabajo");
+    // un nombre parecido no alcanza: solo el rótulo exacto del lector
+    expect(sourceGroupOf("email_generic", "Bumeran fake")).toBe("Email");
     expect(sourceGroupOf("email_generic", null)).toBe("Email");
     expect(sourceGroupOf("email_getonboard", null)).toBe("Get on Board");
     expect(sourceGroupOf("getonboard_api", "GoB programming")).toBe("Get on Board");

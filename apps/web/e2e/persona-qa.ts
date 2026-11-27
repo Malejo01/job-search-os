@@ -34,6 +34,7 @@ export async function ensureSeedPerson(): Promise<void> {
         userId: E2E_USER_ID,
         displayName: "Persona de prueba",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: "u_qa_seed@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona de prueba de los e2e. No corresponde a nadie real y solo existe en la base local.",

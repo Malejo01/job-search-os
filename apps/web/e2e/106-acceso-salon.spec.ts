@@ -32,11 +32,14 @@ test.describe("Flujo 106: /acceso a prueba del salón (C8-3)", () => {
     await expect(page.getByTestId("acceso-confirmacion")).toBeVisible();
   }
 
-  test("confirmación: te escribimos si hay lugar, qué sigue y el ejemplo", async ({ page }) => {
+  test("confirmación: avisa por email cuando abra la carrera, qué sigue y el ejemplo", async ({
+    page,
+  }) => {
     await anotarse(page, 1);
     const status = page.getByRole("status").filter({ hasText: "te anotamos" });
-    await expect(status).toContainText("te escribimos si hay lugar");
-    await expect(status).toContainText("el cupo es limitado");
+    // R32-03: Abogacía todavía no figura como abierta (lista vacía), así que el aviso es el de la lista de espera
+    await expect(status).toContainText("Todavía estamos sumando ofertas de Abogacía");
+    await expect(status).toContainText("Te avisamos por email apenas abra");
     await expect(page.getByRole("heading", { name: "Qué sigue" })).toBeVisible();
     await expect(page.getByRole("link", { name: "cómo funciona con un ejemplo" })).toHaveAttribute(
       "href",

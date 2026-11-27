@@ -63,6 +63,7 @@ async function ensureNoAccessUser(): Promise<void> {
         userId: NO_ACCESS_USER_ID,
         displayName: "Persona C",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: "u_tres_c@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona C para los tests del MCP sin acceso. No corresponde a nadie real y solo existe en la base local.",

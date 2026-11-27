@@ -15,6 +15,8 @@ export type SendEmailParams = {
   from?: string;
   /** Clave de idempotencia de Resend (cabecera `Idempotency-Key`): el mismo envío repetido no sale dos veces. */
   idempotencyKey?: string;
+  /** Cabeceras extra del email (R32-09: `List-Unsubscribe` y `List-Unsubscribe-Post`). */
+  headers?: Record<string, string>;
 };
 
 const DEFAULT_FROM = `${PRODUCT_NAME} <onboarding@resend.dev>`;
@@ -40,6 +42,9 @@ export async function sendEmail(
       subject: params.subject,
       ...(params.html !== undefined ? { html: params.html } : {}),
       ...(params.text !== undefined ? { text: params.text } : {}),
+      ...(params.headers && Object.keys(params.headers).length > 0
+        ? { headers: params.headers }
+        : {}),
     }),
   });
   if (!res.ok) throw new Error(`Resend POST /emails: HTTP ${res.status} ${await res.text()}`);

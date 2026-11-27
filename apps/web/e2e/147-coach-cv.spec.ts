@@ -124,6 +124,7 @@ test.describe("Flujo 147: coach de CV", () => {
           userId: OUTSIDER_ID,
           displayName: "Persona Sin Coach",
           locationCountry: "AR",
+          careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
           inboundAddress: "u_coach_147@ingest.test",
           profileSummary:
             "Perfil ficticio de una persona sin acceso al coach para el flujo 147. No corresponde a nadie real.",

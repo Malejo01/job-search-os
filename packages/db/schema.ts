@@ -31,7 +31,7 @@ export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);
 export const englishLevel = pgEnum("english_level", ["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]);
 export const companyType = pgEnum("company_type", ["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]);
-export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor", "computrabajo_alerts", "workable", "recruitee", "smartrecruiters"]);
+export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor", "computrabajo_alerts", "workable", "recruitee", "smartrecruiters", "reliefweb"]);
 export const applicationOutcome = pgEnum("application_outcome", [
   "sin_respuesta", "rechazo_automatico_ubicacion", "rechazo_automatico_otro", "rechazo_humano", "entrevista", "oferta", "cerrada_antes", "retirada",
 ]);
@@ -215,9 +215,21 @@ export const profiles = pgTable("profiles", {
   // Último día (AAAA-MM-DD, en la zona de la persona) en que «Hoy» la saludó con la mascota (R27-04); null = nunca.
   // Va con la cuenta para que el saludo salga una vez por día aunque cambie de dispositivo
   saludoVisto: text("saludo_visto"),
+  // R32-01: la carrera escrita a mano en «Otra» (2 a 60 caracteres, validada en código); null = eligió una del
+  // catálogo o todavía no cargó ninguna. No abre ninguna carrera ni entra a un prompt
+  careerOther: text("career_other"),
+  // R32-01: cuándo se le pidió la carrera a una cuenta que no la tenía (se pide una sola vez, la cargue o no)
+  careerAskedAt: timestamp("career_asked_at", { withTimezone: true }),
+  // R32-09: ¿quiere el email de novedades (como mucho semanal, solo si hay ofertas nuevas de su carrera)?
+  // Default true: el envío en sí está detrás de NEWS_EMAIL (apagada). Se baja en un clic desde el email
+  // (función news_email_unsubscribe, rls/0074) o desde Ajustes
+  newsEmail: boolean("news_email").notNull().default(true),
+  // R32-09: cuándo salió el último email de novedades; tope de una vez cada 7 días. Lo escribe solo el cron (dueño)
+  newsEmailSentAt: timestamp("news_email_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
+  check("profiles_career_other_shape", sql`${t.careerOther} is null or char_length(${t.careerOther}) between 2 and 60`),
   check("profiles_primer_uso_visto_shape", sql`${t.primerUsoVisto} is null or char_length(${t.primerUsoVisto}) <= 20`),
   check("profiles_saludo_visto_shape", sql`${t.saludoVisto} is null or char_length(${t.saludoVisto}) <= 10`),
   check("profiles_plan_check", sql`${t.plan} in ('gratis', 'fundador', 'lista', 'pase_3_meses')`),
@@ -289,6 +301,11 @@ export const jobs = pgTable("jobs", {
   salaryMaxUsd: integer("salary_max_usd"),
   salaryPeriod: text("salary_period"),                  // mensual | anual | hora
   salaryNote: text("salary_note"),
+  // R32-08: el sueldo tal como lo publica el aviso, en su moneda. Todo null en lo anterior: no se inventa una moneda.
+  salaryOriginalMin: integer("salary_original_min"),
+  salaryOriginalMax: integer("salary_original_max"),
+  salaryOriginalCurrency: text("salary_original_currency"),  // código ISO de tres letras, en mayúsculas
+  salaryOriginalPeriod: text("salary_original_period"),      // mensual | anual | hora
   weeklyHours: integer("weekly_hours"),
   candidatesCount: integer("candidates_count"),
   // Oferta del pool de la que salió esta copia por usuario (ADR-014); null = ingesta directa
@@ -323,6 +340,8 @@ export const jobs = pgTable("jobs", {
   index("jobs_manual_created").on(t.createdAt).where(sql`${t.publicJobId} is null`),
   uniqueIndex("jobs_user_url").on(t.userId, t.canonicalUrl),
   uniqueIndex("jobs_user_public_job").on(t.userId, t.publicJobId).where(sql`${t.publicJobId} is not null`),
+  // R32-08: un monto sin moneda no existe, y la moneda y la periodicidad son de listas cerradas
+  check("jobs_salary_original_shape", sql`((${t.salaryOriginalMin} is null and ${t.salaryOriginalMax} is null) or (${t.salaryOriginalCurrency} is not null and ${t.salaryOriginalCurrency} ~ '^[A-Z]{3}$')) and (${t.salaryOriginalPeriod} is null or ${t.salaryOriginalPeriod} in ('mensual', 'anual', 'hora'))`),
 ]);
 
 // Pool global de ofertas públicas (ADR-014). Son ofertas, no datos de usuarios: nada por persona
@@ -349,6 +368,11 @@ export const publicJobs = pgTable("public_jobs", {
   salaryMaxUsd: integer("salary_max_usd"),
   salaryPeriod: text("salary_period"),                    // mensual | anual | hora
   salaryNote: text("salary_note"),
+  // R32-08: el sueldo tal como lo publica el aviso, en su moneda (ver `jobs`)
+  salaryOriginalMin: integer("salary_original_min"),
+  salaryOriginalMax: integer("salary_original_max"),
+  salaryOriginalCurrency: text("salary_original_currency"),
+  salaryOriginalPeriod: text("salary_original_period"),
   weeklyHours: integer("weekly_hours"),
   candidatesCount: integer("candidates_count"),
   jdText: text("jd_text"),
@@ -381,6 +405,7 @@ export const publicJobs = pgTable("public_jobs", {
   index("public_jobs_jd_hash").on(t.jdHash).where(sql`${t.jdHash} is not null`),
   index("public_jobs_role_hints").using("gin", t.roleHints),
   index("public_jobs_dedup_of").on(t.dedupOfId).where(sql`${t.dedupOfId} is not null`),
+  check("public_jobs_salary_original_shape", sql`((${t.salaryOriginalMin} is null and ${t.salaryOriginalMax} is null) or (${t.salaryOriginalCurrency} is not null and ${t.salaryOriginalCurrency} ~ '^[A-Z]{3}$')) and (${t.salaryOriginalPeriod} is null or ${t.salaryOriginalPeriod} in ('mensual', 'anual', 'hora'))`),
 ]);
 
 export const publicJobSkills = pgTable("public_job_skills", {
@@ -511,6 +536,32 @@ export const adminEvents = pgTable("admin_events", {
     "admin_events_action",
     sql`${t.action} in ('tester_si', 'tester_no', 'bloquear', 'desbloquear', 'prueba_si', 'prueba_no', 'adjuntos_purga', 'adjuntos_purga_item')`,
   ),
+]);
+
+// Carreras abiertas de la beta (R32-03): la lista vive acá, no en una variable. La cambia un admin desde /admin
+// (función admin_career_set, rls/0074) y cada cambio queda en career_opening_events. No es dato de una persona
+// (no lleva user_id; `opened_by` es quién la abrió y se pone en null si esa cuenta se borra). Sin policies
+// para la app: se lee con careers_open_list() y se escribe solo con admin_career_set. Lista vacía = no se cierra
+// nada a quien ya está adentro; la alta nueva va a la lista de espera de su carrera.
+export const openCareers = pgTable("open_careers", {
+  career: text("career").primaryKey(),                    // clave de ROLE_KEYS, validada en código
+  openedAt: timestamp("opened_at", { withTimezone: true }).notNull().defaultNow(),
+  openedBy: uuid("opened_by").references(() => users.id, { onDelete: "set null" }),
+}, (t) => [
+  check("open_careers_career_shape", sql`${t.career} ~ '^[a-z_]{1,40}$'`),
+]);
+
+// Historial de la lista de carreras abiertas (R32-03): quién y cuándo. Mismo patrón que admin_events.
+export const careerOpeningEvents = pgTable("career_opening_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  career: text("career").notNull(),
+  action: text("action").notNull(),                       // abrir | cerrar
+  adminId: uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("career_opening_events_created").on(t.createdAt.desc()),
+  check("career_opening_events_action", sql`${t.action} in ('abrir', 'cerrar')`),
+  check("career_opening_events_career_shape", sql`${t.career} ~ '^[a-z_]{1,40}$'`),
 ]);
 
 // Candidatos de skills de /market (C8-15, JS-102): los 15 términos que se calcularon con los JD de la

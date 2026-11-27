@@ -21,7 +21,9 @@ import { specialtyPanelsFor } from "@/components/specialty-panels";
 import { OnboardingChoice } from "@/components/profile-agent/onboarding-choice";
 import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { loadAgentOnboardingFacts } from "@/lib/profile-agent/close-server";
+import { ALTA_TEXTOS } from "@/lib/textos-rediseno";
 import {
+  getCareerOther,
   getProfileForEdit,
   getTargetRoles,
   getTargetRolesLimit,
@@ -59,6 +61,7 @@ export default async function OnboardingPage({
     salaries,
     inviteDismissed,
     spanishCounts,
+    careerOther,
   ] = await Promise.all([
     searchParams,
     getTargetRoles(userId),
@@ -69,6 +72,8 @@ export default async function OnboardingPage({
     guideDismissed(userId),
     // Informativo, igual que los sueldos
     getCareerSpanishCounts().catch(() => undefined),
+    // R32-01: lo que ya escribió en «Otra»; si la columna todavía no existe, queda vacío
+    getCareerOther(userId).catch(() => null),
   ]);
   // Agente de perfil desde el CV (ADR-034, R10-5): con el flag apagado no hay consulta y la pantalla queda
   // exactamente como siempre. Lo completado por el agente se deriva de la base, sin banderas en la URL.
@@ -134,6 +139,17 @@ export default async function OnboardingPage({
         countryCodes={ISO_COUNTRY_CODES}
         minSummary={MIN_SUMMARY_CHARS}
         maxSummary={MAX_SUMMARY_CHARS}
+        careerOtherTexts={{
+          legend: ALTA_TEXTOS.carreraOtra.legend,
+          ayuda: ALTA_TEXTOS.carreraOtra.ayuda,
+          label: ALTA_TEXTOS.carreraOtra.label,
+          placeholder: ALTA_TEXTOS.carreraOtra.placeholder,
+        }}
+        careerOtherValue={careerOther ?? ""}
+        careerOtherErrors={{
+          obligatoria: ALTA_TEXTOS.carreraOtra.obligatoria,
+          error: ALTA_TEXTOS.carreraOtra.error,
+        }}
       />
       <div className="mt-2 border-t border-line pt-5">
         <DeleteAccountForm error={error === "confirmacion"} returnTo="/onboarding" />

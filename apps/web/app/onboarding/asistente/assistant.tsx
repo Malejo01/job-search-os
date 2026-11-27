@@ -1,4 +1,5 @@
 import {
+  alertCountsByPortal,
   ASSISTANT_STEPS,
   GMAIL_FILTERS_URL,
   GMAIL_FORWARDING_PATH,
@@ -77,7 +78,13 @@ export function Assistant({
       <p className="text-sm text-fg-muted">Ya tenés ofertas de las fuentes públicas.</p>
       <AlertEmail address={address} legacy={legacy} />
 
-      {guide ? <AlertGuide {...guide} /> : null}
+      {/* R32-04: con las estadísticas de Ajustes, la guía dice cuántas ofertas llegaron por cada portal */}
+      {guide ? (
+        <AlertGuide
+          {...guide}
+          counts={portalStats ? alertCountsByPortal(portalStats) : undefined}
+        />
+      ) : null}
 
       {/* Reenvío desde Gmail: fuera del camino principal; abierto si la persona ya lo había empezado */}
       <details

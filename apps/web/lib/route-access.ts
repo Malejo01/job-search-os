@@ -43,6 +43,8 @@ const PUBLIC_PREFIXES: readonly string[] = [
   "/reset-password",
   "/setup",
   "/register",
+  // Baja del email de novedades (R32-09): se usa desde el email, sin sesión; la firma del enlace es lo que la habilita
+  "/novedades",
 ];
 
 /** Páginas generadas de metadatos de compartir: `/opengraph-image-es`, `/twitter-image`, etc. */

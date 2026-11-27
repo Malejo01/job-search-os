@@ -33,6 +33,30 @@ export function careersWithFewOffers(
     .filter((c) => c.count < FEW_OFFERS_THRESHOLD);
 }
 
+export type FewOffersNotice = {
+  /** Carreras con menos de `threshold` ofertas en el idioma de la persona, con cuántas hay (puede ser 0). */
+  careers: { role: string; label: string; count: number }[];
+  /** «español», «inglés» o «español e inglés». */
+  noun: string;
+  threshold: number;
+};
+
+/**
+ * Qué decirle a una persona con pocas ofertas (R32-04). Puro: recibe el volumen de cada carrera suya con su
+ * rótulo y el idioma que acepta; devuelve las carreras con pocas (y cuántas hay) o `null` si ninguna. La pantalla
+ * pone las palabras; acá solo se cuenta.
+ */
+export function fewOffersNotice(
+  volumes: readonly (CareerVolume & { label: string })[],
+  language: AlertLanguage,
+): FewOffersNotice | null {
+  const careers = volumes
+    .map((v) => ({ role: v.role, label: v.label, count: offersInLanguage(v, language) }))
+    .filter((c) => c.count < FEW_OFFERS_THRESHOLD);
+  if (careers.length === 0) return null;
+  return { careers, noun: languageNoun(language), threshold: FEW_OFFERS_THRESHOLD };
+}
+
 export function languageNoun(language: AlertLanguage): string {
   return language === "es" ? "español" : language === "en" ? "inglés" : "español e inglés";
 }

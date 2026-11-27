@@ -62,6 +62,7 @@ test.describe("Flujo 80: estados vacíos de una persona nueva", () => {
         userId,
         displayName: "Persona de Vacíos",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: `u_vacios_${tag}@ingest.test`,
         profileSummary:
           "Perfil ficticio de la persona de la prueba de estados vacíos. No corresponde a nadie real y solo existe en la base local.",

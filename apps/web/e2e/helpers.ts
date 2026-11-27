@@ -605,8 +605,10 @@ export async function ensureSecondUser(): Promise<void> {
         inboundAddress: "u_dos_b@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona B para los tests de dos usuarios. No corresponde a nadie real y solo existe en la base local.",
+        // R32-01: B no tiene puestos; ya «pedida» para que el recuadro de la carrera no aparezca en los demás specs
+        careerAskedAt: new Date(),
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({ target: s.profiles.userId, set: { careerAskedAt: new Date() } });
     const [crit] = await db
       .select({ id: s.evaluationCriteria.id })
       .from(s.evaluationCriteria)
@@ -892,7 +894,13 @@ export async function setSeedTargetRoles(state: {
   try {
     await db
       .update(s.profiles)
-      .set({ targetRoles: state.targetRoles, targetRole: state.targetRole })
+      // R32-01: sin puestos, la cuenta vería el recuadro «¿Cuál es tu carrera?»; los specs que la dejan sin
+      // puestos no lo prueban, así que queda anotado como ya pedido (el 390 al 392 lo manejan a mano)
+      .set({
+        targetRoles: state.targetRoles,
+        targetRole: state.targetRole,
+        careerAskedAt: new Date(),
+      })
       .where(eq(s.profiles.userId, E2E_USER_ID));
   } finally {
     await close();
