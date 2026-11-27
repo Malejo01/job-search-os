@@ -18,6 +18,7 @@ import {
   type JobFilters as ListFilters,
   type JobListRow,
 } from "@/lib/jobs";
+import { listApplicationFollowUps, type ApplicationFollowUp } from "@/lib/applications";
 import { GuidedTour } from "@/components/guided-tour";
 import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
@@ -128,6 +129,15 @@ async function JobsContent({
     selected ? getJobDetail(userId, selected).catch(() => null) : Promise.resolve(null),
   ]);
   const query = listQuery(filters);
+  // R34-04: solo en «Ya me postulé», una consulta para la fecha y el estado de todas las tarjetas. Si falla,
+  // la lista sale igual, sin el seguimiento.
+  const seguimiento =
+    filters.status === "aplicada"
+      ? await listApplicationFollowUps(
+          userId,
+          rows.map((r) => r.id),
+        ).catch(() => null)
+      : null;
 
   // R30-06: «Oferta descartada. [Deshacer]» tras descartar desde la lista (`?descartada=<id>`)
   const justDiscarded =
@@ -264,7 +274,12 @@ async function JobsContent({
                       {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
                     </p>
                   ) : null}
-                  <JobListSplit rows={rows} query={query} selected={panelJob?.id ?? null} />
+                  <JobListSplit
+                    rows={rows}
+                    query={query}
+                    selected={panelJob?.id ?? null}
+                    seguimiento={seguimiento}
+                  />
                 </>
               )}
               <AutoRefresh active={rows.some((r) => r.evaluating)} />
@@ -597,16 +612,26 @@ function JobListSplit({
   rows,
   query,
   selected,
+  seguimiento,
 }: {
   rows: JobListRow[];
   query: string;
   selected: string | null;
+  seguimiento: ReadonlyMap<string, ApplicationFollowUp> | null;
 }) {
   // Una que se está reevaluando no es lejana todavía: se ve arriba con su sello «Leyendo…» (R-3)
   const { near, far } = splitFarFromProfile(rows, (r) => (r.evaluating ? null : r.score));
   return (
     <>
-      {near.length ? <JobList rows={near} query={query} selected={selected} featuredFirst /> : null}
+      {near.length ? (
+        <JobList
+          rows={near}
+          query={query}
+          selected={selected}
+          featuredFirst
+          seguimiento={seguimiento}
+        />
+      ) : null}
       {far.length ? (
         <section
           aria-labelledby="lejos-titulo"
@@ -619,7 +644,13 @@ function JobListSplit({
           >
             Lejos de tu perfil ({far.length})
           </h2>
-          <JobList rows={far} query={query} tour={near.length === 0} selected={selected} />
+          <JobList
+            rows={far}
+            query={query}
+            tour={near.length === 0}
+            selected={selected}
+            seguimiento={seguimiento}
+          />
         </section>
       ) : null}
     </>

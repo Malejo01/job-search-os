@@ -179,23 +179,19 @@ test.describe("Flujo 80: estados vacíos de una persona nueva", () => {
     await expectNextStep(page, market, "Elegí tu carrera", "/settings#puesto");
   });
 
-  test("/market sin skills y sin ofertas: dice que faltan, y lleva a cargarlas y a conectar el asistente", async ({
-    page,
-  }) => {
+  // R34-03: /market es el mercado mínimo de la carrera de la persona. Sin carrera no hay mercado que mostrar:
+  // lo dice y lleva a elegirla. Ya no hay «sin niveles» ni «Todavía no llegaron ofertas» en esta pantalla (el
+  // aviso de skills sigue en /plan, que se prueba en el caso siguiente). Misma exigencia: dice qué falta y a
+  // dónde ir, con el destino verificado.
+  test("/market sin carrera: dice que falta elegirla y lleva a elegirla", async ({ page }) => {
     await loginAsNew(page);
     const res = await page.goto("/market");
     expect(res?.status()).toBeLessThan(400);
     const main = page.getByRole("main");
-    await expect(main.getByText(/Elegí una carrera y (ves|mirá) qué piden/)).toBeVisible();
-    await expect(main.getByText(/sin datos todavía/i).first()).toBeVisible();
-
-    const noLevels = page.getByTestId("market-sin-niveles");
-    await expect(noLevels).toContainText("Todavía no cargaste tus skills");
-    await expectNextStep(page, noLevels, "Cargar mis skills", "/settings/skills");
-
-    // Sin ofertas ni mercado armado (la cuenta no pasó por el paso 1: no corrió ningún recálculo)
-    await expect(main.getByText("Todavía no llegaron ofertas")).toBeVisible();
-    await expectNextStep(page, main, "Conectar el asistente de email", "/settings/asistente");
+    await expect(
+      main.getByText("Elegí tu carrera en tu perfil para ver el mercado."),
+    ).toBeVisible();
+    await expectNextStep(page, main, "Elegir mi carrera", "/settings#puesto");
   });
 
   test("/plan sin plan: dice que no llegaron ofertas ni skills, y lleva a cargar skills y al asistente", async ({

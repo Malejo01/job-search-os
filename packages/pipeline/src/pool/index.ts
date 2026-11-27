@@ -39,5 +39,6 @@ export {
 export { roleDemand, type RoleDemandJob, type RoleDemandRow } from "./role-demand";
 export * from "./coverage";
 export * from "./career-coverage";
+export * from "./market-minimal";
 export * from "./career";
 export * from "./showcase";

@@ -1278,3 +1278,159 @@ export const CV_ASISTENTE_TEXTOS = {
     elegidas: "Habilidades que elegiste: {lista}",
   },
 } as const;
+
+/**
+ * «Preparar mi postulación» · el CV desde la oferta (R34-02, R-36 a R-38). Tres acciones separadas: revisar,
+ * adaptar y elegir la versión para descargar. Ninguna suma algo que la persona no declaró: lo que falta se
+ * nombra, no se completa. Nada se envía desde la app: la salida es un enlace al aviso.
+ */
+export const POSTULACION_TEXTOS = {
+  revisar: {
+    titulo: "Revisar mi CV para esta oferta",
+    intro:
+      "Cruzamos lo que pide el aviso con tu CV. No cambia nada: solo te muestra qué se ve, qué no tiene respaldo y qué conviene aclarar.",
+    cubiertoTitulo: "Lo que pide el aviso y tu CV ya muestra",
+    cubiertoVacio: "Por ahora ninguna de las habilidades que pide el aviso aparece en tu CV.",
+    cubiertoEn: "aparece en tu experiencia en {donde}",
+    cubiertoSoloLista: "figura en tus habilidades",
+    sinRespaldoTitulo: "Lo que pide el aviso y tu CV no menciona",
+    sinRespaldoAyuda:
+      "Sin respaldo no quiere decir que no lo hayas hecho: sumalo en tu CV solo si de verdad lo usaste.",
+    aclararTitulo: "Lo que conviene aclarar",
+    aclararSkill:
+      "{nombre}: la tenés en tus habilidades, pero ninguna experiencia la muestra. Podés contar dónde la usaste.",
+    aclararIngles:
+      "Inglés: el aviso pide «{pide}». Confirmá tu nivel en tu perfil; no lo sumamos al CV por nuestra cuenta.",
+    aclararOtro:
+      "El aviso pide «{pide}» y todavía no lo podemos confirmar con lo que cargaste en tu perfil.",
+    aclararVacio: "No encontramos nada para aclarar.",
+    deseable: "deseable",
+    sinDatos:
+      "No pudimos leer qué habilidades pide este aviso, así que no hay nada para cruzar con tu CV.",
+    sinCv:
+      "Todavía no tenés un CV confirmado para cruzar con esta oferta. Armalo en la sección CV y volvé.",
+    nota: "Coincidir con lo que pide el aviso no es lo mismo que tener probabilidad de que te contraten.",
+    abrirPerfil: "Abrir mi perfil",
+    abrirCv: "Completar mi CV",
+  },
+  adaptar: {
+    titulo: "Adaptar a esta oferta",
+    intro:
+      "Te proponemos cambios para esta oferta: un orden de viñetas y habilidades. Los aceptás, editás o descartás de a uno, ves cómo queda y recién ahí se guarda como otra versión. Tu CV base no se toca.",
+    pedir: "Proponer cambios",
+    pidiendo: "Preparando las propuestas…",
+    sinCambios: "No encontramos nada para mover: tu CV ya está bien ordenado para esta oferta.",
+    antes: "Antes",
+    despues: "Propuesta",
+    skillsTitulo: "Orden de tus habilidades",
+    aceptar: "Aceptar",
+    editar: "Editar",
+    descartar: "Descartar",
+    aceptada: "Aceptada",
+    editada: "Editada",
+    descartada: "Descartada",
+    deshacer: "Deshacer",
+    editarAyuda:
+      "Una viñeta por línea. Podés reescribirla con tus palabras, pero no sumar datos, números ni herramientas que no estén en tu CV.",
+    editarEtiqueta: "Viñetas de esta entrada",
+    guardarEdicion: "Usar mi edición",
+    cancelarEdicion: "Cancelar",
+    vistaPrevia: "Así quedaría",
+    vistaPreviaVacia: "Todavía no aceptaste ninguna propuesta.",
+    guardar: "Guardar como otra versión",
+    guardando: "Guardando…",
+    guardada: "Listo: guardamos esta versión. Tu CV base quedó como estaba.",
+    // Tope de 3 versiones por oferta (decisión del 27/11): la cuarta reemplaza a la más vieja.
+    guardadaReemplazo:
+      "Listo: guardamos esta versión. Como ya tenías 3 para esta oferta, borramos la más vieja. Tu CV base quedó como estaba.",
+    topeVersiones:
+      "Guardamos hasta 3 versiones por oferta. Al guardar otra, se borra la más vieja.",
+    rechazada:
+      "No pudimos guardar: la entrada «{que}» traía algo que no está en tu CV. Editala o descartala.",
+    rechazadaGeneral:
+      "No pudimos guardar esta versión porque no coincide con tu CV de hoy. Pedí las propuestas de nuevo.",
+    sinCupo: "Ya pediste 3 propuestas en las últimas 24 horas. Podés seguir con tu CV base.",
+    errorGeneral: "Ahora no pudimos armar las propuestas. Podés seguir con tu CV base.",
+    apagado: "Esta acción no está disponible para tu cuenta. Podés seguir con tu CV base.",
+  },
+  descargar: {
+    titulo: "Elegir la versión y descargarla",
+    versionLabel: "Versión del CV",
+    base: "Mi CV base, con las viñetas ordenadas según la oferta",
+    adaptada: "La versión adaptada que guardé para esta oferta",
+    adaptadaSinGuardar: "Todavía no guardaste una versión adaptada.",
+    pdf: "Descargar PDF",
+    docx: "Descargar DOCX",
+    nota: "Se arma en el momento y no se guarda el archivo en ningún lado.",
+    vencida:
+      "Tu CV cambió desde que guardaste la versión adaptada, así que no la podemos usar tal cual. Pedí las propuestas de nuevo.",
+    salida: "Ir al aviso",
+    salidaAyuda: "La postulación la hacés vos en el sitio del aviso. Nada se envía desde acá.",
+  },
+} as const;
+
+/**
+ * `/market` mínimo (R34-03, C-70 a C-72). Una sola página, pocas preguntas, para la carrera de la persona y solo
+ * con avisos vigentes. Cada bloque dice de cuántos avisos sale y de qué fecha, y termina en una acción.
+ * Lo edita solo `mercado`. Lo que lleva {llaves} lo completa la pantalla.
+ */
+export const MERCADO_TEXTOS = {
+  titulo: "Mercado de {carrera}",
+  guia: "Qué mirar: cuántas ofertas podés tomar desde tu país, qué habilidades piden más y qué sueldos se publican.",
+  /** Debajo de cada bloque: de cuántos avisos sale y de qué fecha. */
+  fuente: "Sale de {n} {avisos} vigentes, vistos en los últimos 7 días. Datos del {fecha}.",
+  avisoUno: "aviso",
+  avisoVarios: "avisos",
+  pocos: "Todavía hay pocos datos: con menos de 10 avisos no mostramos gráficos.",
+  vacio: "Todavía no hay ofertas vigentes de {carrera}. Volvé en unos días.",
+  sinCarrera: "Elegí tu carrera en tu perfil para ver el mercado.",
+  sinCarreraAccion: "Elegir mi carrera",
+  ofertas: {
+    titulo: "Cuántas ofertas hay hoy",
+    hay: "{n} {ofertas} vigentes",
+    podesTomar: "{n} las podés tomar desde tu país",
+    paraEmpezar: "{n} son para quien empieza",
+    nota: "Para quien empieza cuenta solo entre las que podés tomar. Si el aviso no dice desde qué países se puede postular, no cuenta como tomable.",
+    verOfertas: "Ver las ofertas que podés tomar",
+    verParaEmpezar: "Ver las ofertas para quien empieza",
+  },
+  habilidades: {
+    titulo: "Qué habilidades piden más",
+    fila: "{nombre} · {n} de {total} ofertas ({pct} %)",
+    laTenes: "Ya la tenés cargada",
+    noLaTenes: "No la tenés cargada",
+    resumen: "Tenés cargadas {n} de las {total} que más se piden.",
+    sinDatos: "Los avisos vigentes todavía no traen habilidades reconocidas.",
+    cargar: "Cargar mis habilidades",
+  },
+  modalidad: {
+    titulo: "En qué modalidad y desde dónde",
+    remoto: "Remoto",
+    hibrido: "Híbrido",
+    presencial: "Presencial",
+    desconocida: "No especificado",
+    desdeTitulo: "Desde dónde se puede postular",
+    tomable: "Podés postularte desde tu país",
+    noDice: "No especificado",
+    otros: "Piden otros países",
+    fila: "{etiqueta} · {n} {ofertas} ({pct} %)",
+    ver: "Ver las ofertas remotas",
+  },
+  sueldos: {
+    titulo: "Qué sueldos se publican",
+    explicacion:
+      "En la moneda en que se publicó, por mes y sin convertir. Solo se muestra cuando hay 10 casos o más.",
+    rango: "{moneda}: mitad de los avisos entre {desde} y {hasta} por mes; el del medio, {mediana}",
+    casos: "{n} {avisos} con sueldo en {moneda}",
+    pocos: "Pocos avisos publican el sueldo: todavía no alcanza para decir un rango.",
+    ocultas: "Hay sueldos en otras monedas, con muy pocos casos para mostrarlos.",
+    ninguno: "Ningún aviso vigente publica el sueldo.",
+    ver: "Ver mis ofertas",
+  },
+  /** Seguimiento mínimo de «Ya me postulé» (R34-04): la fecha y el estado, que la persona cambia a mano. */
+  seguimiento: {
+    fecha: "Ya me postulé el {fecha}",
+    estado: "Estado",
+    guardar: "Guardar estado",
+  },
+} as const;

@@ -102,6 +102,7 @@ export {
 export { readCareerRevealCounts } from "./market/career-reveal";
 export { readBetaPoolCounts, type BetaPoolCounts } from "./market/beta-counts";
 export { readCareerCoverageJobs, CAREER_COVERAGE_MAX_ROWS } from "./market/career-coverage";
+export { readMarketMinimalInput, MARKET_MINIMAL_MAX_ROWS } from "./market/market-minimal";
 export {
   readPoolCoverage,
   readPoolMailboxActivity,

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Button, buttonClasses, cardClasses, Chip, cx, Icon, Seal } from "@/components/ui";
 import { noCoincideLine, salaryLine, sinConfirmarLine } from "@/lib/card-view";
+import type { ApplicationFollowUp } from "@/lib/applications";
 import type { JobListRow } from "@/lib/jobs";
 import { MODALITY_LABELS, PRE_SCORE_EXPLAIN } from "@/lib/labels";
 import { LISTADO_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
 import { discardJobAction, reviewAgainAction } from "./discard-actions";
 import { SaveButton, SavedMark } from "./save-button";
+import { SeguimientoPostulacion } from "./seguimiento-postulacion";
 
 const T = LISTADO_TEXTOS;
 
@@ -22,8 +24,11 @@ export function JobList({
   tour = true,
   selected = null,
   featuredFirst = false,
+  seguimiento = null,
 }: {
   rows: JobListRow[];
+  /** R34-04: en «Ya me postulé», la fecha y el estado de cada postulación (por id de oferta). */
+  seguimiento?: ReadonlyMap<string, ApplicationFollowUp> | null;
   query?: string;
   /** La primera tarjeta lleva las anclas de la guía; la segunda lista (lejanas) no. */
   tour?: boolean;
@@ -42,6 +47,7 @@ export function JobList({
             tour={tour && i === 0}
             selected={job.id === selected}
             featured={job.id === selected || (featuredFirst && selected === null && i === 0)}
+            followUp={seguimiento?.get(job.id) ?? null}
           />
         </li>
       ))}
@@ -71,12 +77,14 @@ function JobCard({
   tour,
   selected,
   featured,
+  followUp,
 }: {
   job: JobListRow;
   query: string;
   tour: boolean;
   selected: boolean;
   featured: boolean;
+  followUp: ApplicationFollowUp | null;
 }) {
   const anchor = (name: string) => (tour ? { "data-tour": name } : {});
   const discarded = job.status === "descartada";
@@ -257,6 +265,7 @@ function JobCard({
           </>
         )}
       </div>
+      {followUp ? <SeguimientoPostulacion followUp={followUp} /> : null}
     </div>
   );
 }

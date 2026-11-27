@@ -109,6 +109,11 @@ function money(n: number, currency: string): string {
   return symbol ? `${symbol} ${grouped(n)}` : grouped(n);
 }
 
+/** Un monto con su símbolo: «$ 1.200.000», «US$ 2.000». Para mostrar resultados calculados (R34-03). */
+export function formatSalaryAmount(n: number, currency: string): string {
+  return money(n, currency);
+}
+
 /**
  * «$ 1.200.000 a $ 1.500.000 por mes (ARS)». Con un solo extremo: «desde …» o «hasta …»; con los dos
  * iguales, un solo monto. Sin periodicidad no la agrega. El código de la moneda siempre va al final,

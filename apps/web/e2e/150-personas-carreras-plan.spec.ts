@@ -228,16 +228,15 @@ CARRERAS.forEach((carrera, index) => {
       computeRoleMarketAndPlan(run);
 
       await page.goto("/market");
-      const market = page.getByTestId("role-market");
-      await expect(market).toContainText(`El mercado de ${label}`);
-      await expect(market).not.toContainText(
-        `Todavía no hay ofertas públicas de ${label} para mostrar`,
-      );
+      // R34-03: el mercado mínimo; el título dice la carrera de la persona (ya no hay «El mercado de …»)
+      const title = page.getByRole("heading", { level: 1 });
+      await expect(title).toHaveText(`Mercado de ${label}`);
       // El mercado de otra carrera no aparece como si fuera suyo
+      const bodyText = await page.locator("main").innerText();
       for (const [key, other] of Object.entries(roleSkills as Record<string, { label: string }>)) {
         if (key === persona.role || other.label === label) continue;
-        expect(await market.innerText(), `no muestra el mercado de «${other.label}»`).not.toContain(
-          `El mercado de ${other.label}`,
+        expect(bodyText, `no muestra el mercado de «${other.label}»`).not.toContain(
+          `Mercado de ${other.label}`,
         );
       }
 
