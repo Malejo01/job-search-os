@@ -7,7 +7,6 @@ import { cleanCvText, CV_BULLET_MAX_CHARS } from "../cv-out/verify";
 import { CV_MAX_BULLETS, type CvHistoryInput, type CvLinksInput } from "../cv-out/model";
 import type { CvConflict } from "./conflicts";
 import { parseCvExtraction, type CvExtractionMap, type CvTopicKind } from "./schemas";
-
 export const CV_CHAT_MAX_TURNS = 25;
 /**
  * Rol de un proyecto cuando la persona no lo dijo (R12-2): `career_history` exige un rol y no se inventa
@@ -59,7 +58,44 @@ export interface CvLanguageDraft {
   level: string | null;
 }
 
+/** Situaciones por las que se preguntan las habilidades blandas (R33-04, C-18): nunca «¿cuáles son tus habilidades blandas?». */
+export const CV_SOFT_SITUATIONS = ["lead", "problem", "clients", "organize"] as const;
+export type CvSoftSituation = (typeof CV_SOFT_SITUATIONS)[number];
+export type CvSoftDecision = "used" | "declined";
+
+/**
+ * Lo que la persona contó para el «Resumen profesional» (R33-04, C-15 a C-17). Son sus palabras limpias;
+ * `text` es el borrador editable de 2 o 3 frases (lo arma el código con estas respuestas y la persona lo corrige).
+ */
+export interface CvSummaryAnswers {
+  experience: string | null;
+  goal: string | null;
+  strengths: string | null;
+  text: string | null;
+}
+
+export const emptySummary = (): CvSummaryAnswers => ({
+  experience: null,
+  goal: null,
+  strengths: null,
+  text: null,
+});
+
 export interface CvChatState {
+  /**
+   * Flujo guiado de la R33 (resumen profesional y situaciones para las habilidades blandas, `guided: true`).
+   * Un estado sin la marca (de un navegador con la versión anterior) sigue con el temario anterior.
+   */
+  guided: boolean;
+  /** Claves de tema salteadas con «Saltear esta pregunta» (R33-03): se pueden volver a abrir. */
+  skipped: string[];
+  summary: CvSummaryAnswers;
+  /** Respuestas a las situaciones (R33-04): lo que la persona contó, tal cual (limpio). */
+  softAnswers: Partial<Record<CvSoftSituation, string>>;
+  /** Habilidades blandas propuestas que la persona ya decidió («Usarla» / «No, gracias»), por nombre. */
+  softDecided: Record<string, CvSoftDecision>;
+  /** Habilidades blandas que la persona confirmó con «Usarla»: entran a las habilidades del CV. */
+  softSkills: string[];
   target: string | null;
   /** Historial ya confirmado antes del chat (`career_history`); no se vuelve a preguntar. */
   confirmed: CvHistoryInput[];
@@ -90,6 +126,8 @@ export interface CvChatState {
 
 /** Lo que ya está confirmado en la cuenta: se siembra para no repreguntar («Actualizalo charlando»). */
 export interface CvChatSeed {
+  /** Arranca el flujo guiado de la R33 (resumen y situaciones). Sin esto, el temario anterior. */
+  guided?: boolean;
   target?: string | null;
   history?: readonly CvHistoryInput[];
   skills?: readonly string[];
@@ -107,6 +145,20 @@ export interface CvTopic {
 const workKey = (kind: CvTopicKind, i: number): string => `w${i}:${kind}`;
 const WORK_FIELDS = ["organization", "title", "dates", "duties", "achievement"] as const;
 const LIST_TOPICS = ["education", "certifications", "skills", "languages", "links"] as const;
+/** Flujo guiado (R33-04): tres preguntas del resumen después del puesto y cuatro situaciones de habilidades blandas. */
+export const CV_SUMMARY_TOPICS = [
+  "summary_experience",
+  "summary_goal",
+  "summary_strengths",
+] as const;
+export const CV_SOFT_TOPICS = [
+  "soft_lead",
+  "soft_problem",
+  "soft_clients",
+  "soft_organize",
+] as const;
+const SUMMARY_TOPICS = CV_SUMMARY_TOPICS;
+const SOFT_TOPICS = CV_SOFT_TOPICS;
 
 /**
  * Puesto con el que arranca el chat (R11-12): el titular del perfil si lo hay; si no, el nombre de la
@@ -134,6 +186,12 @@ export function initialCvChatState(seed: CvChatSeed = {}): CvChatState {
   const l = seed.links ?? {};
   if (l.linkedin || l.github || l.portfolio) answered.push("links");
   return {
+    guided: seed.guided ?? false,
+    skipped: [],
+    summary: emptySummary(),
+    softAnswers: {},
+    softDecided: {},
+    softSkills: [],
     target: seed.target ?? null,
     confirmed: history,
     works: [],
@@ -156,6 +214,9 @@ export function initialCvChatState(seed: CvChatSeed = {}): CvChatState {
 const satisfied = (s: CvChatState, key: string): boolean =>
   s.answered.includes(key) || (s.failures[key] ?? 0) >= CV_CHAT_MAX_FAILURES;
 
+/** ¿Este tema ya está respondido (o se dio por saltado tras dos respuestas ilegibles)? */
+export const cvTopicSatisfied = satisfied;
+
 /**
  * Próximo tema pendiente, o `null` si el checklist está completo. Orden fijo: puesto objetivo, experiencia
  * (de a un trabajo: empresa, cargo, fechas, qué hacía, un logro, ¿otro?), estudios, certificaciones, skills,
@@ -163,6 +224,11 @@ const satisfied = (s: CvChatState, key: string): boolean =>
  */
 export function nextCvTopic(s: CvChatState): CvTopic | null {
   if (!satisfied(s, "target")) return { kind: "target", key: "target", workIndex: null };
+  if (s.guided) {
+    for (const kind of SUMMARY_TOPICS) {
+      if (!satisfied(s, kind)) return { kind, key: kind, workIndex: null };
+    }
+  }
   if (!s.workDone) {
     for (let i = 0; i < s.works.length; i++) {
       for (const kind of WORK_FIELDS) {
@@ -177,20 +243,37 @@ export function nextCvTopic(s: CvChatState): CvTopic | null {
       if (!satisfied(s, key)) return { kind: "more_work", key, workIndex: i };
     }
   }
-  for (const kind of LIST_TOPICS) {
+  for (const kind of listTopics(s)) {
     if (!satisfied(s, kind)) return { kind, key: kind, workIndex: null };
   }
   return null;
 }
 
-/** Temas que faltan, en orden, para mostrar el avance («3 de 7»). Cuenta secciones, no turnos. */
+/** Temas de lista en orden. En el flujo guiado, las situaciones de habilidades blandas van después de las herramientas. */
+function listTopics(s: CvChatState): readonly CvTopicKind[] {
+  if (!s.guided) return LIST_TOPICS;
+  return ["education", "certifications", "skills", ...SOFT_TOPICS, "languages", "links"];
+}
+
+/**
+ * Temas que faltan, en orden, para mostrar el avance («3 de 7»). Cuenta secciones, no turnos. Son siempre 7: puesto,
+ * resumen, experiencia, estudios, habilidades, idiomas y links (el flujo anterior no tenía el resumen y contaba
+ * estudios y certificaciones por separado).
+ */
 export function cvChecklistProgress(s: CvChatState): { done: number; total: number } {
   const next = nextCvTopic(s);
-  const sections = [
-    satisfied(s, "target"),
-    satisfied(s, "target") && (next === null || next.workIndex === null),
-    ...LIST_TOPICS.map((k) => satisfied(s, k)),
-  ];
+  const workDone = satisfied(s, "target") && (next === null || next.workIndex === null);
+  const sections = s.guided
+    ? [
+        satisfied(s, "target"),
+        SUMMARY_TOPICS.every((k) => satisfied(s, k)),
+        workDone && SUMMARY_TOPICS.every((k) => satisfied(s, k)),
+        satisfied(s, "education") && satisfied(s, "certifications"),
+        satisfied(s, "skills") && SOFT_TOPICS.every((k) => satisfied(s, k)),
+        satisfied(s, "languages"),
+        satisfied(s, "links"),
+      ]
+    : [satisfied(s, "target"), workDone, ...LIST_TOPICS.map((k) => satisfied(s, k))];
   return { done: sections.filter(Boolean).length, total: sections.length };
 }
 
@@ -301,6 +384,24 @@ function applyParsed(s: CvChatState, topic: CvTopic, d: CvExtractionMap[CvTopicK
       };
     case "links":
       return { ...s, links: { ...s.links, ...stripNulls(d as CvExtractionMap["links"]) } };
+    case "summary_experience":
+    case "summary_goal":
+    case "summary_strengths": {
+      const field = topic.kind.slice("summary_".length) as "experience" | "goal" | "strengths";
+      const { answer } = d as CvExtractionMap["summary_goal"];
+      return { ...s, summary: { ...s.summary, [field]: answer, text: null } };
+    }
+    case "soft_lead":
+    case "soft_problem":
+    case "soft_clients":
+    case "soft_organize": {
+      const situation = topic.kind.slice("soft_".length) as CvSoftSituation;
+      const { answer } = d as CvExtractionMap["soft_lead"];
+      const softAnswers = { ...s.softAnswers };
+      if (answer === null) delete softAnswers[situation];
+      else softAnswers[situation] = answer;
+      return { ...s, softAnswers };
+    }
     default:
       return s;
   }
@@ -331,7 +432,11 @@ export function applyCvAnswer(s: CvChatState, topic: CvTopic, raw: unknown): CvC
       ? { ...next, workDone: true }
       : next;
   }
-  return withAnswered(applyParsed(base, topic, parsed.value), topic.key);
+  const applied = withAnswered(applyParsed(base, topic, parsed.value), topic.key);
+  // Contestarla saca la pregunta de las salteadas (R33-03)
+  return applied.skipped.includes(topic.key)
+    ? { ...applied, skipped: applied.skipped.filter((k) => k !== topic.key) }
+    : applied;
 }
 
 /** «No tengo» / «Saltear»: el tema queda respondido sin datos. Cuenta un turno. */
@@ -339,7 +444,8 @@ export function skipCvTopic(s: CvChatState, topic: CvTopic): CvChatState {
   // Con una contradicción pendiente (R12-3), «Saltear» la descarta: queda lo que ya estaba
   if (s.conflict) return { ...s, conflict: null, turns: s.turns + 1 };
   // Saltear un tema también descarta la repregunta pendiente (R4-16)
-  const base = withAnswered({ ...s, turns: s.turns + 1, followUp: null }, topic.key);
+  const skipped = s.skipped.includes(topic.key) ? s.skipped : [...s.skipped, topic.key];
+  const base = withAnswered({ ...s, turns: s.turns + 1, followUp: null, skipped }, topic.key);
   if (topic.kind === "organization" && s.works.length === 0) return { ...base, workDone: true };
   if (topic.kind === "more_work") return { ...base, workDone: true };
   return base;

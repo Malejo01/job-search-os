@@ -30,7 +30,7 @@ test.describe("Flujo 9: corregir un estado mal marcado", () => {
     await seccion.getByRole("button", { name: "Corregir" }).click();
   }
 
-  test("rechazo automático marcado por error → vuelve a Aplicada; cancelar no cambia nada; Evaluada borra la postulación", async ({
+  test("rechazo automático marcado por error → vuelve a «Ya me postulé»; cancelar no cambia nada; Evaluada borra la postulación", async ({
     page,
   }) => {
     await login(page);
@@ -38,8 +38,9 @@ test.describe("Flujo 9: corregir un estado mal marcado", () => {
     // Sin postulación todavía no hay nada que corregir: la evaluada se maneja con sus botones
     await expect(page.getByRole("group", { name: "Corregir estado" })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Marcar aplicada" }).click();
-    await expect(page.getByText("Aplicada", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Ya me postulé" }).click();
+    // El botón también dice «Ya me postulé»: se espera a que desaparezca (la acción terminó)
+    await expect(page.getByRole("button", { name: "Ya me postulé" })).toHaveCount(0);
     await page.getByRole("button", { name: "Rechazo automático" }).click();
     // Estado terminal: ya no hay botones de eventos para salir, solo la corrección
     await expect(page.getByRole("button", { name: "Rechazo automático" })).toHaveCount(0);
@@ -47,13 +48,13 @@ test.describe("Flujo 9: corregir un estado mal marcado", () => {
     await expect(page.getByText("Rechazo automático", { exact: true })).toBeVisible();
 
     // Cancelar la confirmación no cambia nada
-    await corregirA(page, "Aplicada", false);
+    await corregirA(page, "Ya me postulé", false);
     await expect(page.getByText("Rechazo automático", { exact: true })).toBeVisible();
     expect(await jobStatus(jobId)).toBe("rechazo_automatico");
 
     // Aceptar: vuelve a aplicada, la postulación sigue y queda sin resultado
-    await corregirA(page, "Aplicada", true);
-    await expect(page.getByText("Aplicada", { exact: true })).toBeVisible();
+    await corregirA(page, "Ya me postulé", true);
+    await expect(page.getByText("Ya me postulé", { exact: true })).toBeVisible();
     expect(await jobStatus(jobId)).toBe("aplicada");
     expect(await applicationOf(jobId)).toEqual({ outcome: null });
     // Los botones normales vuelven a estar

@@ -1,5 +1,5 @@
 import * as s from "@job-search-os/db/schema";
-import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
@@ -41,9 +41,6 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
   let userId: string | null = null;
   let context: BrowserContext;
   let page: Page;
-
-  /** La sección "Gaps" de /market (el encabezado empieza con "Gaps"). */
-  const gaps = (): Locator => page.getByTestId("market-gaps");
 
   test.beforeAll(async ({ browser }) => {
     // Igual que createInvitation (lib/invitations.ts): código aleatorio, en la base solo su sha256
@@ -146,13 +143,15 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     expect(await skillLevelsOf(userId)).toEqual({});
   });
 
-  test("sin niveles, /market avisa y marca esas skills como gap", async () => {
+  // R34-03: «Gaps» y el aviso «sin niveles» salieron de /market (ahora es el mercado mínimo, con los avisos
+  // vigentes del pool). Qué habilidades «ya tiene cargadas» lo prueban los unitarios de `market-minimal`; acá
+  // solo se verifica que la pantalla abre para su carrera y que lo viejo no está. No se miran números: el pool
+  // de la carrera va con caché de 30 minutos y otros flujos pueden haberlo leído antes.
+  test("sin niveles, /market abre para su carrera y ya no trae la agenda de gaps", async () => {
     await page.goto("/market");
-    await expect(page.getByTestId("market-sin-niveles")).toBeVisible();
-    await expect(gaps()).toBeVisible();
-    for (const name of ["TypeScript", "React", "Next.js", "REST APIs"]) {
-      await expect(gaps()).toContainText(name);
-    }
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Mercado de");
+    await expect(page.getByTestId("market-sin-niveles")).toHaveCount(0);
+    await expect(page.getByTestId("market-gaps")).toHaveCount(0);
   });
 
   test("elige un rol, carga 5 skills (3 con soltura) y las guarda", async () => {
@@ -195,14 +194,13 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     await expect(row("typescript").getByLabel(SOLTURA, { exact: true })).toBeChecked();
   });
 
-  test("/market ya no avisa y esas skills salen de Gaps", async () => {
-    await expect(async () => {
-      await page.goto("/market");
-      await expect(page.getByTestId("market-sin-niveles")).toHaveCount(0, { timeout: 2_000 });
-      for (const name of ["TypeScript", "React", "Next.js", "Testing automatizado", "REST APIs"]) {
-        await expect(gaps()).not.toContainText(name, { timeout: 2_000 });
-      }
-    }).toPass({ timeout: 60_000, intervals: [2_000] });
+  // R34-03: sin «Gaps» no hay nada que ver salir de ahí; se verifica que, con niveles cargados, /market abre.
+  test("con niveles cargados, /market sigue abriendo para su carrera", async () => {
+    await page.goto("/market");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Mercado de");
+    await expect(
+      page.getByTestId("market-habilidades").or(page.getByTestId("market-vacio")),
+    ).toBeVisible();
   });
 
   test("/plan no incluye lo que cargó con soltura (recálculo al guardar)", async () => {

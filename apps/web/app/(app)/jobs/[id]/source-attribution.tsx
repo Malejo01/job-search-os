@@ -1,4 +1,5 @@
 import { safeHttpUrl } from "@/lib/labels";
+import { sameUrl } from "@/lib/same-url";
 import { attributionFor, findAtsLinks, WWR_PAYWALL_NOTICE } from "@job-search-os/pipeline";
 
 const ATS_NAMES = {
@@ -19,18 +20,32 @@ export function SourceAttribution({
   sources,
   company,
   jdText,
+  exitUrl,
 }: {
-  sources: readonly { kind: string; url: string | null }[];
+  /** URL del botón de salida: «Ver el aviso original» solo se muestra si lleva a otro lugar (plan §7). */
+  exitUrl?: string | null;
+  sources: readonly {
+    kind: string;
+    /** Nombre de la fuente: con `kind = other` decide la atribución («vía Jooble»). */
+    name?: string | null;
+    url: string | null;
+    /**
+     * Dato que confirma que la fuente pide suscripción para postular (R30-10, plan §7). Hoy ninguna
+     * fuente lo trae: sin él el aviso no se muestra (falla cerrado), porque «suele estar gratis en
+     * el ATS» es una suposición y no un dato.
+     */
+    paywallConfirmed?: boolean;
+  }[];
   company?: string | null;
   /** La JD, para buscar el link al sitio de empleos de la empresa en los avisos de WWR. */
   jdText?: string | null;
 }) {
   const seen = new Set<string>();
   const items = sources.flatMap((src) => {
-    const attribution = attributionFor(src.kind, { company });
+    const attribution = attributionFor(src.kind, { company, sourceName: src.name });
     if (!attribution) return [];
     const url = safeHttpUrl(src.url);
-    const key = `${src.kind}|${url ?? ""}`;
+    const key = `${src.kind}|${attribution.name}|${url ?? ""}`;
     if (seen.has(key)) return [];
     seen.add(key);
     return [{ key, attribution, url }];
@@ -38,6 +53,9 @@ export function SourceAttribution({
   if (items.length === 0) return null;
 
   const isWwr = sources.some((src) => src.kind === "wwr");
+  const paywallConfirmed = sources.some(
+    (src) => src.kind === "wwr" && src.paywallConfirmed === true,
+  );
   const atsLinks = isWwr
     ? findAtsLinks(jdText ?? null).flatMap((l) => {
         const href = safeHttpUrl(l.url);
@@ -59,7 +77,7 @@ export function SourceAttribution({
               ) : (
                 attribution.text
               )}
-              {url ? (
+              {url && !sameUrl(url, exitUrl) ? (
                 <>
                   {" · "}
                   <a href={url} target="_blank" rel="noopener" className="text-link underline">
@@ -73,7 +91,7 @@ export function SourceAttribution({
       </ul>
       {isWwr ? (
         <div className="flex flex-col gap-0.5 text-xs">
-          <p className="text-warning">{WWR_PAYWALL_NOTICE}</p>
+          {paywallConfirmed ? <p className="text-warning">{WWR_PAYWALL_NOTICE}</p> : null}
           {atsLinks.map(({ provider, href }) => (
             <a
               key={href}

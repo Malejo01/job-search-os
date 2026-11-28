@@ -18,7 +18,13 @@ import { fetchTeamtailorBoard, parseTeamtailorFeed } from "../sources/teamtailor
 import { fetchWorkableBoard } from "../sources/workable";
 import { describeFailure } from "../sources/error-code";
 import { sourceUserAgent } from "../sources/user-agent";
+import {
+  fetchReliefWebJobs,
+  RELIEFWEB_DEFAULT_COUNTRIES_ISO3,
+  RELIEFWEB_MAX_PAGES_CAP,
+} from "../sources/reliefweb";
 import { fetchWwrJobs, parseWwrFeed, WWR_POOL_CATEGORIES } from "../sources/wwr";
+import { fetchJoobleJobs, JOOBLE_DAILY_QUERY_CAP } from "./jooble";
 import {
   countriesLine,
   fieldPresence,
@@ -31,7 +37,8 @@ import {
 
 /**
  * Prueba en seco de una fuente del pool (JS-137):
- *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
+ *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr|jooble|reliefweb> --dry-run
+ *     (jooble pide JOOBLE_API_KEY y hace 2 consultas; reliefweb pide RELIEFWEB_APPNAME y hace hasta 2 pedidos)
  *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor|workable|recruitee|smartrecruiters> <token> [--region eu|na] [--company "Nombre"] --dry-run
  * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (los ATS no tienen ventana:
  * traen todo lo abierto, hasta ATS_MAX_JOBS_PER_BOARD por board), y reporta conteos y qué campos
@@ -46,6 +53,9 @@ const SINCE_HOURS = 48;
 const USER_AGENT_VARS = ["SITE_URL", "APP_URL", "NEXT_PUBLIC_APP_URL", "AUTH_URL"];
 /** Páginas de Himalayas en una prueba manual: su documentación pide una consulta por día. */
 const HIMALAYAS_DRY_RUN_PAGES = 3;
+/** Pruebas manuales de las fuentes con clave: lo mínimo para ver la forma de la respuesta. */
+const JOOBLE_DRY_RUN_QUERIES = 2;
+const RELIEFWEB_DRY_RUN_PAGES = 2;
 
 /** Campos que lee cada mapper, para contrastar con la respuesta real. */
 const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
@@ -117,6 +127,31 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "pubDate",
   ],
   wwr: ["title", "link", "guid", "pubDate", "region", "category", "type", "description"],
+  // R32-05: formato de Jooble según su documentación pública (a verificar con este --dry-run)
+  jooble: [
+    "id",
+    "title",
+    "location",
+    "snippet",
+    "salary",
+    "source",
+    "type",
+    "link",
+    "company",
+    "updated",
+  ],
+  // R32-05: campos de `fields` de la API v2 de ReliefWeb (a verificar con este --dry-run)
+  reliefweb: [
+    "title",
+    "body",
+    "url",
+    "date",
+    "source",
+    "country",
+    "career_categories",
+    "job_type",
+    "how_to_apply",
+  ],
   greenhouse: [
     "id",
     "title",
@@ -242,6 +277,12 @@ function rawItemsOf(source: SourceName, body: unknown): unknown[] {
   if (source === "smartrecruiters") {
     const content = (body as { content?: unknown }).content;
     return Array.isArray(content) ? content : [];
+  }
+  if (source === "reliefweb") {
+    const data = (body as { data?: unknown }).data;
+    return Array.isArray(data)
+      ? data.map((d: { id?: unknown; fields?: object }) => ({ id: d?.id, ...d?.fields }))
+      : [];
   }
   if (source === "getonboard") {
     const data = (body as { data?: unknown }).data;
@@ -403,6 +444,46 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
     lines.push(
       `categorías con error: ${r.errors.length ? r.errors.join("; ") : "ninguna"}`,
       "(un HTTP 404 en una categoría = slug a corregir en WWR_POOL_CATEGORIES)",
+    );
+  } else if (source === "jooble") {
+    // Cada consulta gasta del tope diario de la cuenta (100): la prueba usa solo dos.
+    const r = await fetchJoobleJobs({ maxQueries: JOOBLE_DRY_RUN_QUERIES, userAgent, fetchImpl });
+    if (r.disabled) {
+      console.log("jooble: sin JOOBLE_API_KEY, no se hizo ninguna consulta");
+      process.exitCode = 1;
+      return;
+    }
+    jobs = r.jobs;
+    mapped = jobs.length;
+    lines.push(
+      `consultas hechas: ${r.queriesMade} (tope diario de la cuenta: ${JOOBLE_DAILY_QUERY_CAP})`,
+      `vistos: ${r.seen}`,
+      `salteados (sin id, título o link): ${r.skipped}`,
+      `páginas descartadas por forma inesperada: ${r.discardedPages}`,
+      `cortó por HTTP: ${r.stoppedByStatus ?? "no"}`,
+      `cortó por error de red: ${r.stoppedByError ?? "no"}`,
+      "(la URL lleva la clave y no se imprime)",
+    );
+  } else if (source === "reliefweb") {
+    const r = await fetchReliefWebJobs({
+      since,
+      maxPages: RELIEFWEB_DRY_RUN_PAGES,
+      userAgent,
+      fetchImpl,
+    });
+    if (r.disabled) {
+      console.log("reliefweb: sin RELIEFWEB_APPNAME, no se hizo ninguna consulta");
+      process.exitCode = 1;
+      return;
+    }
+    jobs = r.jobs;
+    mapped = jobs.length;
+    lines.push(
+      `pedidos hechos: ${r.pagesFetched} (tope por corrida: ${RELIEFWEB_MAX_PAGES_CAP})`,
+      `vistos: ${r.seen}`,
+      `salteados (sin id o título): ${r.skipped}`,
+      `páginas descartadas por forma inesperada: ${r.discardedPages}`,
+      `países consultados: ${RELIEFWEB_DEFAULT_COUNTRIES_ISO3.join(", ")}`,
     );
   } else if (source === "getonboard") {
     const r = await fetchGetOnBoardJobs({

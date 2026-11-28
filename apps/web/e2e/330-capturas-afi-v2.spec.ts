@@ -179,7 +179,7 @@ for (const theme of AFI_THEMES) {
       await page.goto(`/jobs/${data.jobId}`);
       // Esperar la hidratación: un clic antes de que el botón tenga su manejador no festeja
       await page.waitForLoadState("networkidle");
-      await page.getByRole("button", { name: "Marcar aplicada" }).click();
+      await page.getByRole("button", { name: "Ya me postulé" }).click();
       await expect(page.getByTestId("festejo")).toBeVisible();
       await afiShot(page, OUT, "34-festejo", width, theme);
       problemas.push(...(await afiProblemas(page)).map((p) => `festejo: ${p}`));

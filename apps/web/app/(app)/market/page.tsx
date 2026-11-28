@@ -1,50 +1,21 @@
-import { CAREER_MATURITY_LABEL, type AgendaRow } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { getCareerMaturity } from "@/lib/career-maturity";
-import { getPublicCareerKeys } from "@/lib/career-visibility";
-import {
-  getDataState,
-  getMarket,
-  getRoleMarketView,
-  parseRange,
-  pickRole,
-  type MarketView,
-} from "@/lib/market";
-import { careerLabel, getCareerMarket, parseCareer } from "@/lib/career-market";
+import { careerLabel } from "@/lib/career-market";
+import { pickRole } from "@/lib/market";
+import { getMarketMinimal } from "@/lib/market-minimal";
 import { getTargetRoles } from "@/lib/onboarding";
-import { buttonClasses, cardClasses, inputClasses, textLinkClasses } from "@/components/ui";
 import { requireUserId } from "@/lib/session";
-import { CareerMarket } from "./career-market";
-import { CareerPicker } from "./career-picker";
-import { MissingDataNotice, NoLevelsNotice } from "./data-state-notice";
-import { RoleMarket } from "./role-market";
+import { MERCADO_TEXTOS as T } from "@/lib/textos-rediseno";
+import { buttonClasses } from "@/components/ui";
+import { MarketMinimalView } from "./market-minimal";
 import { RoleTabs } from "./role-tabs";
-import { SkillCandidates } from "./skill-candidates";
-import { SkillRows } from "./skill-rows";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mercado" };
 
-const INPUT_CLASS = inputClasses({ className: "sm:w-auto" });
-// C9-11: paneles blancos sin borde lateral; los plegables, con el mismo radio
-const DETAILS = cardClasses({ padding: "none", className: "px-4 py-1 text-sm sm:px-5" });
-const SUMMARY = "flex min-h-11 cursor-pointer items-center font-bold";
-// El tono de cada bloque de la agenda va en un punto junto al título (el título ya lo dice)
-const DOT: Record<string, string> = {
-  "border-danger-line": "bg-danger-strong",
-  "border-success-line": "bg-success-strong",
-  "border-warning-line": "bg-warning-strong",
-};
-
-/** «2026-10-19» -> «19/10»: la semana, sin año ni formato técnico. */
-const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-
 /**
- * Mercado (ronda 58): arriba, "Mercado de <carrera>" con las ofertas públicas del pool (la carrera de
- * la pestaña o la que se explore con `?carrera=`, sin tocar `?rol=`); abajo, "Tu agenda": agenda de
- * mercado (adelanto de JS-031, sin LLM) con lo que piden las ofertas que ya pasaron por el sistema,
- * ponderado por score (Σ score × must ? 1 : 0.4), cruzado con el nivel propio.
- * Server Component; la interactividad son formularios GET (carrera y rango de semanas).
+ * Mercado mínimo (R34-03): una sola página para la carrera de la persona (las pestañas son sus puestos, sin
+ * explorar otras carreras ni filtros que recarguen) y solo con avisos vigentes. Server Component. La agenda
+ * de habilidades, el rango de semanas y las carreras ajenas salieron de la pantalla; `/encaje` sigue con lo suyo.
  */
 export default async function MarketPage({
   searchParams,
@@ -53,212 +24,31 @@ export default async function MarketPage({
 }) {
   const userId = await requireUserId();
   const params = await searchParams;
-  const range = parseRange(params);
   const roles = await getTargetRoles(userId);
-  const role = pickRole(roles, params.rol);
-  const carrera = parseCareer(params.carrera);
-  const careerRole = carrera ?? role;
-  const [view, state, roleMarket, careerMarket, maturity, visibleCareers] = await Promise.all([
-    getMarket(userId, range),
-    getDataState(userId),
-    getRoleMarketView(userId, role),
-    careerRole ? getCareerMarket(careerRole) : null,
-    careerRole ? getCareerMaturity(careerRole) : null,
-    getPublicCareerKeys(),
-  ]);
-  const { agenda } = view;
+  // `?carrera=` lo siguen usando los links de «Hoy»: vale solo si es uno de los puestos de la persona; otra
+  // carrera se ignora (el mercado mínimo no explora carreras ajenas).
+  const role = pickRole(roles, params.rol ?? params.carrera);
+  const market = role ? await getMarketMinimal(userId, role) : null;
+  const label = role ? careerLabel(role) : "";
 
   return (
-    <section className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-title font-bold">Mercado</h1>
-        <p className="text-xs text-fg-subtle">
-          {view.weekStart
-            ? `Datos de la semana del ${shortDate(view.weekStart)}`
-            : "Sin datos todavía"}{" "}
-          · cargaste el nivel de {view.levelsKnown} {view.levelsKnown === 1 ? "skill" : "skills"}
-        </p>
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title font-bold">
+          {role ? T.titulo.replace("{carrera}", label) : "Mercado"}
+        </h1>
+        {role ? <p className="text-sm text-fg-muted">{T.guia}</p> : null}
       </div>
-
-      <RoleTabs
-        basePath="/market"
-        roles={roles}
-        active={role}
-        keep={{ desde: range.from, hasta: range.to }}
-      />
-      <CareerPicker current={careerRole} tab={role} visible={visibleCareers} />
-      {/* C-13: con el flag apagado, sin la función en la base o si falla, no se muestra nada */}
-      {careerRole && maturity ? (
-        <p
-          data-testid="carrera-madurez"
-          className={`w-fit rounded-pill px-3 py-1 text-xs font-bold ${
-            maturity === "madura"
-              ? "bg-success-muted text-success"
-              : "bg-warning-muted text-warning"
-          }`}
-        >
-          {CAREER_MATURITY_LABEL[maturity]}
-        </p>
-      ) : null}
-      {careerRole && careerMarket ? (
-        <CareerMarket
-          market={careerMarket}
-          label={careerLabel(careerRole)}
-          backHref={carrera && role && carrera !== role ? `/market?rol=${role}` : undefined}
-        />
+      <RoleTabs basePath="/market" roles={roles} active={role} />
+      {role && market ? (
+        <MarketMinimalView market={market} label={label} />
       ) : (
-        <p className="text-xs text-fg-subtle">
-          Elegí una carrera y mirá qué piden las ofertas públicas de los últimos 30 días.
-        </p>
-      )}
-
-      <div className="mt-2 flex flex-col gap-1">
-        <h2 className="text-heading font-bold">Tu agenda de skills</h2>
-        <p className="text-xs text-fg-subtle">
-          Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
-        </p>
-        <Link
-          href={role ? `/encaje?rol=${role}` : "/encaje"}
-          className={textLinkClasses({ block: true, className: "text-sm" })}
-        >
-          Explicado en llano: Tu encaje
-        </Link>
-      </div>
-      <RoleMarket view={roleMarket} />
-
-      {/* El rango de semanas solo tiene sentido cuando hay semanas para elegir */}
-      {view.weekStart || view.weeks.length || range.from || range.to ? (
-        <form method="get" className="flex flex-col gap-2 text-xs text-fg-subtle">
-          {role ? <input type="hidden" name="rol" value={role} /> : null}
-          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">
-            <label className="flex flex-col gap-1">
-              Desde (semana)
-              <input
-                type="date"
-                name="desde"
-                defaultValue={range.from ?? ""}
-                className={INPUT_CLASS}
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              Hasta
-              <input
-                type="date"
-                name="hasta"
-                defaultValue={range.to ?? ""}
-                className={INPUT_CLASS}
-              />
-            </label>
-            <button
-              type="submit"
-              className={buttonClasses({ variant: "secondary", className: "w-full sm:w-auto" })}
-            >
-              Aplicar
-            </button>
-          </div>
-          {view.weeks.length ? (
-            <p>Semanas disponibles: {view.weeks.map(shortDate).join(", ")}</p>
-          ) : null}
-        </form>
-      ) : null}
-
-      <NoLevelsNotice state={state} />
-
-      {!view.weekStart ? (
-        !state.hasSnapshot ? (
-          <MissingDataNotice state={state} />
-        ) : (
-          <p className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted">
-            No hay datos de mercado en ese rango de semanas.{" "}
-            <Link href={role ? `/market?rol=${role}` : "/market"} className={textLinkClasses()}>
-              Ver todas las semanas
-            </Link>
-          </p>
-        )
-      ) : (
-        <>
-          <Section
-            title="Lo que te falta (se pide mucho y tu nivel es básico o menor)"
-            hint="Lo que más piden las ofertas que te interesan y hoy no tenés. Orden: demanda ponderada."
-            rows={agenda.gaps}
-            view={view}
-            tone="border-danger-line"
-            testId="market-gaps"
-          />
-          <Section
-            title="Diferenciales · nivel fuerte con demanda"
-            hint="Lo que ya tenés y el mercado pide: para destacar en la postulación."
-            rows={agenda.differentials}
-            view={view}
-            tone="border-success-line"
-            testId="market-differentials"
-          />
-          <Section
-            title="En crecimiento · nivel productivo"
-            hint="Productivo pero no fuerte; candidatos a subir con evidencia."
-            rows={agenda.growing}
-            view={view}
-            tone="border-warning-line"
-            testId="market-growing"
-          />
-          <details className={DETAILS}>
-            <summary className={SUMMARY}>Tabla completa ({agenda.all.length} skills)</summary>
-            <div className="pb-3">
-              <SkillRows rows={agenda.all} view={view} compact />
-            </div>
-          </details>
-          <SkillCandidates candidates={view.candidates} />
-          <details className={DETAILS}>
-            <summary className={SUMMARY}>¿Cómo se calcula?</summary>
-            <p className="mt-2 mb-3 text-xs text-fg-subtle">
-              La demanda de cada skill suma el puntaje de las ofertas que la piden: cuenta entero si
-              es un requisito y 0,4 si es deseable. Si una oferta todavía no tiene puntaje, cuenta
-              como 5 de 10. Las skills se reconocen por nombre en cada aviso, sin inteligencia
-              artificial; lo que no está en la lista de skills conocidas no cuenta. Tus niveles son
-              los que cargaste en Mis skills. Se actualiza cuando guardás tus skills y cada lunes.
-            </p>
-          </details>
-        </>
-      )}
-    </section>
-  );
-}
-
-function Section({
-  title,
-  hint,
-  rows,
-  view,
-  tone,
-  testId,
-}: {
-  title: string;
-  hint: string;
-  rows: AgendaRow[];
-  view: MarketView;
-  tone: string;
-  testId: string;
-}) {
-  return (
-    <section data-testid={testId} className={cardClasses({ padding: "md" })}>
-      <h2 className="flex items-baseline gap-2 text-sm font-bold">
-        <span
-          aria-hidden="true"
-          className={`inline-block size-2.5 shrink-0 rounded-pill ${DOT[tone] ?? "bg-fg-subtle"}`}
-        />
-        {title}
-      </h2>
-      <p className="text-xs text-fg-subtle">{hint}</p>
-      {rows.length ? (
-        <SkillRows rows={rows} view={view} />
-      ) : (
-        <p className="mt-2 text-xs text-fg-subtle">
-          Por ahora ninguna skill entra en esta categoría. Si tus niveles cambiaron, actualizalos en{" "}
-          <Link href="/settings/skills" className={textLinkClasses()}>
-            Mis skills
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-sm text-fg-muted">{T.sinCarrera}</p>
+          <Link href="/settings#puesto" className={buttonClasses({ variant: "secondary" })}>
+            {T.sinCarreraAccion}
           </Link>
-          .
-        </p>
+        </div>
       )}
     </section>
   );

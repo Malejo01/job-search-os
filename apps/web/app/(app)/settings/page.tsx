@@ -5,6 +5,8 @@ import {
   MAX_OPEN_PAYMENT_NOTICES,
   PAYMENT_NOTICE_MESSAGES,
   limitsText,
+  newsEmailAllowed,
+  newsEmailMode,
   paymentOffer,
   planDef,
   planExclusions,
@@ -23,13 +25,14 @@ import { canCreateInvitations } from "@/lib/invitations";
 import { canUseMcpTokens } from "@/lib/mcp-tokens";
 import { canViewRecorrido } from "@/lib/recorrido-access";
 import { RECORRIDO_TEXTOS } from "@/lib/textos-recorrido";
-import { AYUDA_TEXTOS } from "@/lib/textos-rediseno";
+import { getNewsEmailPref } from "@/lib/news-email";
+import { ALTA_TEXTOS, AYUDA_TEXTOS } from "@/lib/textos-rediseno";
 import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
 import { getPlanOverride, getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
 import { buttonClasses, cardClasses, Field, textLinkClasses } from "@/components/ui";
 import { listOwnPaymentNotices } from "@/lib/payment-notices";
-import { closeAllSessionsAction, paymentNoticeAction } from "./actions";
+import { closeAllSessionsAction, paymentNoticeAction, saveNewsEmailAction } from "./actions";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
@@ -61,10 +64,16 @@ export const maxDuration = 120;
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; direccion?: string; puesto?: string; pago?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    direccion?: string;
+    puesto?: string;
+    pago?: string;
+    novedades?: string;
+  }>;
 }) {
   const userId = await requireUserId();
-  const { error, direccion, puesto, pago } = await searchParams;
+  const { error, direccion, puesto, pago, novedades } = await searchParams;
   const pricing = pricingEnabled(process.env);
   const [
     address,
@@ -78,6 +87,7 @@ export default async function SettingsPage({
     ownNotices,
     [user],
     showRecorrido,
+    newsEmailPref,
   ] = await Promise.all([
     getInboundAddress(userId),
     getTargetRoles(userId),
@@ -99,7 +109,10 @@ export default async function SettingsPage({
     ),
     // R26-03: el recorrido para revisar es de admins y testers; el resto ni ve el link
     canViewRecorrido(userId),
+    // R32-09: la preferencia del email de novedades; con NEWS_EMAIL apagada no hay consulta ni sección
+    newsEmailMode(process.env) === "off" ? null : getNewsEmailPref(userId),
   ]);
+  const showNews = newsEmailPref !== null && newsEmailAllowed(process.env, user?.email);
 
   const pendingNotices = ownNotices.filter((n) => n.status === "pendiente").length;
 
@@ -196,6 +209,49 @@ export default async function SettingsPage({
         </form>
         <DeleteAccountForm error={Boolean(error)} />
       </section>
+
+      {/* R32-09: solo con el email encendido para esta persona (NEWS_EMAIL) */}
+      {showNews ? (
+        <section
+          id="novedades"
+          aria-labelledby="novedades-titulo"
+          data-testid="novedades-email"
+          className={SECTION}
+        >
+          <h2 id="novedades-titulo" className={H2}>
+            {ALTA_TEXTOS.novedades.titulo}
+          </h2>
+          <p className="text-sm text-fg-muted">{ALTA_TEXTOS.novedades.texto}</p>
+          {novedades === "guardado" ? (
+            <p
+              role="status"
+              data-testid="novedades-ok"
+              className="text-sm font-medium text-success"
+            >
+              {ALTA_TEXTOS.novedades.guardado}
+            </p>
+          ) : null}
+          {novedades === "error" ? (
+            <p role="alert" className="text-sm font-medium text-danger">
+              No se pudo guardar. Probá de nuevo.
+            </p>
+          ) : null}
+          <form action={saveNewsEmailAction} className="flex flex-col items-start gap-3">
+            <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-fg">
+              <input
+                type="checkbox"
+                name="newsEmail"
+                defaultChecked={newsEmailPref === true}
+                className="size-6 shrink-0"
+              />
+              {ALTA_TEXTOS.novedades.label}
+            </label>
+            <button type="submit" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+              {ALTA_TEXTOS.novedades.guardar}
+            </button>
+          </form>
+        </section>
+      ) : null}
 
       <section aria-labelledby="apariencia-titulo" className={SECTION}>
         <h2 id="apariencia-titulo" className={H2}>

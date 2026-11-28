@@ -22,6 +22,9 @@ export const POOL_CLI_SOURCES = [
   "jobicy",
   "himalayas",
   "wwr",
+  // R32-05: la prueba en seco de las fuentes con clave (Jooble, ADR-039) o appname (ReliefWeb, ADR-028)
+  "jooble",
+  "reliefweb",
   ...ATS_PROVIDERS,
 ] as const;
 export type PoolCliSource = (typeof POOL_CLI_SOURCES)[number];
@@ -38,7 +41,7 @@ export type PoolCliArgs =
     }
   | { ok: false; error: string };
 
-const USAGE = `uso: pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
+const USAGE = `uso: pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr|jooble|reliefweb> --dry-run
      pnpm pool:fetch <${ATS_PROVIDERS.join("|")}> <token> [--region eu|na] [--company "Nombre"] --dry-run`;
 
 /** Argumentos de `pool:fetch` (sin `node` ni el script). Puro: el token se valida antes de cualquier request. */

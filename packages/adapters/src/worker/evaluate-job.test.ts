@@ -123,6 +123,20 @@ describe("evaluateForProfile: modalidades aceptadas", () => {
       job: { title: "Rol A", companyRaw: "Empresa A", jdText: "Descripción inventada." },
     });
 
+  it("R34-07: con reglas vacías falla cerrado sin llamar al modelo", async () => {
+    const spy = vi.fn(llm.generateStructured);
+    const r = await evaluateForProfile({
+      llm: { generateStructured: spy } as unknown as LlmClient,
+      promptVersion: "evaluate_job@v1.3.4",
+      profile: { ...profile },
+      rules: {} as CriteriaRules,
+      job: { title: "Rol A", companyRaw: "Empresa A", jdText: "Descripción inventada." },
+    });
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.invalidRules).toEqual({ code: "reglas_vacias", missing: [] });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("pasa las modalidades del perfil a decide()", async () => {
     const acepta = await run({ remoteOnly: false, acceptedModalities: ["remoto", "hibrido"] });
     expect(acepta.ok && acepta.decision.bloqueadores).toEqual([]);

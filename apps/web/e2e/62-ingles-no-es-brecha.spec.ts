@@ -49,9 +49,10 @@ test.describe("Flujo 62: el inglés no es brecha si el aviso no lo pide", () => 
       await evaluateWithGaps(jobId, ["Inglés avanzado", "Experiencia con Kubernetes"]);
       await login(page);
       await page.goto(`/jobs/${jobId}`);
-      const block = page.getByTestId("fit-falta");
-      await expect(block).toContainText("Experiencia con Kubernetes");
-      await expect(block).not.toContainText("Inglés avanzado");
+      // R30-09: ya no hay lista de «brechas» del modelo; el inglés solo aparece si la tabla de
+      // requisitos lo trae, y en un aviso en español que no lo pide no hay fila
+      await expect(page.getByTestId("como-encaja")).toBeVisible();
+      await expect(page.locator("body")).not.toContainText("Inglés avanzado");
     } finally {
       await deleteJob(jobId);
     }
@@ -67,7 +68,8 @@ test.describe("Flujo 62: el inglés no es brecha si el aviso no lo pide", () => 
       await evaluateWithGaps(jobId, ["Inglés avanzado"]);
       await login(page);
       await page.goto(`/jobs/${jobId}`);
-      await expect(page.getByText("Inglés avanzado").first()).toBeVisible();
+      // R30-09: la lista de brechas del modelo ya no se muestra; el detalle carga con su tabla
+      await expect(page.getByTestId("como-encaja")).toBeVisible();
     } finally {
       await deleteJob(jobId);
     }

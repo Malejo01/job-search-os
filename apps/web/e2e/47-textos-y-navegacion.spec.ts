@@ -119,7 +119,7 @@ test.describe("Flujo 47: textos y navegación", () => {
   }) => {
     await login(page);
     await page.goto("/jobs");
-    const button = page.getByRole("link", { name: "+ Cargar oferta" });
+    const button = page.getByRole("link", { name: "+ Agregar una oferta" });
     await expect(button).toBeVisible();
     const box = await button.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -146,8 +146,9 @@ test.describe("Flujo 47: textos y navegación", () => {
       .getByRole("link", { name: new RegExp(`Oferta Ficticia Evaluada ${tag}`) })
       .first()
       .click();
-    await expect(page.getByRole("heading", { name: "A tu favor" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Te falta o te frena" })).toBeVisible();
+    // R30-08: «Lo importante para decidir» y «Cómo encaja» reemplazan a «A tu favor» / «Te falta o te frena»
+    await expect(page.getByRole("heading", { name: "Lo importante para decidir" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cómo encaja" })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(OLD_TEXTS);
     // A-10: el detalle del puntaje queda plegado en «Cómo se calculó»
     await expect(page.getByText("Puntaje de la IA")).toBeHidden();

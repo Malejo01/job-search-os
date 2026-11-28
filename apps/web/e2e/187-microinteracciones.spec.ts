@@ -65,7 +65,7 @@ test.describe("Flujo 187: microinteracciones", () => {
     await page.goto(`/jobs/${jobId}`);
     const detail = page.getByTestId("afinidad-detalle");
     await expect(detail).toBeVisible();
-    await detail.getByText("Ver cómo se compone el puntaje").click();
+    await detail.getByText("Cómo calculamos la afinidad").click();
     await expect(detail).toHaveAttribute("open", "");
     const meter = detail.getByRole("meter").first();
     await expect(meter).toBeVisible();
@@ -97,7 +97,7 @@ test.describe("Flujo 187: microinteracciones", () => {
       await loginAsSecondUser(page);
       await page.goto(`/jobs/${jobId}`);
       const detail = page.getByTestId("afinidad-detalle");
-      await detail.getByText("Ver cómo se compone el puntaje").click();
+      await detail.getByText("Cómo calculamos la afinidad").click();
       const panel = detail.locator("div.overflow-hidden").first();
       // Sin pasar por altura 0: ninguna animación en curso, con alto real y opaco desde el primer instante
       expect(await panel.evaluate((el) => el.getAnimations().length)).toBe(0);

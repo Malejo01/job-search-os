@@ -151,6 +151,8 @@ test.describe("Flujo 81: nivel de una skill desde la oferta", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await login(page);
     await page.goto(`/jobs/${jobId}`);
+    // R30-09: las habilidades van en su sección plegable
+    await page.getByTestId("seccion-habilidades").locator("summary").click();
 
     const open = page.getByRole("button", { name: "Cargar mi nivel de Docker" });
     await expect(open).toBeVisible();
@@ -185,7 +187,8 @@ test.describe("Flujo 81: nivel de una skill desde la oferta", () => {
     await page.goto(`/jobs/${jobId}`);
     const url = page.url();
     const before = await skillLevelsOf(E2E_USER_ID);
-    await expect(page.getByText("Sin nivel cargado (2)")).toBeVisible();
+    await page.getByTestId("seccion-habilidades").locator("summary").click();
+    await expect(page.getByTestId("seccion-habilidades").getByText("Sin cargar")).toHaveCount(2);
 
     await page.getByRole("button", { name: "Cargar mi nivel de Docker" }).click();
     const dialog = page.getByRole("dialog", { name: "Tu nivel de Docker" });
@@ -196,8 +199,8 @@ test.describe("Flujo 81: nivel de una skill desde la oferta", () => {
     // El botón que abrió el modal desaparece con el refresco: el foco queda en el contenido
     await expect(page.locator("main#contenido")).toBeFocused();
     expect(page.url()).toBe(url);
-    // Se refresca sola: Docker sale de «Sin nivel cargado» y queda Kubernetes
-    await expect(page.getByText("Sin nivel cargado (1)")).toBeVisible();
+    // Se refresca sola: Docker sale de «Sin cargar» y queda Kubernetes
+    await expect(page.getByTestId("seccion-habilidades").getByText("Sin cargar")).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Cargar mi nivel de Docker" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Cargar mi nivel de Kubernetes" })).toBeVisible();
 
@@ -222,8 +225,10 @@ test.describe("Flujo 81: nivel de una skill desde la oferta", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await login(page);
     await page.goto(`/jobs/${jobId}`);
-    const section = page.getByRole("region", { name: "Requisitos del aviso" });
-    await expect(section.getByText("No se sabe", { exact: true })).toBeVisible();
+    // R30-09: la habilidad que solo nombra el aviso va en «Habilidades», con su botón una sola vez
+    const section = page.getByTestId("seccion-habilidades");
+    await section.locator("summary").click();
+    await expect(section.getByText("Sin cargar")).toBeVisible();
 
     await section.getByRole("button", { name: "Cargar mi nivel de Kubernetes" }).click();
     const dialog = page.getByRole("dialog", { name: "Tu nivel de Kubernetes" });
@@ -231,8 +236,7 @@ test.describe("Flujo 81: nivel de una skill desde la oferta", () => {
     await dialog.getByRole("button", { name: "Guardar" }).click();
 
     await expect(dialog).toBeHidden();
-    await expect(section.getByText("Nivel 3 de 3")).toBeVisible();
-    await expect(section.getByText("Cumple", { exact: true })).toBeVisible();
+    await expect(section.getByText("Tu nivel: 3 de 3")).toBeVisible();
     await expect(
       section.getByRole("button", { name: "Cargar mi nivel de Kubernetes" }),
     ).toHaveCount(0);
@@ -257,6 +261,7 @@ test.describe("Flujo 81: nivel de una skill desde la oferta", () => {
     await page.setViewportSize({ width: 390, height: 800 });
     await login(page);
     await page.goto(`/jobs/${jobId}`);
+    await page.getByTestId("seccion-habilidades").locator("summary").click();
 
     const open = page.getByRole("button", { name: "Cargar mi nivel de Docker" });
     expect((await open.boundingBox())!.height).toBeGreaterThanOrEqual(44);

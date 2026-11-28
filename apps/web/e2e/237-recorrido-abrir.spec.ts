@@ -62,10 +62,14 @@ test("sin datos propios, «Abrir» cae en la lista y dice cómo llegar", async (
 test("«Abrir» el primer uso vuelve a mostrar el recorrido en Hoy", async ({ page }) => {
   await ensureSecondUser();
   await loginAsSecondUser(page);
+  // Un navegador automatizado no ve el diálogo salvo que se lo fuerce (components/primer-uso.tsx). Se fuerza solo
+  // al llegar a Hoy, con un script de inicio, y NO desde la página del recorrido: ahí el diálogo es modal y se
+  // abre en cuanto el componente vuelve a leer el almacenamiento (por ejemplo al terminar de hidratar, que en el CI
+  // pasa después de un `page.evaluate`), con lo que tapaba el botón «Abrir» y el click esperaba hasta el timeout.
+  await page.addInitScript(() => {
+    if (location.pathname.startsWith("/hoy")) localStorage.setItem("jso-primer-uso-forzar", "1");
+  });
   await page.goto("/recorrido");
-  // Un navegador automatizado no ve el diálogo salvo que se lo fuerce (components/primer-uso.tsx); se fuerza
-  // recién acá para que no tape la lista. «Abrir» recarga la página entera y ahí sí aparece.
-  await page.evaluate(() => localStorage.setItem("jso-primer-uso-forzar", "1"));
   await page.getByTestId("recorrido-primer-uso").getByRole("button", { name: /Abrir/ }).click();
   await page.waitForURL("**/hoy");
   await expect(page.getByTestId("primer-uso")).toBeVisible();

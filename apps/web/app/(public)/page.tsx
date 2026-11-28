@@ -167,7 +167,7 @@ function SampleOffers() {
   return (
     <figure
       role="img"
-      aria-label="Ejemplo inventado: «Analista contable semi senior» con el sello «Muy afín», 8,5 de 10, y «Liquidador de sueldos» con «Bastante afín», 7,4"
+      aria-label="Ejemplo inventado: «Analista contable semi senior» con el sello «Afinidad alta», 8,5 de 10, y «Liquidador de sueldos» con «Afinidad alta», 7,4 de 10"
       className="-mx-1 flex flex-col gap-3.5 rounded-container bg-surface p-3.5 sm:mx-0 sm:p-[22px] lg:basis-[48%] lg:rotate-[1.5deg]"
     >
       <div aria-hidden="true" className="sm:hidden">
@@ -195,7 +195,7 @@ function SampleOffers() {
             { tone: "have", label: "IVA y Ganancias" },
             { tone: "missing", label: "Tango" },
           ]}
-          count="4 a tu favor, 1 te falta"
+          count="4 a tu favor, 1 sin confirmar"
           meta="Presencial · hace 2 días"
           score={8.5}
         />

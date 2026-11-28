@@ -1,7 +1,29 @@
 import { expect, test } from "@playwright/test";
-import { login, openJobFilters } from "./helpers";
+import { createEvaluation, createJob, deleteJob, login, openJobFilters } from "./helpers";
 
 test.describe("Flujo 1: login → lista con filtros", () => {
+  // El flujo no depende de lo que haya en la semilla: crea una oferta con score alto y otra con score bajo
+  // (la baja tiene que quedar afuera del filtro) y las borra al terminar
+  const creadas: string[] = [];
+  test.beforeAll(async () => {
+    const alta = await createJob({
+      title: `E2E score alto ${Date.now()}`,
+      status: "evaluada",
+      jdText: "Aviso de prueba.",
+    });
+    await createEvaluation(alta, { score: 8 });
+    const baja = await createJob({
+      title: `E2E score bajo ${Date.now()}`,
+      status: "evaluada",
+      jdText: "Aviso de prueba.",
+    });
+    await createEvaluation(baja, { score: 4 });
+    creadas.push(alta, baja);
+  });
+  test.afterAll(async () => {
+    for (const id of creadas) await deleteJob(id).catch(() => {});
+  });
+
   test("sin sesión redirige a /login; con sesión lista y el filtro persiste en la URL", async ({
     page,
   }) => {

@@ -167,7 +167,7 @@ export function mapReliefWebJob(item: ReliefWebItem): RawJob | null {
 
   return {
     source: {
-      kind: "other",
+      kind: "reliefweb",
       name: "ReliefWeb",
       externalId: `reliefweb:${id}`,
       url: fields?.url?.trim() || null,
@@ -196,14 +196,49 @@ export function mapReliefWebJob(item: ReliefWebItem): RawJob | null {
   };
 }
 
+/**
+ * Topes de pedidos (R32-05). La política de OCHA pide un consumo razonable: una corrida hace como
+ * mucho `RELIEFWEB_MAX_PAGES_CAP` pedidos de hasta `RELIEFWEB_MAX_LIMIT` avisos, con cualquier
+ * valor que se le pase. Por defecto, 4 pedidos de 50.
+ */
+export const RELIEFWEB_DEFAULT_LIMIT = 50;
+export const RELIEFWEB_DEFAULT_MAX_PAGES = 4;
+export const RELIEFWEB_MAX_LIMIT = 100;
+export const RELIEFWEB_MAX_PAGES_CAP = 10;
+
+/**
+ * Países sobre los que se consulta por defecto (ISO3): Argentina y la región. Sin filtro la API
+ * devuelve los avisos de todo el mundo, casi todos de terreno y sin relación con la beta. **A
+ * verificar con `pnpm pool:fetch reliefweb --dry-run`**: la forma exacta del filtro sale de la
+ * documentación pública y no se probó contra la API real.
+ */
+export const RELIEFWEB_DEFAULT_COUNTRIES_ISO3: readonly string[] = [
+  "ARG",
+  "CHL",
+  "URY",
+  "PRY",
+  "BOL",
+  "PER",
+  "COL",
+  "ECU",
+  "MEX",
+  "BRA",
+];
+
 export function reliefwebUrl(
   baseUrl: string,
   appname: string,
   limit: number,
   offset: number,
+  countriesIso3: readonly string[] = [],
 ): string {
   const url = new URL(baseUrl);
   url.searchParams.set("appname", appname);
+  if (countriesIso3.length > 0) {
+    url.searchParams.set("filter[field]", "country.iso3");
+    for (const iso3 of countriesIso3) url.searchParams.append("filter[value][]", iso3);
+    url.searchParams.set("filter[operator]", "OR");
+  }
   url.searchParams.set("profile", "full");
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("offset", String(offset));
@@ -225,9 +260,12 @@ export type FetchReliefWebOptions = {
   appname?: string;
   /** Solo avisos creados desde esta fecha. */
   since?: Date;
+  /** Avisos por pedido; nunca más de `RELIEFWEB_MAX_LIMIT`. */
   limit?: number;
-  /** Tope de páginas por consulta para acotar peticiones. */
+  /** Pedidos por corrida; nunca más de `RELIEFWEB_MAX_PAGES_CAP`. */
   maxPages?: number;
+  /** Países (ISO3) de la consulta; por defecto Argentina y la región. `[]` = sin filtro. */
+  countriesIso3?: readonly string[];
   userAgent?: string;
   fetchImpl?: typeof fetch;
   baseUrl?: string;
@@ -238,6 +276,8 @@ export type FetchReliefWebResult = {
   pagesFetched: number;
   seen: number;
   skipped: number;
+  /** Páginas descartadas enteras por forma inesperada (falla cerrado): la corrida se corta ahí. */
+  discardedPages: number;
   /** true si la fuente no realizó llamadas por falta de appname (apagado por defecto). */
   disabled: boolean;
 };
@@ -257,34 +297,53 @@ export async function fetchReliefWebJobs(
       pagesFetched: 0,
       seen: 0,
       skipped: 0,
+      discardedPages: 0,
       disabled: true,
     };
   }
 
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl ?? RELIEFWEB_BASE_URL;
-  const limit = options.limit ?? 20;
-  const maxPages = options.maxPages ?? 10;
+  const limit = clampInt(options.limit, RELIEFWEB_DEFAULT_LIMIT, 1, RELIEFWEB_MAX_LIMIT);
+  const maxPages = clampInt(
+    options.maxPages,
+    RELIEFWEB_DEFAULT_MAX_PAGES,
+    0,
+    RELIEFWEB_MAX_PAGES_CAP,
+  );
+  const countries = options.countriesIso3 ?? RELIEFWEB_DEFAULT_COUNTRIES_ISO3;
   const sinceMs = options.since ? options.since.getTime() : null;
 
   const byId = new Map<string, RawJob>();
   let pagesFetched = 0;
   let seen = 0;
   let skipped = 0;
+  let discardedPages = 0;
   let offset = 0;
 
   const headers: Record<string, string> = { accept: "application/json" };
   if (options.userAgent) headers["user-agent"] = options.userAgent;
 
   for (let page = 1; page <= maxPages; page++) {
-    const url = reliefwebUrl(baseUrl, appname, limit, offset);
+    const url = reliefwebUrl(baseUrl, appname, limit, offset, countries);
     const res = await fetchImpl(url, { headers });
     if (!res.ok) {
       throw new Error(`ReliefWeb offset ${offset}: HTTP ${res.status}`);
     }
 
-    const body = (await res.json()) as ReliefWebPage;
+    let json: unknown;
+    try {
+      json = await res.json();
+    } catch {
+      json = null;
+    }
     pagesFetched++;
+    const body = parseReliefWebPage(json);
+    if (!body) {
+      // Forma inesperada: la página entera se descarta y no se sigue pidiendo (nada de extracción parcial).
+      discardedPages++;
+      break;
+    }
     const items = body.data ?? [];
     seen += items.length;
 
@@ -319,6 +378,28 @@ export async function fetchReliefWebJobs(
     pagesFetched,
     seen,
     skipped,
+    discardedPages,
     disabled: false,
   };
+}
+
+function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
+  const n = Number.isFinite(value) ? Math.floor(value as number) : fallback;
+  return Math.min(Math.max(n, min), max);
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * Valida la forma de la página. Falla cerrado: si el cuerpo no es un objeto con `data` en lista, o
+ * algún elemento no es un objeto (o su `fields` no lo es), devuelve `null` y la página se descarta.
+ */
+export function parseReliefWebPage(body: unknown): ReliefWebPage | null {
+  if (!isRecord(body) || !Array.isArray(body.data)) return null;
+  for (const item of body.data) {
+    if (!isRecord(item)) return null;
+    if (item.fields !== undefined && item.fields !== null && !isRecord(item.fields)) return null;
+  }
+  return body as ReliefWebPage;
 }

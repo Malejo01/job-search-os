@@ -143,6 +143,19 @@
   --text-title--line-height: 1.875rem;
   --text-heading: 1.125rem;
   --text-heading--line-height: 1.75rem;
+
+  /*
+   * Legibilidad (R30-12; docs/ux/legibilidad.md). Tres tamaños de texto corrido: cuerpo 16 px, secundario 14 px
+   * (mínimo para lo necesario para decidir) y meta 12 px (solo para lo que se puede ignorar: fechas, fuentes,
+   * notas al pie). Nada debajo de 12 px. Son los mismos valores que `text-base`, `text-sm` y `text-xs`: las clases
+   * con nombre dicen para qué sirven. `test/legibilidad.test.ts` falla con un tamaño menor.
+   */
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-secondary: 0.875rem;
+  --text-secondary--line-height: 1.25rem;
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1rem;
 }
 
 /*
@@ -172,7 +185,12 @@
   --jso-line-strong: #d4d4dc;
   --jso-line-control: #71717a;
 
-  /* Texto: principal (tinta), secundario y terciario. Los tres pasan AA sobre todos los fondos. */
+  /*
+   * Texto: principal (tinta), secundario y terciario. Los tres pasan AA sobre todos los fondos. Son los tres colores
+   * de texto de la regla de legibilidad (R30-12, docs/ux/legibilidad.md): `text-fg` para lo necesario para decidir,
+   * `text-fg-muted` para lo secundario y `text-fg-subtle` para lo que se puede ignorar y para lo deshabilitado.
+   * Un texto no lleva transparencia (`text-fg/70`, `opacity-60`): el gris se elige entre estos tres.
+   */
   --jso-fg: #14123a;
   --jso-fg-muted: #3f3f46;
   --jso-fg-subtle: #52525b;

@@ -5,6 +5,7 @@ import {
   buildEvaluateJobVars,
   canTransition,
   checkJdSize,
+  checkDecideRules,
   checkPromptSize,
   compileTaxonomy,
   decide,
@@ -26,7 +27,10 @@ import {
   type Term,
   type Checklist,
   type CriteriaRules,
+  type DecideRulesError,
   type Evaluation,
+  type JobCard,
+  type RequirementAnswer,
   type JobFacts,
   type JobForPrompt,
   type ReuseInputs,
@@ -36,6 +40,7 @@ import {
 import type { PromptRef } from "@job-search-os/prompts";
 import { randomUUID } from "node:crypto";
 import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm";
+import { ensureJobCardBeforeEvaluation, loadJobCardForEvaluation } from "../job-card/ensure";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, globalCapReached, spendLast24h, userDailyCapUsd } from "../llm/spend";
@@ -71,6 +76,16 @@ export type EvaluateOutcome =
       status: JobStatus;
     }
   | { ok: false; jobId: string; error: string; retry: "retry" | "failed" | "skipped" };
+
+/** Primeras líneas de «at …» del stack de un error (sin el mensaje); `[]` si no hay. Para saber dónde reventó. */
+export function stackHead(e: unknown, lines = 8): string[] {
+  if (!(e instanceof Error) || typeof e.stack !== "string") return [];
+  return e.stack
+    .split("\n")
+    .filter((l) => l.trimStart().startsWith("at "))
+    .slice(0, lines)
+    .map((l) => l.trim());
+}
 
 /**
  * Texto de una excepción inesperada para `outcome.error` (→ job_queue.last_error y log): solo
@@ -218,6 +233,9 @@ export type EvaluateForProfileInput = {
    * (demo, tests) el checklist sale sin skills.
    */
   checklistSkills?: ChecklistSkills;
+  /** R31-03: la ficha verificada del aviso (la lee el prompt v1.5+ y la fase B de la tabla) y las respuestas de un toque. */
+  jobCard?: JobCard | null;
+  requirementAnswers?: ReadonlyMap<string, RequirementAnswer>;
   /**
    * El salario del aviso salió de un campo de la API (ver `salaryIsFromApi`). Ausente = false: sin
    * saber de dónde vino, el código no se fía de la cifra (demo, tests).
@@ -257,6 +275,8 @@ export type EvaluateForProfileResult =
       injection: InjectionInfo;
       /** El prompt completo se pasa del máximo: reintentar no sirve, hay que cambiar el perfil o el aviso. */
       promptTooLarge?: true;
+      /** R34-07: criterios sin las reglas que decide() necesita. No se llama al modelo ni se decide nada. */
+      invalidRules?: DecideRulesError;
     };
 
 /**
@@ -292,6 +312,21 @@ export async function evaluateForProfile(
   const flagsChanged =
     flags.length !== (job.flags ?? []).length || flags.some((f) => !(job.flags ?? []).includes(f));
 
+  // R34-07: reglas vacías o incompletas fallan cerrado antes de llamar al modelo (sin costo, sin inventar reglas)
+  const rulesCheck = checkDecideRules(rules);
+  if (!rulesCheck.ok) {
+    return {
+      ok: false,
+      error: {
+        kind: "prompt",
+        task: "evaluate_job",
+        detail: `criterios: ${rulesCheck.error.code}`,
+      },
+      injection,
+      invalidRules: rulesCheck.error,
+    };
+  }
+
   const vars = buildEvaluateJobVars({
     promptRef: promptVersion,
     profile: {
@@ -309,6 +344,7 @@ export async function evaluateForProfile(
     },
     rules,
     job,
+    jobCard: input.jobCard,
   });
 
   // El prompt completo (perfil, criterios y aviso) no puede pasarse del máximo: no se llama al
@@ -401,6 +437,8 @@ export async function evaluateForProfile(
       userSkills: skillsIn?.userSkills ?? [],
       terms: skillsIn?.terms ?? [],
       skillNames: skillsIn?.skillNames,
+      jobCard: input.jobCard ?? null,
+      ...(input.requirementAnswers ? { requirementAnswers: input.requirementAnswers } : {}),
     });
   } catch (e) {
     input.logger?.error(
@@ -538,7 +576,29 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   if (!profile || !criteria) {
     return { ok: false, jobId, error: "usuario sin perfil o criterios activos", retry: "failed" };
   }
-  const rules = criteria.rules as CriteriaRules;
+  // R34-07: con reglas vacías o incompletas no se evalúa: la oferta queda como está («Sin evaluar»), sin llamar al
+  // modelo (tampoco para la ficha) y sin inventar reglas. Solo el código del error y los campos, nunca valores.
+  const rulesCheck = checkDecideRules(criteria.rules);
+  if (!rulesCheck.ok) {
+    log.error(
+      {
+        user_id: job.userId,
+        job_id: job.id,
+        code: rulesCheck.error.code,
+        missing: rulesCheck.error.missing,
+      },
+      "criterios sin reglas: la oferta queda sin evaluar",
+    );
+    return { ok: false, jobId, error: `criterios: ${rulesCheck.error.code}`, retry: "skipped" };
+  }
+  const rules: CriteriaRules = rulesCheck.value;
+
+  // R31-03: la ficha del aviso, siempre antes de evaluar. Solo con JOB_CARD encendida; nunca frena la evaluación.
+  await ensureJobCardBeforeEvaluation(
+    { db, llm: deps.llm, logger: log, now: deps.now, signal: deps.signal },
+    job,
+  );
+  const cardCtx = await loadJobCardForEvaluation(db, { jdText: job.jdText, userId: job.userId });
 
   // Los niveles de skills solo alimentan el checklist: si falla la carga, la evaluación sigue
   let checklistSkills: ChecklistSkills | undefined;
@@ -585,6 +645,8 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
     job,
     reuse: reusable ?? undefined,
     checklistSkills,
+    jobCard: cardCtx.jobCard,
+    requirementAnswers: cardCtx.requirementAnswers,
     salaryFromApi: salaryFromApiKinds(sources.map((r) => r.kind)),
     logger: log,
     signal: deps.signal,
@@ -1214,6 +1276,12 @@ export async function evaluateJobNow(
     try {
       outcome = await evaluateJobById(jobId, deps);
     } catch (e) {
+      // Solo queda la clase del error en la cola; el servidor tiene que poder decir DÓNDE reventó. Se loguean las
+      // primeras líneas del stack (rutas y funciones, sin el mensaje, que puede citar datos).
+      log.error(
+        { err: unexpectedError(e), stack: stackHead(e) },
+        "evaluación inmediata: error inesperado",
+      );
       outcome = {
         ok: false,
         jobId,

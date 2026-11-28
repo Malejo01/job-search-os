@@ -13,7 +13,7 @@ export function AffinitySealLink({ children }: { children: ReactNode }) {
   return (
     <button
       type="button"
-      aria-label="Ver cómo se compone el puntaje"
+      aria-label="Ver cómo calculamos la afinidad"
       aria-controls={AFFINITY_PANEL_ID}
       className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       onClick={() => {

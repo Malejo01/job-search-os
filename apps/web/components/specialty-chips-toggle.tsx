@@ -99,12 +99,12 @@ export function SpecialtyChipsToggle({
             Todas las áreas
           </span>
           {isAllSelected ? (
-            <span className="shrink-0 rounded-badge bg-surface-muted px-2 py-0.5 text-[11px] font-bold text-fg">
+            <span className="shrink-0 rounded-badge bg-surface-muted px-2 py-0.5 text-xs font-bold text-fg">
               por defecto
             </span>
           ) : null}
         </div>
-        <span className="text-[11px] leading-tight text-fg-subtle">
+        <span className="text-xs leading-tight text-fg-subtle">
           Incluye todos los avisos de la carrera
         </span>
       </button>
@@ -128,20 +128,20 @@ export function SpecialtyChipsToggle({
           >
             <div className="flex w-full items-center justify-between gap-2">
               <span
-                className={`text-xs ${
+                className={`text-sm ${
                   isChecked ? "font-semibold text-fg" : "font-medium text-fg-muted"
                 }`}
               >
                 {chip.label}
               </span>
               {chip.rare ? (
-                <span className="shrink-0 rounded-badge bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-fg-subtle">
+                <span className="shrink-0 rounded-badge bg-surface-muted px-2 py-0.5 text-xs font-semibold text-fg-subtle">
                   te avisamos si aparece
                 </span>
               ) : null}
             </div>
             {chip.examples && chip.examples.length > 0 ? (
-              <span className="text-[11px] leading-tight text-fg-subtle">
+              <span className="text-xs leading-tight text-fg-subtle">
                 {chip.examples.join(", ")}
               </span>
             ) : null}

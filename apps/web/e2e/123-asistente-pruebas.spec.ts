@@ -43,6 +43,7 @@ async function ensureCommonUser(): Promise<void> {
         userId: COMMON_USER_ID,
         displayName: "Persona C",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: "u_asistente_c@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona C para el e2e del asistente. No corresponde a nadie real y solo existe en la base local.",

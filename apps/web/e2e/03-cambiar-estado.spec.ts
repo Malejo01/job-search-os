@@ -19,14 +19,14 @@ test.describe("Flujo 3: cambiar estado → persiste", () => {
     await login(page);
     await page.goto(`/jobs/${jobId}`);
     await expect(page.getByText("Evaluada", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Marcar aplicada" }).click();
-    await expect(page.getByText("Aplicada", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Ya me postulé" }).click();
+    await expect(page.getByText("Ya me postulé", { exact: true })).toBeVisible();
     // Desde aplicada ya no se puede volver a marcar aplicada: los botones siguen a la máquina de estados
-    await expect(page.getByRole("button", { name: "Marcar aplicada" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Ya me postulé" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Entrevista" })).toBeVisible();
 
     await page.reload();
-    await expect(page.getByText("Aplicada", { exact: true })).toBeVisible();
+    await expect(page.getByText("Ya me postulé", { exact: true })).toBeVisible();
     expect(await jobStatus(jobId)).toBe("aplicada");
   });
 });

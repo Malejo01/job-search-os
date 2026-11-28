@@ -50,7 +50,9 @@ test.describe("Flujo 45: aviso de We Work Remotely", () => {
     await login(page);
     await page.goto(`/jobs/${jobId}`);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
-    await expect(page.getByText(/We Work Remotely pide una suscripción paga/)).toBeVisible();
+    // R30-10 (plan §7): el aviso de suscripción solo sale si está confirmado; ninguna fuente trae
+    // hoy ese dato, así que no se muestra
+    await expect(page.getByText(/We Work Remotely pide una suscripción paga/)).toHaveCount(0);
     const link = page.getByRole("link", { name: /Postular en el sitio de la empresa \(Lever\)/ });
     await expect(link).toHaveAttribute("href", "https://jobs.lever.co/empresa-ficticia/123");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");

@@ -46,22 +46,23 @@ test.describe("Flujo 90: A tu favor / Te falta o te frena", () => {
     await login(page);
     await page.goto("/jobs?estado=todas");
     const card = page.getByRole("listitem").filter({ hasText: title }).first();
-    // Tarjeta K2 (C9-8): sin checklist, los chips salen de fortalezas y debilidades
-    await expect(card.getByText("Excel ficticio")).toBeVisible();
-    await expect(card.getByText("Facturación ficticia")).toBeVisible();
-    await expect(card.getByText("Te frena: Bloqueador ficticio")).toBeVisible();
+    // R30-04: la tarjeta ya no resume fortalezas ni brechas del modelo; solo dice lo que sale de la
+    // tabla de requisitos (esta evaluación no trae tabla: ninguna línea) y trae sus tres botones
+    await expect(card.getByTestId("tarjeta-titulo")).toHaveText(title);
+    await expect(card.getByText("Excel ficticio")).toHaveCount(0);
+    await expect(card.getByText("Facturación ficticia")).toHaveCount(0);
+    await expect(card.getByText(/Te frena/)).toHaveCount(0);
+    await expect(card.getByRole("link", { name: "Ver oferta" })).toBeVisible();
+    await expect(card.getByRole("button", { name: /^Guardar/ })).toBeVisible();
+    await expect(card.getByRole("button", { name: /^Descartar/ })).toBeVisible();
 
     await page.goto(`/jobs/${jobId}`);
-    const favor = page.getByTestId("fit-favor");
-    await expect(favor.getByRole("heading", { name: "A tu favor" })).toBeVisible();
-    await expect(favor.getByText("Excel ficticio")).toBeVisible();
-    await expect(favor.getByText("Atención al cliente ficticia")).toBeVisible();
-    await expect(favor.getByText("Pocos candidatos")).toBeVisible();
-    const falta = page.getByTestId("fit-falta");
-    await expect(falta.getByRole("heading", { name: "Te falta o te frena" })).toBeVisible();
-    await expect(falta.getByText("Te frena: Bloqueador ficticio")).toBeVisible();
-    await expect(falta.getByText("Facturación ficticia")).toBeVisible();
-    await expect(falta.getByText("Ojo: Riesgo ficticio")).toBeVisible();
+    // R30-09: el detalle ya no mezcla fortalezas, brechas y riesgos del modelo: todo sale de la
+    // tabla de requisitos («Cómo encaja»); los riesgos quedan en «Cómo se calculó»
+    await expect(page.getByTestId("como-encaja")).toBeVisible();
+    await expect(page.getByTestId("fit-favor")).toHaveCount(0);
+    await expect(page.getByTestId("fit-falta")).toHaveCount(0);
+    await expect(page.getByTestId("seccion-como-se-calculo")).toContainText("Riesgo ficticio");
   });
 
   for (const tema of ["claro", "oscuro"] as const) {

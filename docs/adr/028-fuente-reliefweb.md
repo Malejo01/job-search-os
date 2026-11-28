@@ -34,7 +34,7 @@ Las fuentes tradicionales del pool (Get on Board, Jobicy, Remote OK, Himalayas, 
 
 3. **Mapeo a `RawJob` y reglas de falla cerrado:**
    - `id`: identificador numérico de ReliefWeb (`item.id`).
-   - `source.externalId`: `reliefweb:${item.id}` (o `${item.id}`).
+   - `source.externalId`: `reliefweb:${item.id}`.
    - `source.url`: URL canónica del aviso (`item.fields.url`).
    - `title`: título del puesto (`item.fields.title`).
    - `companyRaw`: primera entidad en `item.fields.source[0].name` (ej. "UNHCR", "UNICEF", "Oxfam").
@@ -55,13 +55,21 @@ Las fuentes tradicionales del pool (Get on Board, Jobicy, Remote OK, Himalayas, 
 5. **Base de datos e invariantes:**
    - **Sin migraciones inmediatas:** No se modifica el enum PostgreSQL `source_kind` ni la tabla `ats_boards`.
    - En `RawJob.source.kind`, el adapter utiliza `'other'` con `source.name = 'ReliefWeb'` (siguiendo el precedente de `torre.ts`), permitiendo que el pipeline lo procese sin requerir cambios de esquema en base de datos.
-   - **Propuesta para Mauro:** Cuando se decida habilitar la ingesta en el pool general con cron periódico, agregar el valor `'reliefweb'` al enum `source_kind` en `packages/db/schema.ts` con su respectiva migración generada con drizzle-kit.
+   - **Propuesta para el responsable:** Cuando se decida habilitar la ingesta en el pool general con cron periódico, agregar el valor `'reliefweb'` al enum `source_kind` en `packages/db/schema.ts` con su respectiva migración generada con drizzle-kit.
 
 6. **Atribución y términos de servicio:**
    - Cumple estrictamente con la licencia Creative Commons Attribution 4.0 International (CC BY 4.0):
      - Cada aviso mantiene el enlace directo a la oferta original (`source.url`).
      - Se acredita el nombre de la organización publicadora (`companyRaw`).
      - No se sugiere patrocinio, alianza ni aval oficial de Naciones Unidas o UN OCHA.
+
+## Ampliación R32-05: valor propio de `source_kind` y topes
+- **Valor propio:** `reliefweb` se suma al enum `source_kind` (migración 0090) en lugar de compartir `other` con Jooble y Careerjet: el intervalo mínimo y el historial de corridas del pool se calculan por `source_kind`, y compartirlos dejaría a una fuente sin correr por culpa de otra (ADR-039). El adaptador mapea con `source.kind = "reliefweb"` y la fuente está en `POOL_SOURCE_NAMES` (no en `POOL_RECOMMENDED_SOURCES`).
+- **Se prende** con `reliefweb` en `POOL_SOURCES` más `RELIEFWEB_APPNAME`; sin el `appname`, cero llamadas. Debe aplicarse la 0090 antes.
+- **Topes:** como mucho 10 pedidos por corrida de hasta 100 avisos (4 de 50 por defecto), con cualquier valor que se le pase. Intervalo mínimo de 5 horas entre corridas.
+- **Filtro por países** (Argentina y la región, ISO3) en la consulta; la forma exacta del filtro se verifica con `pnpm pool:fetch reliefweb --dry-run`.
+- **Falla cerrado:** una página con forma inesperada se descarta entera y corta la corrida (`partialError: "parse"`).
+- **Atribución (CC BY 4.0):** «Fuente: ReliefWeb» con link a reliefweb.int y el link al aviso original; la organización que publica va como empresa. No sugiere aval de Naciones Unidas.
 
 ## Consequences
 - **Positivas:** Permite disponer del adapter completamente testeado sobre fixtures sintéticas, listo para activarse una vez registrado el `appname` ante UN OCHA.

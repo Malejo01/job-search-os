@@ -76,7 +76,23 @@ const conflict = z
       (MONTH.safeParse(c.previous).success && MONTH.safeParse(c.proposed).success),
   );
 
+const softSituation = z.enum(["lead", "problem", "clients", "organize"]);
+
 export const CV_CHAT_STATE_SCHEMA = z.strictObject({
+  // R33: opcionales para aceptar el estado de un navegador con la versión anterior de la página
+  guided: z.boolean().default(false),
+  skipped: z.array(name(40)).max(40).default([]),
+  summary: z
+    .strictObject({
+      experience: str(220).nullable(),
+      goal: str(220).nullable(),
+      strengths: str(220).nullable(),
+      text: str(600).nullable(),
+    })
+    .default({ experience: null, goal: null, strengths: null, text: null }),
+  softAnswers: z.partialRecord(softSituation, name(220)).default({}),
+  softDecided: z.record(name(60), z.enum(["used", "declined"])).default({}),
+  softSkills: z.array(name(60)).max(4).default([]),
   target: str(120).nullable(),
   confirmed: z.array(confirmed).max(20),
   works: z.array(work).max(6),

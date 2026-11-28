@@ -21,6 +21,8 @@ test.describe.configure({ mode: "serial" });
 async function clean() {
   const { db, close } = ownerDb();
   try {
+    // R33-02: el borrador automático del chat también se borra
+    await db.delete(s.cvDrafts).where(eq(s.cvDrafts.userId, E2E_B_USER_ID));
     await db
       .delete(s.llmCalls)
       .where(and(eq(s.llmCalls.userId, E2E_B_USER_ID), like(s.llmCalls.label, "cv:%")));
@@ -48,14 +50,18 @@ test("fechas incompletas: repregunta una vez y «no me acuerdo» la corta", asyn
 
   const send = async (text: string, siguiente: RegExp | string) => {
     await answer.fill(text);
-    await page.getByRole("button", { name: "Enviar", exact: true }).click();
+    await page.getByRole("button", { name: "Responder y seguir", exact: true }).click();
     // Con la base y el servidor cargados (corrida grande) la respuesta del fake tarda más de los 5 s por defecto
     await expect
       .poll(() => lastMessage(page), { timeout: 20_000 })
       .toMatch(typeof siguiente === "string" ? new RegExp(siguiente) : siguiente);
   };
 
-  await send("Analista de datos", /empresa/i);
+  await send("Analista de datos", /hace cuánto trabajás/i);
+  // R33-04: las tres preguntas del resumen profesional van antes de la experiencia
+  await send("Tres años en administración", /próximo trabajo/i);
+  await send("Quiero sumarme a un equipo de datos", /cosas hacés bien/i);
+  await send("Ordeno información y detecto errores", /en qué empresa/i);
   await send("Empresa Ficticia Repreguntas", /qué cargo/i);
   await send("Analista Junior", /desde cuándo/i);
 

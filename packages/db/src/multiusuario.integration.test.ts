@@ -35,6 +35,9 @@ const CATALOG_TABLES = [
   "public_job_skills",
   "public_job_fetches",
   "role_market_snapshots",
+  // Ficha del aviso (R31-01, ADR-048): sin user_id a propósito (es función del texto); la app solo lee las de sus
+  // ofertas o del pool (rls/0071) y la escribe el proceso de servicio.
+  "job_cards",
   // Boards de ATS del pool (ronda 47): sin policy, solo el cron con la conexión de servicio.
   "ats_boards",
   // Lista de espera pública (ronda 63): personas sin cuenta, sin policy; solo entra por waitlist_join.
@@ -56,6 +59,10 @@ const CATALOG_TABLES = [
   "academy_reviews",
   // Revisión de los textos del rediseño (R26-02): igual que academy_reviews (rls/0066).
   "text_reviews",
+  // Carreras abiertas y su historial (R32-03): sin user_id, sin policy para la app; se leen y escriben solo por
+  // funciones SECURITY DEFINER (rls/0074).
+  "open_careers",
+  "career_opening_events",
 ];
 
 /**
@@ -142,6 +149,13 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into candidate_facts (user_id, key, project, claim, source)
                values (${id}, 'k1', 'Proyecto de Prueba', 'Afirmación ficticia', 'https://example.test')`;
   await owner`insert into application_settings (user_id, availability) values (${id}, 'inmediata')`;
+  await owner`insert into requirement_answers (user_id, req_key, answer)
+               values (${id}, 'formacion:titulo ficticio', 'si')`;
+  // R33-02: borrador automático del CV
+  await owner`insert into cv_drafts (user_id, kind, payload) values (${id}, 'chat', '{"v":1}'::jsonb)`;
+  // R34-02: versión del CV adaptada a una oferta
+  await owner`insert into cv_offer_versions (user_id, job_id, proposal)
+               values (${id}, ${job!.id}, '{"entries":[],"skills":[],"changes":[]}'::jsonb)`;
   await owner`insert into contacts (user_id, name) values (${id}, 'Contacto de Prueba')`;
   await owner`insert into talent_platforms (user_id, name, status) values (${id}, 'Plataforma de Prueba', 'pendiente')`;
   const [skill] = await owner<{ id: string }[]>`
@@ -859,6 +873,11 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       ).rejects.toThrow(/admin_beta_feedback: no autorizado/);
     },
     // R29-02: informes de revisión, solo app_admins (rls/0069)
+    admin_calibration_marks: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select * from admin_calibration_marks(10)`),
+      ).rejects.toThrow(/admin_calibration_marks: no autorizado/);
+    },
     admin_feedback_reports: async () => {
       await expect(asUser(A, (tx) => tx`select * from admin_feedback_reports(10)`)).rejects.toThrow(
         /admin_feedback_reports: no autorizado/,
@@ -1100,6 +1119,52 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       await expect(asUser(A, (tx) => tx`select * from text_review_history(null)`)).rejects.toThrow(
         /text_review: no autorizado/,
       );
+    },
+    // R32-03 (rls/0074): carreras abiertas. La lista la lee cualquiera; cambiarla y ver quién y cuándo, solo admins.
+    careers_open_list: async () => {
+      const [r] = await asUser(A, (tx) => tx<{ l: string[] }[]>`select careers_open_list() as l`);
+      expect(Array.isArray(r!.l)).toBe(true);
+    },
+    admin_career_set: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select admin_career_set('contabilidad_ajena', true)`),
+      ).rejects.toThrow(/admin_career_set: no autorizado/);
+      expect(
+        await owner`select 1 from open_careers where career = 'contabilidad_ajena'`,
+      ).toHaveLength(0);
+    },
+    admin_careers_open: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_careers_open()`)).rejects.toThrow(
+        /admin_careers_open: no autorizado/,
+      );
+    },
+    admin_career_history: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_career_history(30)`)).rejects.toThrow(
+        /admin_career_history: no autorizado/,
+      );
+    },
+    // R32-01 (rls/0074): solo tocan la fila de auth.uid(); con A no cambia nada de B.
+    career_prompt_save: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await asUser(
+        A,
+        (tx) => tx`select career_prompt_save(array['otra_ajena'], null, array[]::text[])`,
+      );
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
+    },
+    career_prompt_dismiss: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await asUser(A, (tx) => tx`select career_prompt_dismiss()`);
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
+    },
+    // R32-09: la baja del email actúa sobre el uuid que le pasan (el enlace firmado lo verifica la ruta), así que la
+    // app no tiene EXECUTE: solo la conexión de servicio. A no puede darle de baja el email a B.
+    news_email_unsubscribe: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await expect(
+        asUser(A, (tx) => tx`select news_email_unsubscribe(${B}::uuid)`),
+      ).rejects.toThrow(/permission denied/);
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
     },
     // Sin parámetros: solo responde por la sesión (A no tiene roles).
     my_roles: async () => {

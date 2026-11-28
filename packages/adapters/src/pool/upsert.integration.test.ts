@@ -584,6 +584,78 @@ describe("upsertPoolJobs", () => {
     expect(again).toMatchObject({ updated: 0, unchanged: 1 });
   });
 
+  it("R32-08: el sueldo en la moneda original se guarda, cambiarlo actualiza y lo anterior queda en null", async () => {
+    const base = rawJob({
+      id: "orig-ars",
+      companyRaw: "Empresa Ficticia 6",
+      jdText: JD_C + " Orig.",
+    });
+    await upsertPoolJobs([base], { db: conn.db, logger, now: () => T0, taxonomy });
+    const before = await row("orig-ars");
+    expect([
+      before.salaryOriginalMin,
+      before.salaryOriginalMax,
+      before.salaryOriginalCurrency,
+      before.salaryOriginalPeriod,
+    ]).toEqual([null, null, null, null]);
+
+    const withOriginal = rawJob({
+      id: "orig-ars",
+      companyRaw: "Empresa Ficticia 6",
+      jdText: JD_C + " Orig.",
+      salaryOriginal: { min: 1_200_000, max: 1_500_000, currency: "ARS", period: "mensual" },
+    });
+    const out = await upsertPoolJobs([withOriginal], {
+      db: conn.db,
+      logger,
+      now: () => T1,
+      taxonomy,
+    });
+    expect(out).toMatchObject({ updated: 1, unchanged: 0, inserted: 0 });
+    const after = await row("orig-ars");
+    expect([
+      after.salaryOriginalMin,
+      after.salaryOriginalMax,
+      after.salaryOriginalCurrency,
+      after.salaryOriginalPeriod,
+    ]).toEqual([1_200_000, 1_500_000, "ARS", "mensual"]);
+    // Los dólares siguen vacíos: no se convierte nada
+    expect([after.salaryMinUsd, after.salaryMaxUsd]).toEqual([null, null]);
+
+    // Lo mismo otra vez: sin cambios
+    const again = await upsertPoolJobs([withOriginal], {
+      db: conn.db,
+      logger,
+      now: () => T1,
+      taxonomy,
+    });
+    expect(again).toMatchObject({ updated: 0, unchanged: 1 });
+  });
+
+  it("R32-08: la base rechaza un monto sin moneda, una moneda mal escrita y un período desconocido", async () => {
+    await upsertPoolJobs([rawJob({ id: "orig-check", companyRaw: "Empresa Ficticia 6" })], {
+      db: conn.db,
+      logger,
+      now: () => T0,
+      taxonomy,
+    });
+    const t = s.publicJobs;
+    const r = await row("orig-check");
+    for (const patch of [
+      { salaryOriginalMin: 100 },
+      { salaryOriginalMin: 100, salaryOriginalCurrency: "pesos" },
+      { salaryOriginalMin: 100, salaryOriginalCurrency: "ars" },
+      { salaryOriginalMin: 100, salaryOriginalCurrency: "ARS", salaryOriginalPeriod: "quincenal" },
+    ]) {
+      await expect(conn.db.update(t).set(patch).where(eq(t.id, r!.id))).rejects.toThrow();
+    }
+    // Una moneda sin montos tampoco rompe nada, y un original completo sí entra
+    await conn.db
+      .update(t)
+      .set({ salaryOriginalMin: 100, salaryOriginalCurrency: "ARS", salaryOriginalPeriod: "hora" })
+      .where(eq(t.id, r!.id));
+  });
+
   it("una fila sin skills pero con JD las rehace aunque no haya cambiado", async () => {
     const raw = rawJob({ id: "repair", companyRaw: "Empresa Ficticia 7" });
     await upsertPoolJobs([raw], { db: conn.db, logger, now: () => T0, taxonomy });

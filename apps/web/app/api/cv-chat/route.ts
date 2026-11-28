@@ -11,6 +11,8 @@ import {
 import { createDb, requireDatabaseUrl, type Db } from "@job-search-os/db";
 import {
   applyCvWrite,
+  cvAllSkills,
+  cvSummaryFinal,
   CV_CHAT_MAX_TURNS,
   CV_CHAT_TURN_RESERVE_USD,
   CV_CHAT_WRITE_RESERVE_USD,
@@ -44,9 +46,11 @@ import {
   cvChatAllowed,
   loadChatSeed,
   saveChatHistory,
+  saveChatLinks,
   skillCatalogNames,
 } from "@/lib/cv-chat-server";
 import { originAllowed, signCvTicket, verifyCvTicket } from "@/lib/cv-chat-ticket";
+import { discardDraft, loadChatDraft, saveChatDraft } from "@/lib/cv-draft";
 import { serviceLlm } from "@/lib/llm-service";
 import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { isOnboardingComplete } from "@/lib/onboarding";
@@ -70,6 +74,7 @@ type ErrorCode =
   | "not_ready"
   | "not_found"
   | "bad_ticket"
+  | "no_draft"
   | "too_long"
   | "empty"
   | "injection"
@@ -87,6 +92,7 @@ const MESSAGES: Record<Exclude<ErrorCode, "capped">, string> = {
   not_ready: "Antes completá los términos y tu perfil.",
   not_found: "No encontramos esta página.",
   bad_ticket: "La charla venció. Empezá de nuevo; lo que ya confirmaste en tu historial sigue ahí.",
+  no_draft: "No encontramos un borrador para retomar. Empezá de nuevo.",
   too_long: "El mensaje es muy largo. Contalo en pocas líneas.",
   empty: "Escribí una respuesta o tocá «Saltear».",
   injection: "No pudimos usar ese mensaje. Contestá la pregunta con tus palabras.",
@@ -116,6 +122,7 @@ const STATUS: Record<ErrorCode, number> = {
   not_ready: 403,
   not_found: 404,
   bad_ticket: 409,
+  no_draft: 404,
   too_long: 413,
   empty: 422,
   injection: 422,
@@ -149,6 +156,9 @@ function succeed(body: Record<string, unknown>): Response {
 const stateField = z.unknown();
 const requestSchema = z.discriminatedUnion("action", [
   z.strictObject({ action: z.literal("start") }),
+  // R33-02: retomar el borrador guardado y descartarlo. Ninguno lleva estado: sale de la base, con la sesión.
+  z.strictObject({ action: z.literal("resume") }),
+  z.strictObject({ action: z.literal("discard") }),
   z.strictObject({
     action: z.literal("turn"),
     ticket: z.string(),
@@ -166,6 +176,14 @@ const requestSchema = z.discriminatedUnion("action", [
     action: z.literal("confirm"),
     ticket: z.string(),
     history: z.array(z.unknown()).max(20),
+    // C-45: los links que dijo en la charla; se validan de nuevo (solo https) antes de guardarse
+    links: z
+      .strictObject({
+        linkedin: z.string().max(200).nullable().optional(),
+        github: z.string().max(200).nullable().optional(),
+        portfolio: z.string().max(200).nullable().optional(),
+      })
+      .optional(),
   }),
 ]);
 
@@ -218,8 +236,19 @@ export async function POST(request: Request): Promise<Response> {
   const secret = process.env.AUTH_SECRET;
   const logger = createLogger({ user_id: userId, trigger: "cv_chat" });
 
+  // Descartar el borrador no llama al modelo ni mide gasto: solo borra lo de esta persona (RLS)
+  if (req.action === "discard") {
+    try {
+      await discardDraft(userId, "chat");
+      return succeed({ discarded: true });
+    } catch {
+      logger.error({}, "cv chat: no se pudo descartar el borrador");
+      return fail("server");
+    }
+  }
+
   let ticket = { conversationId: "", turns: 0 };
-  if (req.action !== "start") {
+  if (req.action !== "start" && req.action !== "resume") {
     const t = verifyCvTicket(secret, userId, req.ticket, now);
     if (!t) return fail("bad_ticket");
     ticket = t;
@@ -237,7 +266,15 @@ export async function POST(request: Request): Promise<Response> {
       const entries = req.history.map(checkEntry);
       if (entries.some((e) => e === null)) return fail("bad_request");
       const saved = await saveChatHistory(userId, entries as CvHistoryInput[]);
-      logger.info({ run_id: ticket.conversationId, ...saved }, "cv chat: historial confirmado");
+      const linksSaved = req.links ? await saveChatLinks(userId, req.links) : 0;
+      logger.info(
+        { run_id: ticket.conversationId, ...saved, links: linksSaved },
+        "cv chat: historial confirmado",
+      );
+      // Ya está confirmado: el borrador sobra (si no se puede borrar, lo borra la limpieza a los 30 días)
+      await discardDraft(userId, "chat").catch(() => {
+        logger.warn({ run_id: ticket.conversationId }, "cv chat: no se pudo borrar el borrador");
+      });
       return succeed({ saved });
     }
 
@@ -302,7 +339,8 @@ export async function POST(request: Request): Promise<Response> {
           ),
         );
         if (!r.ok) return refuse(r.reject);
-        const state = initialCvChatState(await loadChatSeed(userId));
+        // R33: flujo guiado (resumen profesional y situaciones de habilidades blandas)
+        const state = initialCvChatState({ ...(await loadChatSeed(userId)), guided: true });
         const first = nextCvTopic(state);
         const t = issue(0);
         if (!t) return fail("server");
@@ -312,6 +350,39 @@ export async function POST(request: Request): Promise<Response> {
           question: first ? cvTopicQuestion(first, state) : null,
           progress: cvChecklistProgress(state),
           maxTurns: CV_CHAT_MAX_TURNS,
+        });
+      }
+
+      if (req.action === "resume") {
+        // R33-02: el estado sale de la base (borrador de esta persona, validado de nuevo), nunca del navegador.
+        // Cuenta como un inicio de charla para los topes, con los turnos que ya llevaba.
+        const draft = await loadChatDraft(userId, new Date(now));
+        if (!draft) return fail("no_draft");
+        const r = await reserve(
+          "start",
+          0,
+          decideCap(
+            draft.state.turns,
+            (m) =>
+              cvChatStartCapReason(m.startsToday, chatLimits.maxStartsPerDay) ??
+              cvChatMonthTurnsReason(m.interviewTurnsThisMonth),
+          ),
+        );
+        if (!r.ok) return refuse(r.reject);
+        // Lo confirmado se vuelve a leer: pudo cambiar desde que se guardó el borrador
+        const fresh = initialCvChatState(await loadChatSeed(userId));
+        const state: CvChatState = { ...draft.state, confirmed: fresh.confirmed };
+        const next = nextCvTopic(state);
+        const t = issue(state.turns);
+        if (!t) return fail("server");
+        return succeed({
+          ticket: t,
+          state,
+          question: next ? cvTopicQuestion(next, state) : null,
+          progress: cvChecklistProgress(state),
+          maxTurns: CV_CHAT_MAX_TURNS,
+          resumed: true,
+          closed: next ? null : "complete",
         });
       }
 
@@ -380,7 +451,14 @@ export async function POST(request: Request): Promise<Response> {
         const closed = cvChatCloseReason(next);
         const t = issue(next.turns);
         if (!t) return fail("server");
+        // R33-02: el borrador sale del estado que calculó el servidor, no del que mandó el navegador. Si no se
+        // puede guardar, la charla sigue: se avisa en el log (sin datos de la persona) y se reintenta en el próximo turno.
+        const draftSaved = await saveChatDraft(userId, next, new Date(now)).catch(() => false);
+        if (!draftSaved) {
+          logger.warn({ run_id: ticket.conversationId }, "cv chat: no se pudo guardar el borrador");
+        }
         return succeed({
+          draftSaved,
           ticket: t,
           state: next,
           ack,
@@ -396,7 +474,8 @@ export async function POST(request: Request): Promise<Response> {
         lang: req.lang,
         target: state.target,
         history: chatOnly,
-        skills: state.skills,
+        // herramientas que dijo y habilidades blandas que confirmó con «Usarla» (R33-04)
+        skills: cvAllSkills(state),
         languages: state.languages.map(fmtLanguage),
       };
       const hasWork = chatOnly.some((h) => h.kind === "trabajo");
@@ -441,12 +520,15 @@ export async function POST(request: Request): Promise<Response> {
           );
         }
       }
+      // R33-04: el resumen es el que la persona dejó en la revisión; si no, el de la IA que pasó el validador o el
+      // que arman sus respuestas. En el flujo anterior (sin resumen guiado) sigue siendo el del modelo, ya verificado.
+      const summary = state.guided ? cvSummaryFinal(state, written.summary) : written.summary;
       const doc = await buildChatPreview(userId, {
         lang: req.lang,
         history: written.history,
-        summary: written.summary,
+        summary,
         extras: {
-          skills: state.skills,
+          skills: cvAllSkills(state),
           languages: state.languages,
           links: state.links,
           target: state.target,
@@ -458,7 +540,7 @@ export async function POST(request: Request): Promise<Response> {
       return succeed({
         ticket: t,
         doc,
-        written: { history: written.history, summary: written.summary },
+        written: { history: written.history, summary },
         usedModel,
         stats: written.stats,
       });

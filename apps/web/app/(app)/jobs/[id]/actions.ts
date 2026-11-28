@@ -22,6 +22,7 @@ import {
   saveHumanVerdict,
 } from "@/lib/job-detail";
 import { evaluatingSql } from "@/lib/jobs";
+import { canViewRecorrido } from "@/lib/recorrido-access";
 import { requireActiveUserId } from "@/lib/session";
 
 /** Server Actions del detalle (JS-016). Validan la entrada y delegan en lib/job-detail (transition()). */
@@ -41,9 +42,16 @@ export async function changeStatusAction(formData: FormData): Promise<void> {
   revalidatePath("/jobs");
 }
 
+/**
+ * «Proponer otro puntaje» (R30-11): solo testers y admins. La pantalla ya no lo muestra al resto,
+ * pero la regla se aplica acá, en el servidor, y falla cerrado: sin permiso no se guarda nada.
+ */
 export async function humanScoreAction(formData: FormData): Promise<void> {
   const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
+  if (!(await canViewRecorrido(userId))) {
+    redirect(isUuid(jobId) ? `/jobs/${jobId}?error=permiso` : "/jobs");
+  }
   const evaluationId = String(formData.get("evaluationId") ?? "");
   const rawScore = String(formData.get("humanScore") ?? "").trim();
   const note = String(formData.get("humanNote") ?? "").trim();

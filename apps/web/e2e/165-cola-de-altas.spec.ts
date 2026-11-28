@@ -38,6 +38,7 @@ async function seed(): Promise<void> {
         userId: id,
         displayName: "Persona ficticia",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: `cola-altas-e2e-${id.slice(-1)}`,
       });
       await db

@@ -2,18 +2,31 @@
 
 import {
   CV_CHAT_MAX_INPUT_CHARS,
+  cvCanFinish,
+  cvChecklistProgress,
   cvConflictOptions,
+  cvPendingTopics,
   cvProgressShown,
+  cvReopenTopic,
+  cvSoftDecide,
+  cvSummaryDraft,
+  cvTopicQuestion,
+  nextCvTopic,
   type CvChatState,
   type CvDocument,
   type CvHistoryInput,
+  type CvSoftDecision,
+  type CvUiTopic,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CvPreview } from "@/components/cv-preview";
 import { joinDictated } from "@/components/dictar-engine";
 import { VoiceInput } from "@/components/voice-input-lazy";
-import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { Alert, buttonClasses, inputClasses } from "@/components/ui";
+import { CV_ASISTENTE_TEXTOS, CV_CALIDAD_TEXTOS } from "@/lib/textos-rediseno";
+import { SoftPanel, SummaryField, TopicList, softPanelReady } from "./guided-panels";
+import { ReviewEditor } from "./review-editor";
 
 /**
  * Chat de CV (C-25, CVC-5). Cliente: lleva el estado de la charla en memoria y lo manda en cada pedido a
@@ -33,15 +46,24 @@ type ApiErr = {
   links?: { label: string; href: string }[];
 };
 
+const T = CV_ASISTENTE_TEXTOS.borrador;
+const Q = CV_ASISTENTE_TEXTOS.pregunta;
+const F = CV_ASISTENTE_TEXTOS.terminar;
+const fill = (text: string, values: Record<string, string>): string =>
+  // Sin template literal: la guarda de copia (`packages/db/src/ui-copy.test.ts`) empareja backticks y tomaba de acá
+  // hasta el siguiente como si fuera un texto visible (falso positivo con `res.json()`)
+  Object.entries(values).reduce((t, [k, v]) => t.replace("{" + k + "}", v), text);
+
+/** Para «Volver a la pregunta anterior» (C-11): cómo estaba la charla antes de cada respuesta. */
+type Snapshot = { state: CvChatState; messages: Msg[] };
+const MAX_BACK = 25;
+
 // C9-11: primitivas del rediseño. Una sola acción lima por paso de la charla
 const PRIMARY = buttonClasses();
 const SECONDARY = buttonClasses({ variant: "secondary" });
 const SECONDARY_SM = buttonClasses({ variant: "secondary", size: "sm" });
 const FIELD = inputClasses();
 const TEXTAREA = inputClasses({ multiline: true });
-const FIELDSET = cardClasses({ padding: "none", className: "flex flex-col gap-3 p-4 sm:p-5" });
-// `float-left w-full`: la leyenda queda dentro del panel (sin borde, una leyenda normal se pega arriba)
-const LEGEND = "float-left w-full text-base font-bold text-fg";
 
 async function post(body: Record<string, unknown>): Promise<ApiOk | ApiErr> {
   try {
@@ -56,21 +78,14 @@ async function post(body: Record<string, unknown>): Promise<ApiOk | ApiErr> {
   }
 }
 
-const lines = (s: string, max: number): string[] =>
-  s
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l !== "")
-    .slice(0, max);
-
-const csv = (s: string, max: number): string[] =>
-  s
-    .split(",")
-    .map((l) => l.trim().slice(0, 60))
-    .filter((l) => l !== "")
-    .slice(0, max);
-
-export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
+export function CvChat({
+  serverTranscribe,
+  hasDraft = false,
+}: {
+  serverTranscribe: boolean;
+  /** R33-02: hay un borrador sin confirmar guardado para esta persona. */
+  hasDraft?: boolean;
+}) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -78,7 +93,11 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
   const [state, setState] = useState<CvChatState | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [back, setBack] = useState<Snapshot[]>([]);
+  const [dictated, setDictated] = useState(false);
+  const [confirmFinish, setConfirmFinish] = useState(false);
+  // El avance sale del estado: la misma cuenta que hace el servidor (siempre 7 temas)
+  const progress = state ? cvChecklistProgress(state) : null;
   const [lang, setLang] = useState<"es" | "en">("es");
   const [doc, setDoc] = useState<CvDocument | null>(null);
   const [written, setWritten] = useState<Written | null>(null);
@@ -116,9 +135,87 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
     if (!r.ok) return fail(r);
     setTicket(String(r.ticket));
     setState(r.state as CvChatState);
-    setProgress(r.progress as { done: number; total: number });
+    setBack([]);
     setMessages([{ role: "assistant", text: String(r.question ?? "") }]);
     setPhase("chat");
+  }
+
+  /** R33-02: retoma el borrador guardado. El estado sale del servidor (base, con la sesión), no del navegador. */
+  async function resume() {
+    setBusy(true);
+    setNotice(null);
+    const r = await post({ action: "resume" });
+    setBusy(false);
+    if (!r.ok) {
+      setNotice({ message: r.message || T.retomarError });
+      return;
+    }
+    setTicket(String(r.ticket));
+    setState(r.state as CvChatState);
+    setBack([]);
+    setMessages(r.question ? [{ role: "assistant", text: String(r.question) }] : []);
+    if (r.closed) toReview();
+    else setPhase("chat");
+  }
+
+  /**
+   * Pasa a «Esto es lo que entendí». En el flujo guiado, deja el borrador del resumen armado con lo que contó (si
+   * todavía no hay uno): la persona lo edita o lo vacía, y recién al armar el CV se usa.
+   */
+  function toReview() {
+    setNotice(null);
+    setConfirmFinish(false);
+    setState((s) =>
+      s && s.guided && s.summary.text === null
+        ? { ...s, summary: { ...s.summary, text: cvSummaryDraft(s) } }
+        : s,
+    );
+    setPhase("review");
+  }
+
+  /** «Volver a la pregunta anterior» (C-11): deshace la última respuesta sin reiniciar nada. */
+  function goBack() {
+    const prev = back[back.length - 1];
+    if (!prev || busy) return;
+    setBack((b) => b.slice(0, -1));
+    setState(prev.state);
+    setMessages(prev.messages);
+    setDraft("");
+    setDictated(false);
+    setConfirmFinish(false);
+    setNotice(null);
+    refocus.current = true;
+  }
+
+  /** «Volver a este tema» (C-07): lo que se salteó se vuelve a preguntar; lo ya contestado no se toca. */
+  function reopen(topic: CvUiTopic) {
+    if (!state || busy) return;
+    const next = cvReopenTopic(state, topic);
+    const question = nextCvTopic(next);
+    if (next === state || !question) return;
+    setBack((b) => [...b, { state, messages }].slice(-MAX_BACK));
+    setState(next);
+    setMessages((m) => [...m, { role: "assistant", text: cvTopicQuestion(question, next) }]);
+    setConfirmFinish(false);
+    refocus.current = true;
+  }
+
+  /** «Usarla» / «No, gracias» (C-19): la habilidad entra solo si la persona la elige. */
+  function decideSoft(skill: string, decision: CvSoftDecision) {
+    setState((s) => (s ? cvSoftDecide(s, skill, decision) : s));
+  }
+
+  /** «Empezar de nuevo»: descarta el borrador (solo lo borra la persona, con este botón) y arranca limpio. */
+  async function startOver() {
+    setBusy(true);
+    setNotice(null);
+    const r = await post({ action: "discard" });
+    setBusy(false);
+    if (!r.ok) {
+      setNotice({ message: T.descartadoError });
+      return;
+    }
+    await start();
   }
 
   /** `chosen`: la opción de un chip de «¿Cuál dejo?» (R12-3), que va como respuesta del turno. */
@@ -126,7 +223,7 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
     if (!state || busy) return;
     const message = (chosen ?? draft).trim();
     if (action === "turn" && message === "") {
-      setNotice({ message: "Escribí una respuesta o tocá «Saltear»." });
+      setNotice({ message: Q.escribiYa });
       answerRef.current?.focus();
       return;
     }
@@ -146,12 +243,14 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
       ...(r.ack ? [{ role: "assistant" as const, text: String(r.ack) }] : []),
       ...(r.question ? [{ role: "assistant" as const, text: String(r.question) }] : []),
     ];
+    setBack((b) => [...b, { state, messages }].slice(-MAX_BACK));
     setMessages((m) => [...m, ...added]);
     setTicket(String(r.ticket));
     setState(r.state as CvChatState);
-    setProgress(r.progress as { done: number; total: number });
     setDraft("");
-    if (r.closed) setPhase("review");
+    setDictated(false);
+    setConfirmFinish(false);
+    if (r.closed) toReview();
     else refocus.current = true;
   }
 
@@ -173,7 +272,13 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
     if (!written || busy) return;
     setBusy(true);
     setNotice(null);
-    const r = await post({ action: "confirm", ticket, history: written.history });
+    // C-45: los links que dijo se guardan junto con el historial (el servidor los valida de nuevo: solo https)
+    const r = await post({
+      action: "confirm",
+      ticket,
+      history: written.history,
+      links: state?.links ?? {},
+    });
     setBusy(false);
     if (!r.ok) return fail(r);
     setSaved(r.saved as { inserted: number; updated: number });
@@ -200,21 +305,56 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
   if (phase === "intro") {
     return (
       <section className="flex flex-col gap-3" aria-label="Cómo funciona">
-        <p className="text-sm text-fg-muted">
-          Te hago preguntas de a una (puesto, experiencia, estudios, skills, idiomas y links), vos
-          corregís lo que entendí y al final armo un CV legible por ATS (los sistemas que leen CV:
-          sin tablas ni columnas). La IA redacta las viñetas, pero un control descarta cualquier
-          cifra, nombre o tecnología que vos no hayas dicho. No te asegura pasar ningún filtro: es
-          un CV claro y fiel a lo que contás. Nada se guarda hasta que lo confirmes.
+        {/* C-13: la honestidad, corta y arriba */}
+        <p className="text-base font-semibold text-fg" data-testid="cv-honestidad">
+          {CV_ASISTENTE_TEXTOS.bienvenida.honestidad}
         </p>
+        <p className="text-sm text-fg-muted">
+          {CV_ASISTENTE_TEXTOS.bienvenida.comoFunciona} {T.aviso}
+        </p>
+        {hasDraft ? (
+          <div
+            role="group"
+            aria-label={T.hay}
+            data-testid="cv-draft-found"
+            className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4"
+          >
+            <p className="text-sm font-semibold text-fg">{T.hay}</p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={resume}
+                disabled={busy}
+                className={PRIMARY}
+                data-testid="cv-draft-resume"
+              >
+                {T.retomar}
+              </button>
+              <button
+                type="button"
+                onClick={startOver}
+                disabled={busy}
+                className={SECONDARY}
+                data-testid="cv-draft-discard"
+              >
+                {busy ? T.descartando : T.empezarDeNuevo}
+              </button>
+            </div>
+          </div>
+        ) : null}
         {alert}
-        <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={start} disabled={busy} className={PRIMARY}>
-            Empezar
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {hasDraft ? null : (
+            <button type="button" onClick={start} disabled={busy} className={PRIMARY}>
+              {CV_ASISTENTE_TEXTOS.bienvenida.empezar}
+            </button>
+          )}
           <Link href="/cv" className={SECONDARY}>
-            Volver a Tu CV
+            {T.volver}
           </Link>
+          <p className="text-sm text-fg-muted" data-testid="cv-back-note">
+            {T.volverAclaracion}
+          </p>
         </div>
       </section>
     );
@@ -228,6 +368,7 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
             Avance: {cvProgressShown(progress.done)} de {progress.total} temas
           </p>
         ) : null}
+        <TopicList state={state} disabled={busy} onReopen={reopen} />
         <div
           role="log"
           aria-live="polite"
@@ -269,6 +410,9 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
             ))}
           </div>
         ) : null}
+        {softPanelReady(state) ? (
+          <SoftPanel state={state} disabled={busy} onDecide={decideSoft} />
+        ) : null}
         {alert}
         <form
           onSubmit={(e) => {
@@ -278,7 +422,7 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
           className="flex flex-col gap-2"
         >
           <label htmlFor="cv-answer" className="text-sm font-medium text-fg">
-            Tu respuesta
+            {Q.etiqueta}
           </label>
           <textarea
             id="cv-answer"
@@ -289,38 +433,116 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
             disabled={busy}
             className={TEXTAREA}
           />
+          {/* C-12: el aviso de privacidad del dictado va una sola vez, detrás del ⓘ; C-09: lo dictado no se envía solo */}
           <VoiceInput
             serverTranscribe={serverTranscribe}
-            onText={(spoken) =>
-              setDraft((prev) => joinDictated(prev, spoken).slice(0, CV_CHAT_MAX_INPUT_CHARS))
-            }
+            privacy="info"
+            onText={(spoken) => {
+              setDraft((prev) => joinDictated(prev, spoken).slice(0, CV_CHAT_MAX_INPUT_CHARS));
+              setDictated(true);
+            }}
             disabled={busy}
           />
-          <div className="flex flex-wrap gap-3">
-            <button type="submit" disabled={busy} className={PRIMARY}>
-              Enviar
-            </button>
-            <button
-              type="button"
-              onClick={() => void send("skip")}
-              disabled={busy}
-              className={SECONDARY}
+          {dictated && draft.trim() !== "" ? (
+            <p
+              role="status"
+              className="text-sm font-semibold text-fg"
+              data-testid="cv-dictado-revisar"
             >
-              Saltear
+              {Q.dictadoRevisar}
+            </p>
+          ) : null}
+          {/* C-06: una sola acción principal por pregunta */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <button type="submit" disabled={busy} className={PRIMARY} data-testid="cv-responder">
+              {Q.responder}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setNotice(null);
-                setPhase("review");
-              }}
-              disabled={busy}
-              className={SECONDARY}
-            >
-              Terminar y armar
-            </button>
+            {/* C-07: «Saltear» es un enlace secundario, con su apoyo */}
+            <span className="flex flex-col">
+              <button
+                type="button"
+                onClick={() => void send("skip")}
+                disabled={busy}
+                className="min-h-11 self-start rounded-control px-1 text-sm font-semibold text-link underline underline-offset-2 disabled:cursor-not-allowed"
+                data-testid="cv-saltear"
+              >
+                {Q.saltear}
+              </button>
+              <span className="text-sm text-fg-muted">{Q.salteaApoyo}</span>
+            </span>
           </div>
+          {/* C-11: volver a la pregunta anterior, sin reiniciar */}
+          {back.length > 0 ? (
+            <button
+              type="button"
+              onClick={goBack}
+              disabled={busy}
+              className="min-h-11 self-start rounded-control px-1 text-sm font-semibold text-link underline underline-offset-2 disabled:cursor-not-allowed"
+              data-testid="cv-volver-pregunta"
+            >
+              {Q.volverAnterior}
+            </button>
+          ) : null}
         </form>
+        {/* C-08: «Terminar y armar» aparte, recién con datos suficientes y con confirmación */}
+        {cvCanFinish(state) ? (
+          <div
+            className="flex flex-col gap-2 border-t border-line pt-3"
+            data-testid="cv-terminar-zona"
+          >
+            {confirmFinish ? (
+              <div role="group" aria-label={F.boton} className="flex flex-col gap-2">
+                <p className="text-sm text-fg" data-testid="cv-terminar-confirmar">
+                  {cvPendingTopics(state).length > 0
+                    ? fill(F.pregunta, {
+                        faltan: cvPendingTopics(state)
+                          .map((t) => CV_ASISTENTE_TEXTOS.avance.temas[t].toLowerCase())
+                          .join(", "),
+                      })
+                    : F.preguntaSinFaltantes}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmFinish(false);
+                      answerRef.current?.focus();
+                    }}
+                    disabled={busy}
+                    className={PRIMARY}
+                  >
+                    {F.seguir}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toReview}
+                    disabled={busy}
+                    className={SECONDARY}
+                    data-testid="cv-terminar-armar"
+                  >
+                    {F.armar}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmFinish(true)}
+                disabled={busy}
+                className="min-h-11 self-start rounded-control px-1 text-sm font-semibold text-link underline underline-offset-2 disabled:cursor-not-allowed"
+                data-testid="cv-terminar"
+              >
+                {F.boton}
+              </button>
+            )}
+          </div>
+        ) : null}
+        <p className="text-sm text-fg-muted" data-testid="cv-draft-note">
+          {T.aviso} {T.volverAclaracion}{" "}
+          <Link href="/cv" className="font-semibold underline underline-offset-2">
+            {T.volver}
+          </Link>
+        </p>
       </section>
     );
   }
@@ -334,11 +556,19 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
           tabIndex={-1}
           className="text-heading font-bold text-fg"
         >
-          Esto es lo que entendí
+          {CV_CALIDAD_TEXTOS.revision.titulo}
         </h2>
-        <p className="text-sm text-fg-muted">
-          Corregí lo que haga falta. Si algo está vacío, queda vacío: no lo completo yo.
-        </p>
+        <p className="text-sm text-fg-muted">{CV_CALIDAD_TEXTOS.revision.regla}</p>
+        {/* R33-04: resumen profesional editable y habilidades blandas por decidir (guiado por `asistente`) */}
+        {state.guided ? (
+          <>
+            <SummaryField
+              value={state.summary.text ?? ""}
+              onChange={(text) => setState({ ...state, summary: { ...state.summary, text } })}
+            />
+            <SoftPanel state={state} disabled={busy} onDecide={decideSoft} />
+          </>
+        ) : null}
         <ReviewEditor state={state} onChange={setState} serverTranscribe={serverTranscribe} />
         {alert}
         <div className="flex flex-wrap items-end gap-3">
@@ -384,18 +614,21 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
           {usedModel
             ? "Redactado por IA y verificado contra tus respuestas: lo que traía cifras, nombres o tecnologías que no dijiste se reemplazó por tus palabras."
             : "Va con tus palabras, sin redacción de IA."}{" "}
-          Al confirmar se guarda tu historial (trabajos, proyectos, estudios y certificaciones). El
-          resumen, las skills, los idiomas y los links de esta charla se ven acá pero todavía no se
-          guardan.
+          Al confirmar se guarda tu historial (trabajos, proyectos, estudios y certificaciones) y
+          los links que contaste. El resumen, las habilidades y los idiomas de esta charla se ven
+          acá pero todavía no se guardan.
         </p>
         {/* El detalle de un proyecto lleva su link: se corta en cualquier punto para no desbordar a 360 px */}
         <div className="[overflow-wrap:anywhere]">
           <CvPreview doc={doc} />
         </div>
         {alert}
+        <p className="text-sm text-fg" data-testid="cv-cierre-aviso">
+          {CV_CALIDAD_TEXTOS.revision.cierreAviso}
+        </p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={confirm} disabled={busy} className={PRIMARY}>
-            Confirmar y guardar en mi historial
+            {CV_CALIDAD_TEXTOS.revision.cierre}
           </button>
           <Link href="/cv" className={SECONDARY}>
             Descartar
@@ -424,297 +657,5 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
         </a>
       </div>
     </section>
-  );
-}
-
-/** Igual que las skills: el texto crudo vive acá, el estado recibe las líneas ya limpias. */
-function DutiesField({
-  n,
-  duties,
-  onChange,
-  serverTranscribe,
-}: {
-  n: number;
-  duties: string[];
-  onChange: (duties: string[]) => void;
-  serverTranscribe: boolean;
-}) {
-  const [text, setText] = useState(duties.join("\n"));
-  const update = (next: string) => {
-    setText(next);
-    onChange(lines(next, 4).map((l) => l.slice(0, 220)));
-  };
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="flex flex-col gap-1 text-sm text-fg">
-        Qué hacías {n} (una por línea)
-        <textarea
-          rows={3}
-          value={text}
-          onChange={(e) => update(e.target.value)}
-          className={TEXTAREA}
-        />
-      </label>
-      {/* Una tarea por línea: lo dictado entra como línea nueva, no pegado con espacio */}
-      <VoiceInput
-        serverTranscribe={serverTranscribe}
-        label={`Dictar tareas ${n}`}
-        onText={(spoken) => {
-          const said = spoken.trim();
-          if (said === "") return;
-          update(text.trim() === "" ? said : `${text.replace(/\s+$/, "")}\n${said}`);
-        }}
-      />
-    </div>
-  );
-}
-
-/** El texto se guarda aparte: con la coma al final, `join` la borraría mientras la persona escribe. */
-function SkillsField({
-  skills,
-  onChange,
-}: {
-  skills: string[];
-  onChange: (skills: string[]) => void;
-}) {
-  const [text, setText] = useState(skills.join(", "));
-  return (
-    <label className="flex flex-col gap-1 text-sm text-fg">
-      Skills (separadas por coma)
-      <input
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          onChange(csv(e.target.value, 40));
-        }}
-        className={FIELD}
-      />
-    </label>
-  );
-}
-
-function ReviewEditor({
-  state,
-  onChange,
-  serverTranscribe,
-}: {
-  state: CvChatState;
-  onChange: (s: CvChatState) => void;
-  serverTranscribe: boolean;
-}) {
-  // Al quitar un trabajo se vuelven a montar los campos con texto propio (tareas), para no mezclarlos
-  const [version, setVersion] = useState(0);
-  const set = (patch: Partial<CvChatState>) => onChange({ ...state, ...patch });
-  const setWork = (i: number, patch: Partial<CvChatState["works"][number]>) =>
-    set({ works: state.works.map((w, j) => (j === i ? { ...w, ...patch } : w)) });
-  const empty = <p className="text-sm text-fg-subtle">Nada cargado.</p>;
-
-  return (
-    <div className="flex flex-col gap-4" data-testid="cv-card">
-      <fieldset className={FIELDSET}>
-        <legend className={LEGEND}>Puesto objetivo</legend>
-        <label className="flex flex-col gap-1 text-sm text-fg">
-          Puesto
-          <input
-            value={state.target ?? ""}
-            maxLength={120}
-            onChange={(e) => set({ target: e.target.value === "" ? null : e.target.value })}
-            className={FIELD}
-          />
-        </label>
-      </fieldset>
-
-      <fieldset className={FIELDSET}>
-        <legend className={LEGEND}>Experiencia</legend>
-        {state.works.length === 0 ? empty : null}
-        {state.works.map((w, i) => (
-          <div
-            key={`${version}-${i}`}
-            className="flex flex-col gap-2 border-b border-line pb-3 last:border-0"
-          >
-            <label className="flex flex-col gap-1 text-sm text-fg">
-              Empresa {i + 1}
-              <input
-                value={w.organization ?? ""}
-                maxLength={120}
-                onChange={(e) => setWork(i, { organization: e.target.value || null })}
-                className={FIELD}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-fg">
-              Cargo {i + 1}
-              <input
-                value={w.title ?? ""}
-                maxLength={120}
-                onChange={(e) => setWork(i, { title: e.target.value || null })}
-                className={FIELD}
-              />
-            </label>
-            <DutiesField
-              n={i + 1}
-              duties={w.duties}
-              onChange={(duties) => setWork(i, { duties })}
-              serverTranscribe={serverTranscribe}
-            />
-            <label className="flex flex-col gap-1 text-sm text-fg">
-              Logro {i + 1}
-              <input
-                value={w.achievement ?? ""}
-                maxLength={220}
-                onChange={(e) => setWork(i, { achievement: e.target.value || null })}
-                className={FIELD}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                set({ works: state.works.filter((_, j) => j !== i) });
-                setVersion((v) => v + 1);
-              }}
-              className={`${SECONDARY_SM} self-start`}
-            >
-              Quitar trabajo {i + 1}
-            </button>
-          </div>
-        ))}
-      </fieldset>
-
-      {state.projects.length > 0 ? (
-        <fieldset className={FIELDSET}>
-          <legend className={LEGEND}>Proyectos</legend>
-          {state.projects.map((p, i) => (
-            <div
-              key={`p${i}`}
-              className="flex flex-col gap-2 border-b border-line pb-3 last:border-0"
-            >
-              <label className="flex flex-col gap-1 text-sm text-fg">
-                Proyecto {i + 1}
-                <input
-                  value={p.name}
-                  maxLength={120}
-                  onChange={(e) =>
-                    set({
-                      projects: state.projects.map((x, j) =>
-                        j === i ? { ...x, name: e.target.value } : x,
-                      ),
-                    })
-                  }
-                  className={FIELD}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm text-fg">
-                Qué es {i + 1}
-                <input
-                  value={p.description ?? ""}
-                  maxLength={220}
-                  onChange={(e) =>
-                    set({
-                      projects: state.projects.map((x, j) =>
-                        j === i ? { ...x, description: e.target.value || null } : x,
-                      ),
-                    })
-                  }
-                  className={FIELD}
-                />
-              </label>
-              {/* Detalle del proyecto: un link largo se corta en cualquier punto para no desbordar a 360 px */}
-              {p.role || p.link || p.stack.length > 0 ? (
-                <p className="text-sm text-fg-muted [overflow-wrap:anywhere]">
-                  {[p.role, p.link, p.stack.length > 0 ? `Stack: ${p.stack.join(", ")}` : null]
-                    .filter(Boolean)
-                    .join(" | ")}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => set({ projects: state.projects.filter((_, j) => j !== i) })}
-                className={`${SECONDARY_SM} self-start`}
-              >
-                Quitar proyecto {i + 1}
-              </button>
-            </div>
-          ))}
-        </fieldset>
-      ) : null}
-
-      <fieldset className={FIELDSET}>
-        <legend className={LEGEND}>Estudios y certificaciones</legend>
-        {state.education.length + state.certifications.length === 0 ? empty : null}
-        {state.education.map((e, i) => (
-          <div key={`e${i}`} className="flex flex-col gap-2">
-            <label className="flex flex-col gap-1 text-sm text-fg">
-              Institución {i + 1}
-              <input
-                value={e.institution}
-                maxLength={120}
-                onChange={(ev) =>
-                  set({
-                    education: state.education.map((x, j) =>
-                      j === i ? { ...x, institution: ev.target.value } : x,
-                    ),
-                  })
-                }
-                className={FIELD}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-fg">
-              Título {i + 1}
-              <input
-                value={e.title}
-                maxLength={120}
-                onChange={(ev) =>
-                  set({
-                    education: state.education.map((x, j) =>
-                      j === i ? { ...x, title: ev.target.value } : x,
-                    ),
-                  })
-                }
-                className={FIELD}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => set({ education: state.education.filter((_, j) => j !== i) })}
-              className={`${SECONDARY_SM} self-start`}
-            >
-              Quitar estudio {i + 1}
-            </button>
-          </div>
-        ))}
-        {state.certifications.map((c, i) => (
-          <div key={`c${i}`} className="flex items-center justify-between gap-2 text-sm text-fg">
-            <span className="break-words">
-              {c.title} ({c.issuer})
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                set({ certifications: state.certifications.filter((_, j) => j !== i) })
-              }
-              className={SECONDARY_SM}
-            >
-              Quitar certificación {i + 1}
-            </button>
-          </div>
-        ))}
-      </fieldset>
-
-      <fieldset className={FIELDSET}>
-        <legend className={LEGEND}>Skills, idiomas y links</legend>
-        <SkillsField skills={state.skills} onChange={(skills) => set({ skills })} />
-        <p className="text-sm text-fg-muted">
-          Idiomas:{" "}
-          {state.languages.length === 0
-            ? "ninguno"
-            : state.languages.map((l) => (l.level ? `${l.name} ${l.level}` : l.name)).join(", ")}
-        </p>
-        <p className="text-sm text-fg-muted [overflow-wrap:anywhere]">
-          Links:{" "}
-          {[state.links.linkedin, state.links.github, state.links.portfolio]
-            .filter(Boolean)
-            .join(" | ") || "ninguno"}
-        </p>
-      </fieldset>
-    </div>
   );
 }

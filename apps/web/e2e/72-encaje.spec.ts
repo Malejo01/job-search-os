@@ -240,13 +240,10 @@ test.describe("Flujo 72: Tu encaje", () => {
     await expect(page.getByTestId("encaje-frase")).toBeVisible();
   });
 
-  test("/market y /plan enlazan a /encaje", async ({ page }) => {
+  // R34-03: /market ya no trae «Explicado en llano: Tu encaje» (salió con la agenda de habilidades); el enlace
+  // desde /plan sigue y es lo que verifica este caso.
+  test("/plan enlaza a /encaje", async ({ page }) => {
     await login(page);
-    await page.goto("/market");
-    await expect(page.getByRole("link", { name: "Explicado en llano: Tu encaje" })).toHaveAttribute(
-      "href",
-      /^\/encaje/,
-    );
     await page.goto("/plan");
     await expect(page.getByRole("link", { name: /^Ver Tu encaje/ })).toHaveAttribute(
       "href",

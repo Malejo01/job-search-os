@@ -17,9 +17,19 @@ import {
   type ReviewProgress,
   summarizeFitCard,
   type FitCardSummary,
+  cardItemsNow,
+  cardRequirements,
+  riesgosVisibles,
+  isGoneFromSource,
+  salaryOriginalFromColumns,
+  sortByListingTier,
+  type CardChecklistItem,
+  type CardRequirements,
+  type SalaryOriginal,
 } from "@job-search-os/pipeline";
-import { and, asc, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { withUser } from "./db";
+import { loadFichaContext } from "./ficha-context";
 import { ACTIVE_STATUSES, riskLabel } from "./labels";
 import { preScoresFor } from "./prescore";
 
@@ -52,6 +62,20 @@ export type JobFilters = {
   cerca?: boolean;
   /** Ciudad del perfil para `cerca`; sin ella el filtro no hace nada. Nunca sale de la URL. */
   ciudad?: string | null;
+  /**
+   * Pestaña «Guardadas» (R30-03): `saved_at is not null` sin importar el estado, así que ignora
+   * `status`. En la URL va `guardadas=1`.
+   */
+  saved?: boolean;
+  /**
+   * Chips de R30-05 que se aplican en memoria sobre las filas de la pestaña (la página los combina con
+   * `modalidad`, `cerca` e `idioma`): «Aceptan {país}» (`pais=1`) y «Para empezar» (`inicio=1`). Las
+   * consultas (`listJobs`) los ignoran.
+   */
+  aceptanPais?: boolean;
+  paraEmpezar?: boolean;
+  /** «Orden» (`orden=recientes`): por fecha en vez de por afinidad; en memoria, como los chips. */
+  orden?: "recientes" | null;
 };
 
 export type JobListRow = {
@@ -71,6 +95,12 @@ export type JobListRow = {
   locationOk: string | null;
   accion: string | null;
   riesgos: string[];
+  /** Sueldo publicado por el aviso (en dólares); null = no lo dice. */
+  salaryMinUsd: number | null;
+  salaryMaxUsd: number | null;
+  salaryPeriod: string | null;
+  /** R32-08: el sueldo tal como lo publica el aviso, en su moneda; null en lo anterior o si no la dice. */
+  salaryOriginal?: SalaryOriginal | null;
   bloqueadores: string[];
   /** Un punto a favor y uno que falta o frena, en llano (resumen de la tarjeta); sin evaluación, vacío. */
   fit: FitCardSummary;
@@ -89,6 +119,24 @@ export type JobListRow = {
   preScore: number | null;
   /** Tiene la evaluación en curso o en cola (JS-027): se muestra arriba como "evaluando". */
   evaluating: boolean;
+  /** «Guardada» (R30-03): fecha ISO de la marca; null = no guardada. No es un estado. */
+  savedAt: string | null;
+  /**
+   * Requisitos para la tarjeta (R30-04), de la tabla de la evaluación: la condición excluyente que no
+   * coincide y hasta 2 cosas sin confirmar. Sin evaluación o sin tabla, vacío.
+   */
+  requirements: CardRequirements;
+  /**
+   * R30-07: viene del pool y la fuente ya no la muestra (`isGoneFromSource`). De las ofertas que no
+   * vienen del pool no se afirma nada (siempre false).
+   */
+  goneFromSource: boolean;
+  /** Nombre de la fuente del pool («Get on Board · programming»), para «ya no figura en {fuente}». */
+  poolSourceName: string | null;
+  /** Para los chips de R30-05: `jobs.countries_allowed` (null = el aviso no lo dice), idioma y nivel del pool. */
+  countriesAllowed: string[] | null;
+  lang: string | null;
+  seniority: string | null;
 };
 
 /**
@@ -127,6 +175,10 @@ export function parseJobFilters(params: Record<string, string | string[] | undef
     idioma: one("idioma") === "es" ? "es" : null,
     modalidad: one("modalidad") === "remoto" ? "remoto" : null,
     cerca: one("cerca") === "1",
+    saved: one("guardadas") === "1",
+    aceptanPais: one("pais") === "1",
+    paraEmpezar: one("inicio") === "1",
+    orden: one("orden") === "recientes" ? "recientes" : null,
   };
 }
 
@@ -162,6 +214,8 @@ export async function listJobs(
   filters: JobFilters,
   options: ListOptions = {},
 ): Promise<JobListRow[]> {
+  // R31-07: respuestas de un toque y datos de hoy para la línea «Sin confirmar» (vacío con JOB_CARD apagada)
+  const ficha = await loadFichaContext(userId);
   return withUser(userId, async (tx) => {
     const timeZone = await profileTimeZone(tx);
     const since = resolveSince(
@@ -206,6 +260,13 @@ export async function listJobs(
         >`case when jsonb_typeof(${s.evaluations.decision} #> '{checklist,must,no_cumple}') = 'number' and jsonb_typeof(${s.evaluations.decision} #> '{checklist,deseable,no_cumple}') = 'number' then (${s.evaluations.decision} #>> '{checklist,must,no_cumple}')::numeric::int + (${s.evaluations.decision} #>> '{checklist,deseable,no_cumple}')::numeric::int end`.as(
           "checklist_missing_count",
         ),
+        // R30-04: solo las filas de la tabla que no coinciden (el resto no se usa en la tarjeta);
+        // la tarjeta saca de ahí la condición excluyente y lo «Sin confirmar», sin otra consulta
+        checklistOpen: sql<
+          unknown[] | null
+        >`case when ${s.evaluations.decision} ? 'checklist' and jsonb_typeof(${s.evaluations.decision} #> '{checklist,items}') = 'array' then jsonb_path_query_array(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status != "cumple")') end`.as(
+          "checklist_open",
+        ),
         model: s.evaluations.model,
         humanVerdict: s.evaluations.humanVerdict,
         createdAt: s.evaluations.createdAt,
@@ -225,7 +286,9 @@ export async function listJobs(
 
     const conds = [
       options.evaluatedSince ? gte(latest.createdAt, options.evaluatedSince) : undefined,
-      filters.status === "todas" || (filters.duplicates && !filters.status)
+      filters.saved ? isNotNull(s.jobs.savedAt) : undefined,
+      // «Guardadas» mira la marca, sin importar el estado
+      filters.status === "todas" || filters.saved || (filters.duplicates && !filters.status)
         ? undefined
         : filters.status === "activas"
           ? inArray(s.jobs.status, [...ACTIVE_STATUSES])
@@ -259,8 +322,14 @@ export async function listJobs(
         modality: s.jobs.modality,
         canonicalUrl: s.jobs.canonicalUrl,
         sourceUrl: sources.url,
+        salaryMinUsd: s.jobs.salaryMinUsd,
         salaryMaxUsd: s.jobs.salaryMaxUsd,
         salaryPeriod: s.jobs.salaryPeriod,
+        salaryOriginalMin: s.jobs.salaryOriginalMin,
+        salaryOriginalMax: s.jobs.salaryOriginalMax,
+        salaryOriginalCurrency: s.jobs.salaryOriginalCurrency,
+        salaryOriginalPeriod: s.jobs.salaryOriginalPeriod,
+        candidatesCount: s.jobs.candidatesCount,
         firstSeenAt: s.jobs.firstSeenAt,
         postedAt: s.jobs.postedAt,
         flags: s.jobs.flags,
@@ -280,7 +349,17 @@ export async function listJobs(
         model: latest.model,
         evaluationId: latest.evaluationId,
         humanVerdict: latest.humanVerdict,
+        checklistOpen: latest.checklistOpen,
         evaluating: evaluatingSql(),
+        savedAt: s.jobs.savedAt,
+        publicJobId: s.jobs.publicJobId,
+        poolSourceName: s.publicJobs.sourceName,
+        countriesAllowed: s.jobs.countriesAllowed,
+        poolLang: s.publicJobs.lang,
+        poolSeniority: s.publicJobs.seniority,
+        poolLastSeenAt: s.publicJobs.lastSeenAt,
+        // Una sola vez para toda la consulta (subconsulta sin correlación): el pool, ¿se está actualizando?
+        poolNewestSeenAt: sql<Date | string | null>`(select max(last_seen_at) from public_jobs)`,
       })
       .from(s.jobs)
       .leftJoin(latest, eq(latest.jobId, s.jobs.id))
@@ -323,7 +402,8 @@ export async function listJobs(
         salaryPeriod: r.salaryPeriod,
       })),
     );
-    return rows.map((r) => ({
+    const now = options.now ?? new Date();
+    const mapped: JobListRow[] = rows.map((r) => ({
       id: r.id,
       title: r.title,
       company: r.company,
@@ -338,14 +418,19 @@ export async function listJobs(
       score: r.score,
       locationOk: r.locationOk,
       accion: r.accion,
-      riesgos: r.riesgos ?? [],
+      // «Muchos candidatos» solo si el aviso trae el número (regla 2 del plan)
+      riesgos: riesgosVisibles(r.riesgos ?? [], r.candidatesCount),
+      salaryMinUsd: r.salaryMinUsd,
+      salaryMaxUsd: r.salaryMaxUsd,
+      salaryPeriod: r.salaryPeriod,
+      salaryOriginal: salaryOriginalFromColumns(r),
       bloqueadores: r.bloqueadores ?? [],
       fit: summarizeFitCard({
         matchFuerte: r.matchFuerte ?? [],
         senales: r.senales ?? [],
         // Sin el texto del aviso no se sabe si el inglés es brecha: en la tarjeta no se muestra
         gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)).map(gapText),
-        riesgos: (r.riesgos ?? []).map(riskLabel),
+        riesgos: riesgosVisibles(r.riesgos ?? [], r.candidatesCount).map(riskLabel),
         bloqueadores: r.bloqueadores ?? [],
       }),
       card:
@@ -369,8 +454,74 @@ export async function listJobs(
       humanVerdict: r.humanVerdict,
       preScore: pre.get(r.id)?.score ?? null,
       evaluating: Boolean(r.evaluating),
+      savedAt: r.savedAt?.toISOString() ?? null,
+      requirements: cardRequirements(cardItemsNow(checklistItemsOf(r.checklistOpen), ficha)),
+      goneFromSource: isGoneFromSource({
+        fromPool: r.publicJobId !== null,
+        lastSeenAt: toDate(r.poolLastSeenAt),
+        poolNewestSeenAt: toDate(r.poolNewestSeenAt),
+        now,
+      }),
+      poolSourceName: r.poolSourceName ?? null,
+      countriesAllowed: r.countriesAllowed ?? null,
+      lang: r.poolLang ?? null,
+      seniority: r.poolSeniority ?? null,
+    }));
+    // R30-04 y R30-07: las de condición excluyente que no coincide y las que ya no figuran bajan
+    // (sin ocultarse); dentro de cada grupo queda el orden de la consulta. Con tope de LIST_LIMIT
+    // filas por consulta: baja dentro de las que se traen.
+    return sortByListingTier(mapped, (r) => ({
+      evaluating: r.evaluating,
+      excludingNoMatch: r.requirements.excluding !== null,
+      goneFromSource: r.goneFromSource,
     }));
   });
+}
+
+/** Fecha de la base (Date, o string si vino de una subconsulta cruda); inválida o ausente = null. */
+function toDate(v: Date | string | null | undefined): Date | null {
+  if (v === null || v === undefined) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+const CHECKLIST_NIVELES = new Set(["must", "deseable"]);
+const CHECKLIST_STATUS = new Set(["cumple", "no_cumple", "no_se_sabe"]);
+const CHECKLIST_KINDS = new Set(["estructurado", "skill", "texto"]);
+
+/** El jsonb no es de fiar: una fila con forma rara se descarta (falla cerrado), nunca se completa. */
+function checklistItemsOf(v: unknown): CardChecklistItem[] {
+  if (!Array.isArray(v)) return [];
+  const out: CardChecklistItem[] = [];
+  for (const x of v) {
+    if (typeof x !== "object" || x === null) continue;
+    const o = x as Record<string, unknown>;
+    if (
+      typeof o.id !== "string" ||
+      typeof o.pide !== "string" ||
+      typeof o.bloquea !== "boolean" ||
+      !CHECKLIST_KINDS.has(String(o.kind)) ||
+      !CHECKLIST_NIVELES.has(String(o.nivel)) ||
+      !CHECKLIST_STATUS.has(String(o.status)) ||
+      (o.tenes !== null && typeof o.tenes !== "string")
+    ) {
+      continue;
+    }
+    out.push({
+      id: o.id,
+      kind: o.kind as CardChecklistItem["kind"],
+      nivel: o.nivel as CardChecklistItem["nivel"],
+      status: o.status as CardChecklistItem["status"],
+      bloquea: o.bloquea,
+      tenes: o.tenes as string | null,
+      pide: o.pide,
+      // R31-07: solo la clave de la pregunta de un toque (las filas del aviso que el perfil no compara)
+      ...(typeof (o.pregunta as { clave?: unknown } | undefined)?.clave === "string"
+        ? { pregunta: { clave: (o.pregunta as { clave: string }).clave } }
+        : {}),
+    });
+  }
+  return out;
 }
 
 /**
@@ -437,6 +588,10 @@ export function listQuery(filters: JobFilters): string {
   if (filters.idioma) q.set("idioma", filters.idioma);
   if (filters.modalidad) q.set("modalidad", filters.modalidad);
   if (filters.cerca) q.set("cerca", "1");
+  if (filters.saved) q.set("guardadas", "1");
+  if (filters.aceptanPais) q.set("pais", "1");
+  if (filters.paraEmpezar) q.set("inicio", "1");
+  if (filters.orden) q.set("orden", filters.orden);
   const str = q.toString();
   return str ? `?${str}` : "";
 }

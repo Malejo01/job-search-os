@@ -70,6 +70,18 @@ export async function getTargetRoles(userId: string): Promise<RoleKey[]> {
   });
 }
 
+/** La carrera que escribió en «Otra» (R32-01), o null si eligió puestos o todavía no cargó ninguna. */
+export async function getCareerOther(userId: string): Promise<string | null> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ careerOther: s.profiles.careerOther })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    return row?.careerOther ?? null;
+  });
+}
+
 /**
  * Áreas de especialidad que eligió la persona (`profiles.target_specialties`, C3-3), validadas contra
  * sus puestos de hoy y el catálogo. `null` = «Todas las áreas». Hoy solo se guardan y se muestran: ningún
@@ -190,6 +202,7 @@ export async function saveProfileFromForm(
       const [row] = await tx
         .select({
           targetRoles: s.profiles.targetRoles,
+          careerOther: s.profiles.careerOther,
           salaryFloorUsd: s.profiles.salaryFloorUsd,
           maxWeeklyHours: s.profiles.maxWeeklyHours,
         })
@@ -201,6 +214,8 @@ export async function saveProfileFromForm(
     if (!stored) return { ok: false, field: "perfil" };
     const roles = knownRoles(stored.targetRoles);
     raw.targetRoles = roles;
+    // R32-01: quien eligió «Otra» no tiene puestos; su texto guardado se conserva sin pisarlo
+    raw.careerOther = roles.length === 0 ? (stored.careerOther ?? "") : "";
     // Los puestos ya guardados no se rechazan si el tope bajó después
     limit = Math.max(limit, roles.length);
     raw.salaryFloorUsd = stored.salaryFloorUsd == null ? "" : String(stored.salaryFloorUsd);
@@ -229,7 +244,10 @@ export async function saveProfileFromForm(
     parsed.value,
     options.keepStored
       ? {}
-      : { targetSpecialties: specialtiesFromForm(formData, parsed.value.targetRoles) },
+      : {
+          targetSpecialties: specialtiesFromForm(formData, parsed.value.targetRoles),
+          careerOther: parsed.value.careerOther ?? null,
+        },
   );
   if (!saved) return { ok: false, field: "perfil" };
   return { ok: true, roleChanged, wasComplete };
@@ -279,7 +297,14 @@ export async function setTargetRoles(
         : normalizeTargetSpecialties(before.targetSpecialties, next);
     await tx
       .update(s.profiles)
-      .set({ targetRoles: next, targetRole: next[0], targetSpecialties, updatedAt: new Date() })
+      .set({
+        targetRoles: next,
+        targetRole: next[0],
+        targetSpecialties,
+        // R32-01: con puestos elegidos, la carrera escrita en «Otra» ya no hace falta
+        careerOther: null,
+        updatedAt: new Date(),
+      })
       .where(eq(s.profiles.userId, userId));
     return { saved: true, changed: !sameRoleSet(previous, next) };
   });
@@ -294,7 +319,7 @@ export async function setTargetRoles(
 export async function completeOnboarding(
   userId: string,
   input: OnboardingInput,
-  options: { targetSpecialties?: TargetSpecialties | null } = {},
+  options: { targetSpecialties?: TargetSpecialties | null; careerOther?: string | null } = {},
 ): Promise<{ saved: boolean; roleChanged: boolean }> {
   return withUser(userId, async (tx) => {
     const [before] = await tx
@@ -318,6 +343,8 @@ export async function completeOnboarding(
               ),
             }
           : {}),
+        // «Otra» (R32-01): solo si quien llama la trae (el onboarding); «Tu perfil» no la pisa
+        ...(options.careerOther !== undefined ? { careerOther: options.careerOther } : {}),
         locationCountry: input.locationCountry,
         locationCity: input.locationCity,
         // remote_only se mantiene en sincronía: lo leen el MCP, los borradores y el prompt

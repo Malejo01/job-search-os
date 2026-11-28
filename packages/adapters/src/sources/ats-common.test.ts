@@ -336,7 +336,66 @@ describe("atsSalary", () => {
       salaryMaxUsd: 2000,
       salaryPeriod: "mensual",
       salaryNote: null,
+      salaryOriginal: { min: 1000, max: 2000, currency: "USD", period: "mensual" },
     });
+  });
+
+  it("R32-08: pesos, euros y reales quedan en su moneda original, sin convertir ni llenar los dólares", () => {
+    const pesos = atsSalary({
+      min: 1_200_000,
+      max: 1_500_000,
+      currency: "ars",
+      interval: "per-month-salary",
+      sourceName: "X",
+    });
+    expect(pesos.salaryOriginal).toEqual({
+      min: 1_200_000,
+      max: 1_500_000,
+      currency: "ARS",
+      period: "mensual",
+    });
+    expect(pesos.salaryMinUsd).toBeNull();
+    expect(pesos.salaryMaxUsd).toBeNull();
+    expect(pesos.salaryNote).toContain("ARS");
+
+    const euros = atsSalary({
+      min: 45_000,
+      max: 60_000,
+      currency: "EUR",
+      interval: "1 YEAR",
+      sourceName: "X",
+    });
+    expect(euros.salaryOriginal).toEqual({
+      min: 45_000,
+      max: 60_000,
+      currency: "EUR",
+      period: "anual",
+    });
+
+    const reales = atsSalary({ min: 8000, currency: "BRL", interval: "month", sourceName: "X" });
+    expect(reales.salaryOriginal).toEqual({
+      min: 8000,
+      max: null,
+      currency: "BRL",
+      period: "mensual",
+    });
+
+    // período dudoso: el original conserva monto y moneda y deja el período sin informar
+    const semana = atsSalary({
+      min: 1,
+      max: 2,
+      currency: "USD",
+      interval: "per-week",
+      sourceName: "X",
+    });
+    expect(semana.salaryOriginal).toEqual({ min: 1, max: 2, currency: "USD", period: null });
+  });
+
+  it("R32-08: sin moneda dicha no hay sueldo original (no se inventa)", () => {
+    for (const currency of [undefined, "", "   ", "$"]) {
+      const r = atsSalary({ min: 1000, max: 2000, currency, interval: "year", sourceName: "X" });
+      expect(r.salaryOriginal, String(currency)).toBeUndefined();
+    }
   });
 
   it("otra moneda o período dudoso va a la nota", () => {

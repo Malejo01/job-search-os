@@ -41,6 +41,55 @@ export type ApplicationView = {
   };
 };
 
+/**
+ * Seguimiento mínimo de una postulación (R34-04) para la pestaña «Ya me postulé» del listado: la fecha en que la
+ * persona la marcó y el estado que cambia a mano (`applications.outcome`). Sin recordatorios ni predicciones.
+ */
+export type ApplicationFollowUp = {
+  applicationId: string;
+  /** ISO `YYYY-MM-DD`: `applied_at` y, si falta, el día en que se creó la postulación. */
+  appliedOn: string;
+  outcome: ApplicationOutcome;
+  outcomeNote: string | null;
+};
+
+/**
+ * Una consulta para todas las ofertas de la pestaña (con el `user_id` de la persona más la RLS). Las ofertas sin
+ * postulación no aparecen en el mapa. Con una lista vacía no consulta.
+ */
+export async function listApplicationFollowUps(
+  userId: string,
+  jobIds: readonly string[],
+): Promise<Map<string, ApplicationFollowUp>> {
+  if (jobIds.length === 0) return new Map();
+  const rows = await withUser(userId, (tx) =>
+    tx
+      .select({
+        id: s.applications.id,
+        jobId: s.applications.jobId,
+        appliedAt: s.applications.appliedAt,
+        createdAt: s.applications.createdAt,
+        outcome: s.applications.outcome,
+        outcomeNote: s.applications.outcomeNote,
+      })
+      .from(s.applications)
+      .where(and(eq(s.applications.userId, userId), inArray(s.applications.jobId, [...jobIds])))
+      .orderBy(desc(s.applications.createdAt)),
+  );
+  const out = new Map<string, ApplicationFollowUp>();
+  for (const r of rows) {
+    // Si hubiera más de una por oferta, queda la más reciente (ya vienen de la más nueva a la más vieja)
+    if (out.has(r.jobId)) continue;
+    out.set(r.jobId, {
+      applicationId: r.id,
+      appliedOn: (r.appliedAt ?? r.createdAt).toISOString().slice(0, 10),
+      outcome: asOutcome(r.outcome),
+      outcomeNote: r.outcomeNote,
+    });
+  }
+  return out;
+}
+
 /** Oferta evaluada que nunca se aplicó (candidata a «Descartada por inactividad»). */
 export type StaleEvaluatedView = {
   jobId: string;

@@ -1,4 +1,4 @@
-import type { Modality, RawJob } from "@job-search-os/pipeline";
+import { makeSalaryOriginal, type Modality, type RawJob } from "@job-search-os/pipeline";
 import { htmlToText } from "./getonboard";
 
 /**
@@ -134,6 +134,13 @@ export function mapTorreJob(r: TorreResult): RawJob | null {
     salaryMaxUsd: usd ? max : null,
     salaryPeriod: usd ? period : null,
     salaryNote,
+    // R32-08: el sueldo en la moneda del aviso (Torre a veces la escribe «USD$»: se toma el código)
+    salaryOriginal: makeSalaryOriginal({
+      min,
+      max,
+      currency: /^[A-Z]{3}/.exec(currency ?? "")?.[0],
+      period,
+    }),
     weeklyHours: null,
     candidatesCount: null,
     badges: [],

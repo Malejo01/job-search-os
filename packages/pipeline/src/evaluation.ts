@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { renderJobCardForPrompt } from "./evaluator/ficha-prompt";
 import { err, ok, type Result } from "./result";
 
 /**
@@ -128,6 +129,7 @@ export const EVALUATE_JOB_SCHEMA_VERSIONS = [
   "v1.3.3",
   "v1.3.4",
   "v1.4.0",
+  "v1.5.0",
 ] as const;
 
 /** Schema de salida que corresponde a cada versión del prompt evaluate_job. */
@@ -156,6 +158,7 @@ export function outputSchemaFor(promptRef: string): z.ZodType<Evaluation, unknow
     case "v1.3.4":
       return EvaluationV12OutputSchema;
     case "v1.4.0":
+    case "v1.5.0": // R31-06: misma salida que v1.4.0; cambia el prompt (ficha, cualquier carrera). Las dos versiones se leen igual.
       return EvaluationV14OutputSchema;
     default:
       throw new Error(`sin schema de salida para ${promptRef}`);
@@ -217,6 +220,18 @@ export function promptNeedsDelimitedJob(promptRef: string): boolean {
   const major = Number(m[1]);
   const minor = Number(m[2] ?? 0);
   return major > 1 || (major === 1 && minor >= 4);
+}
+
+/**
+ * v1.5 en adelante recibe también la ficha del aviso (`{{ficha}}`, R31-06). Las versiones anteriores no la
+ * piden: no se les suma la variable, así su prompt y su costo no cambian.
+ */
+export function promptNeedsFicha(promptRef: string): boolean {
+  const m = /^v(\d+)(?:\.(\d+))?/.exec(promptRef.split("@")[1] ?? promptRef);
+  if (!m) return false;
+  const major = Number(m[1]);
+  const minor = Number(m[2] ?? 0);
+  return major > 1 || (major === 1 && minor >= 5);
 }
 
 /** Un "<<<" o ">>>" del texto externo no puede abrir ni cerrar las marcas. */
@@ -377,6 +392,8 @@ export function buildEvaluateJobVars(input: {
   rules: Record<string, unknown>;
   job: JobForPrompt;
   promptRef: string;
+  /** La ficha ya verificada del aviso (solo la usa v1.5+); sin ella el prompt dice que lea el aviso. */
+  jobCard?: Parameters<typeof renderJobCardForPrompt>[0];
 }): Record<string, string | boolean> {
   const hadFullJd = Boolean(input.job.jdText?.trim());
   return {
@@ -386,5 +403,6 @@ export function buildEvaluateJobVars(input: {
     job: renderJob(input.job, { delimit: promptNeedsDelimitedJob(input.promptRef) }),
     target_role: input.profile.targetRoleLabel?.trim() || "no especificado",
     had_full_jd: hadFullJd,
+    ...(promptNeedsFicha(input.promptRef) ? { ficha: renderJobCardForPrompt(input.jobCard) } : {}),
   };
 }

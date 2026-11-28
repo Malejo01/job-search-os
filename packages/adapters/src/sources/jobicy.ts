@@ -1,4 +1,4 @@
-import type { RawJob } from "@job-search-os/pipeline";
+import { makeSalaryOriginal, type RawJob } from "@job-search-os/pipeline";
 import { COUNTRY_TO_ISO, countryToIso, htmlToText } from "./getonboard";
 
 /**
@@ -190,6 +190,8 @@ export function mapJobicyJob(item: JobicyItem): RawJob | null {
       hasSalary && !isUsd
         ? `${currency ?? "moneda no indicada"} ${min ?? "?"}–${max ?? "?"} ${periodLabel} según Jobicy`
         : null,
+    // R32-08: el sueldo tal como lo publica, en su moneda; sin moneda dicha, null
+    salaryOriginal: makeSalaryOriginal({ min, max, currency, period }),
     weeklyHours: null,
     candidatesCount: null,
     badges: [],

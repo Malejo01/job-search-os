@@ -40,6 +40,7 @@ async function ensureUser(planUntil: Date): Promise<void> {
         userId: USER_ID,
         displayName: "Persona Vencimiento",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: "u_vencimiento_160@ingest.test",
         profileSummary:
           "Perfil ficticio para el e2e del vencimiento del plan. No corresponde a nadie real y solo existe en la base local.",

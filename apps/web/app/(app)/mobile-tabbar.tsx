@@ -38,7 +38,7 @@ export function MobileTabBar({ followUps = 0 }: { followUps?: number }) {
               <Link
                 href={t.href}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex min-h-11 flex-col items-center gap-[3px] rounded-control text-[11px] leading-tight font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+                className={`flex min-h-11 flex-col items-center gap-[3px] rounded-control text-xs leading-tight font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
                   isActive ? "text-fg" : "text-fg-subtle hover:text-fg"
                 }`}
               >

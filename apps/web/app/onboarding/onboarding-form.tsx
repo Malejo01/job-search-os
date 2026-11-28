@@ -76,6 +76,8 @@ function RolesSection({
   specialtyPanels,
   rolesLimit,
   defaultRolesLimit,
+  careerOther,
+  careerOtherValue,
 }: {
   roleGroups: RolePickerGroup[];
   salaries?: RolePickerSalaries | undefined;
@@ -84,6 +86,10 @@ function RolesSection({
   specialtyPanels?: Readonly<Record<string, ReactNode>> | undefined;
   rolesLimit: number;
   defaultRolesLimit: number;
+  /** R32-01: textos de «Otra» (vienen de `ALTA_TEXTOS`). */
+  careerOther: CareerOtherTexts;
+  /** Lo que ya estaba guardado en «Otra», si lo había. */
+  careerOtherValue: string;
 }) {
   const error = useProfileError();
   return (
@@ -108,9 +114,45 @@ function RolesSection({
         specialtyPanels={specialtyPanels}
       />
       <FieldError name="targetRoles" />
+      {/* R32-01: «Otra» con texto libre. Sin puestos elegidos, la carrera escrita acá es la que se guarda */}
+      <div
+        className="mt-2 flex flex-col gap-1.5 border-t border-line pt-3"
+        data-testid="carrera-otra"
+      >
+        <label htmlFor="careerOther" className="font-bold text-fg">
+          {careerOther.legend}
+        </label>
+        <p id="career-other-help" className="text-xs text-fg-subtle">
+          {careerOther.ayuda}
+        </p>
+        <input
+          id="careerOther"
+          name="careerOther"
+          type="text"
+          maxLength={60}
+          autoComplete="off"
+          defaultValue={careerOtherValue}
+          placeholder={careerOther.placeholder}
+          aria-label={careerOther.label}
+          aria-invalid={error?.field === "careerOther" ? true : undefined}
+          aria-describedby={
+            error?.field === "careerOther" ? "careerOther-error" : "career-other-help"
+          }
+          className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
+        />
+        <FieldError name="careerOther" />
+      </div>
     </fieldset>
   );
 }
+
+/** Textos de «Otra» (R32-01): los arma la página con `ALTA_TEXTOS.carreraOtra`. */
+export type CareerOtherTexts = {
+  legend: string;
+  ayuda: string;
+  label: string;
+  placeholder: string;
+};
 
 /**
  * Paso 1 del onboarding: los puestos arriba y, debajo, los campos del perfil que comparte con
@@ -130,7 +172,14 @@ export function OnboardingForm({
   minSummary,
   maxSummary,
   agentInitial,
+  careerOtherTexts,
+  careerOtherValue,
+  careerOtherErrors,
 }: {
+  /** R32-01: textos de «Otra» y lo que ya estaba guardado. */
+  careerOtherTexts: CareerOtherTexts;
+  careerOtherValue: string;
+  careerOtherErrors: { obligatoria: string; error: string };
   /**
    * Perfil guardado, solo cuando la persona pasó por el agente de perfil (`CV_PROFILE_AGENT`, ADR-034):
    * precarga los campos, editables. Sin él (flag apagado o sin agente) el formulario queda como siempre.
@@ -187,6 +236,10 @@ export function OnboardingForm({
       submitLabel="Guardar y continuar"
       selectedRoles={selectedRoles}
       spanishCounts={spanishCounts}
+      extraMessages={{
+        targetRoles: careerOtherErrors.obligatoria,
+        careerOther: careerOtherErrors.error,
+      }}
       roleLabels={Object.fromEntries(
         roleGroups.flatMap((g) => g.roles.map((r) => [r.key, r.label] as const)),
       )}
@@ -199,6 +252,8 @@ export function OnboardingForm({
         specialtyPanels={specialtyPanels}
         rolesLimit={rolesLimit}
         defaultRolesLimit={defaultRolesLimit}
+        careerOther={careerOtherTexts}
+        careerOtherValue={careerOtherValue}
       />
     </ProfileForm>
   );

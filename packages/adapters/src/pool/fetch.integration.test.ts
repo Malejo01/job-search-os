@@ -94,6 +94,9 @@ const downloaders: PoolDownloaders = {
   smartrecruiters: async () => {
     throw new Error("no debería llamarse");
   },
+  reliefweb: async () => {
+    throw new Error("no debería llamarse");
+  },
 };
 
 async function cleanup() {

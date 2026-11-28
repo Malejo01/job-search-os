@@ -38,6 +38,7 @@ async function ensureUser(): Promise<void> {
         userId: USER_ID,
         displayName: "Persona Pago",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: "u_pago_157@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona del flujo 157. No corresponde a nadie real y solo existe en la base local.",

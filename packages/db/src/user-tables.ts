@@ -40,6 +40,11 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "application_answers", column: "user_id", action: "delete" },
   { table: "answer_bank", column: "user_id", action: "delete" },
   { table: "candidate_facts", column: "user_id", action: "delete" },
+  { table: "requirement_answers", column: "user_id", action: "delete" },
+  // Borrador automático del CV (R33-02, rls/0075): policy FOR ALL del dueño; además cae por ON DELETE CASCADE
+  { table: "cv_drafts", column: "user_id", action: "delete" },
+  // Versión del CV adaptada a una oferta (R34-02, rls/0076): además cae por ON DELETE CASCADE
+  { table: "cv_offer_versions", column: "user_id", action: "delete" },
   { table: "application_settings", column: "user_id", action: "delete" },
   { table: "inbound_emails", column: "user_id", action: "delete" },
   { table: "raw_blobs", column: "user_id", action: "delete" },

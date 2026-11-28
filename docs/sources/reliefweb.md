@@ -1,6 +1,10 @@
-# Fuente: ReliefWeb · NO integrada
+# Fuente: ReliefWeb · adaptador listo y apagado, cableado al pool (hace falta la migración 0090)
 
-Ficha técnica de prospección (ticket G-6, 2026-10-30). **Todavía no hay adapter ni código en el repositorio.** No se integra sin la aprobación de Mauro y sin registrar el identificador de aplicación (`appname`) correspondiente. No constituye asesoramiento legal.
+**En una línea (R32-05):** avisos de ONU y ONG en español e inglés, con peso en administración y finanzas, legal y derechos humanos, comunicación, logística y compras, y gestión de programas; la mayoría son puestos de terreno o presenciales en la región, y los remotos (*home-based*) son pocos. Se prende con `RELIEFWEB_APPNAME`.
+
+**Estado:** el adaptador (`packages/adapters/src/sources/reliefweb.ts`, ADR-028) está completo y probado con fixtures inventadas: apagado sin `RELIEFWEB_APPNAME` (cero llamadas), falla cerrado ante una forma inesperada, tope de 10 pedidos de hasta 100 avisos por corrida (4 de 50 por defecto) y filtro por países (Argentina y la región). **Está en `POOL_SOURCE_NAMES`** con su propio valor de `source_kind` (`reliefweb`, migración 0090: con `other` compartiría historial e intervalo con Jooble y Careerjet), fuera de las recomendadas. Se prende con `reliefweb` en `POOL_SOURCES` más `RELIEFWEB_APPNAME`, **después de aplicar la 0090**. La atribución CC BY 4.0 es «Fuente: ReliefWeb» con link a reliefweb.int y el link al aviso original. Prueba manual: `pnpm pool:fetch reliefweb --dry-run` con `RELIEFWEB_APPNAME` (hace hasta 2 pedidos; imprime solo conteos).
+
+Ficha técnica de prospección (ticket G-6, 2026-10-30). No se prende sin la aprobación del responsable y sin registrar el identificador de aplicación (`appname`) correspondiente. No constituye asesoramiento legal.
 
 ---
 
@@ -145,7 +149,7 @@ Fuentes consultadas:
 
 ---
 
-## 7. Recomendación para Mauro
+## 7. Recomendación para el responsable
 
 1. **Evaluar la integración mediante medición previa:**
    - La plataforma es de muy alta calidad institucional para carreras no tecnológicas (ciencias sociales, administración, finanzas, legal, comex).

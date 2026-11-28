@@ -4,19 +4,19 @@ import { eq, inArray } from "drizzle-orm";
 import { E2E_USER_ID, deleteSeededPublicJobs, login, ownerDb } from "./helpers";
 
 /**
- * Flujo 41 (ronda 58): mercado por carrera en /market. Arriba «Mercado de <carrera>» (la de la
- * pestaña o la que se explora con ?carrera=) y debajo «Tu agenda». Avisos ficticios sembrados por
- * base: ~25 de QA y 3 de Marketing digital. Sin red.
+ * Flujo 41 (ronda 58, reescrito en la R34-03): mercado de la carrera en /market. Desde la R34-03 la pantalla es
+ * el mercado mínimo: una sola página para la carrera de la persona, sin selector de otras carreras ni «Tu agenda».
+ * Avisos ficticios sembrados por base: ~25 de QA y 3 de Marketing digital. Sin red.
  *
- * El servidor cachea 30 minutos el mercado de cada carrera, y otros specs (las personas, el 32)
- * ya pueden haber visitado /market con QA o con Marketing digital antes de esta siembra: el caché
- * puede traer sus avisos y no los de acá. Por eso se verifica la estructura (títulos, orden,
- * avisos que valen con cualquier muestra chica, forma de cada fila), nunca números exactos.
- * Etiquetas de `ROLE_SKILLS`: QA = «QA», marketing_digital = «Marketing digital», ux_ui = «UX/UI».
+ * En producción el pool de cada carrera se cachea 30 minutos; el servidor de los e2e lo lee sin caché
+ * (`MARKET_POOL_CACHE=off`), así la siembra de acá se ve. Igual se verifica la estructura, no números exactos:
+ * el pool puede traer avisos de otros specs.
+ * Los cálculos (vigente, tomable, habilidades que ya tiene, sueldos por moneda) los prueban los unitarios de
+ * `market-minimal.test.ts`; la estructura mínima, el flujo 452. Etiquetas de `ROLE_SKILLS`: QA = «QA».
  */
 test.describe.configure({ mode: "serial" });
 
-test.describe("Flujo 41: mercado por carrera", () => {
+test.describe("Flujo 41: mercado de la carrera", () => {
   const tag = Date.now();
   let original: { targetRole: string | null; targetRoles: string[] } | null = null;
 
@@ -111,86 +111,76 @@ test.describe("Flujo 41: mercado por carrera", () => {
     }
   });
 
-  test("arriba el mercado de la carrera del puesto y debajo «Tu agenda»", async ({ page }) => {
-    await login(page);
-    await page.goto("/market");
-    const section = page.getByRole("region", { name: /^Mercado de QA/ });
-    await expect(section).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Puestos" })).toBeVisible();
-    const agenda = page.getByRole("heading", { name: "Tu agenda" });
-    await expect(agenda).toBeVisible();
-    await expect(page.getByTestId("role-market")).toBeVisible();
-
-    const top = await section.boundingBox();
-    const below = await agenda.boundingBox();
-    expect(top && below && top.y < below.y, "el mercado de la carrera va arriba de Tu agenda").toBe(
-      true,
-    );
-  });
-
-  test("explorar otra carrera: ?carrera=, encabezado y aviso de muestra chica", async ({
+  test("«Mercado de QA» con las pestañas de sus puestos, sin «Tu agenda» ni selector de carreras", async ({
     page,
   }) => {
     await login(page);
     await page.goto("/market");
-    await page
-      .getByRole("combobox", { name: "Explorar otra carrera" })
-      .selectOption({ label: "Marketing" }); // R5-C8: nombre de la beta en el selector
-    await page.getByRole("form", { name: "Explorar otra carrera" }).getByRole("button").click();
-    await page.waitForURL(/carrera=marketing_digital/);
-
-    await expect(page.getByRole("heading", { name: "Mercado de Marketing digital" })).toBeVisible();
-    const section = page.getByTestId("career-market");
-    await expect(section.getByRole("note").filter({ hasText: "Muestra chica" })).toBeVisible();
-    await expect(section.getByRole("heading", { name: "Sueldos publicados" })).toBeVisible();
-    await expect(section).toContainText(
-      /Pocos datos todavía|Ninguna oferta publica sueldo todavía/,
-    );
-    // Ronda 80: dos mercados por separado, nunca una cifra mezclada
-    const salary = section.getByTestId("market-salary");
-    await expect(salary).toContainText("Ofertas abiertas a Argentina / LatAm");
-    await expect(salary).toContainText("Ofertas internacionales");
-    // «Tu agenda» sigue en el puesto de la persona
-    await expect(page.getByRole("heading", { name: "Tu agenda" })).toBeVisible();
-    await expect(page.getByTestId("role-market")).toContainText("QA");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mercado de QA");
+    await expect(page.getByRole("navigation", { name: "Puestos" })).toBeVisible();
+    // R34-03: lo que se sacó de la pantalla
+    await expect(page.getByRole("heading", { name: "Tu agenda de skills" })).toHaveCount(0);
+    await expect(page.getByRole("combobox", { name: "Explorar otra carrera" })).toHaveCount(0);
+    await expect(page.getByTestId("role-market")).toHaveCount(0);
   });
 
-  // Se mide el bloque nuevo y no la página: la barra de navegación ya desborda a 360 px desde
-  // antes de esta ronda (revisión UX de la 58) y eso va en un ticket aparte.
-  test("a 360 px el mercado de la carrera no desborda", async ({ page }) => {
+  // Antes `?carrera=` exploraba otra carrera (con aviso de muestra chica y los dos mercados de sueldo). Con el
+  // mercado mínimo es solo la carrera de la persona: ese caso ya no tiene sentido y se reemplaza por este.
+  test("?carrera= ya no explora otras carreras: la pantalla sigue en la de la persona", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto("/market?carrera=marketing_digital");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mercado de QA");
+    await expect(page.getByTestId("career-market")).toHaveCount(0);
+  });
+
+  // Se miden los bloques, no la página: la barra de navegación ya desborda a 360 px (revisión UX de la 58).
+  test("a 360 px los bloques del mercado no desbordan", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await login(page);
-    await page.goto("/market?carrera=marketing_digital");
-    const section = page.getByTestId("career-market");
-    await expect(section).toBeVisible();
-    const box = await section.boundingBox();
-    expect(box && box.x + box.width <= 360, "el bloque entra en 360 px").toBe(true);
-    expect(await section.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await page.goto("/market");
+    for (const id of [
+      "market-ofertas",
+      "market-habilidades",
+      "market-modalidad",
+      "market-sueldos",
+    ]) {
+      const block = page.getByTestId(id);
+      await expect(block).toBeVisible();
+      const box = await block.boundingBox();
+      expect(box && box.x + box.width <= 360, `${id} entra en 360 px`).toBe(true);
+      expect(await block.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    }
   });
 
-  test("accesibilidad: sección con nombre, select con label y barras con su texto", async ({
+  test("accesibilidad: cada bloque con su título y cada barra con su número en texto", async ({
     page,
   }) => {
     await login(page);
-    await page.goto("/market?carrera=marketing_digital");
-    // Nombre completo: «Tu agenda» tiene otra región, «Mercado del rol», que un /^Mercado de/ también toma
-    const section = page.getByRole("region", {
-      name: /^Mercado de Marketing digital/,
-    });
-    await expect(section).toBeVisible();
-    await expect(page.getByRole("combobox", { name: "Explorar otra carrera" })).toBeVisible();
+    await page.goto("/market");
+    for (const [id, title] of [
+      ["market-ofertas", "Cuántas ofertas hay hoy"],
+      ["market-habilidades", "Qué habilidades piden más"],
+      ["market-modalidad", "En qué modalidad y desde dónde"],
+      ["market-sueldos", "Qué sueldos se publican"],
+    ] as const) {
+      await expect(page.getByTestId(id).getByRole("heading", { level: 2 })).toHaveText(title);
+    }
 
-    // Las filas de skills, sin depender de cuáles: el caché de 30 minutos puede traer avisos que
-    // sembró otro spec (las personas usan Marketing digital). Cada fila dice su número en texto,
-    // nunca muestra una parte en cero y tiene una sola barra decorativa que no se anuncia.
-    const rows = section
-      .getByRole("listitem")
-      .filter({ hasText: /· \d+ de \d+ ofertas \(\d+ %\) · \d+ (excluyente|deseable)/ });
-    await expect(rows.first(), await section.innerText()).toBeVisible();
-    const count = await rows.count();
-    for (let i = 0; i < count; i++) {
-      await expect(rows.nth(i)).not.toContainText(/ 0 (excluyente|deseable)/);
-      await expect(rows.nth(i).locator('[aria-hidden="true"]')).toHaveCount(1);
+    // Las filas de habilidades, sin depender de cuáles: el caché puede traer avisos que sembró otro spec. Con
+    // pocos avisos (menos de 10) no hay gráfico y no hay filas; con 10 o más, cada fila dice su número en
+    // texto y si la persona ya la tiene, y tiene una sola barra decorativa que no se anuncia.
+    if ((await page.getByTestId("market-pocos").count()) === 0) {
+      const rows = page
+        .getByTestId("market-habilidades")
+        .getByRole("listitem")
+        .filter({ hasText: /· \d+ de \d+ ofertas \(\d+ %\) · (Ya la tenés|No la tenés) cargada/ });
+      await expect(rows.first()).toBeVisible();
+      const count = await rows.count();
+      for (let i = 0; i < count; i++) {
+        await expect(rows.nth(i).locator('[aria-hidden="true"]')).toHaveCount(1);
+      }
     }
   });
 });

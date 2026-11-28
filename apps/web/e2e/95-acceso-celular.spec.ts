@@ -11,11 +11,35 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
 
   test.use({ viewport: VIEWPORT });
 
+  // Contaduría es la clave `finanzas_contabilidad`. Desde R32-03 la confirmación depende de si la carrera está
+  // abierta (`open_careers`, nada abre solo): este flujo prueba el mensaje de la carrera abierta, así que la
+  // abre él mismo en vez de asumir cómo está la base (en el CI viene vacía y el mensaje era otro).
+  // El de la carrera cerrada lo prueba el flujo 393. Si ya estaba abierta, no la cierra al terminar.
+  const CARRERA = "finanzas_contabilidad";
+  let laAbrio = false;
+
+  test.beforeAll(async () => {
+    const { db, close } = ownerDb();
+    try {
+      const abiertas = await db
+        .select()
+        .from(s.openCareers)
+        .where(eq(s.openCareers.career, CARRERA));
+      if (abiertas.length === 0) {
+        await db.insert(s.openCareers).values({ career: CARRERA });
+        laAbrio = true;
+      }
+    } finally {
+      await close();
+    }
+  });
+
   test.afterAll(async () => {
     try {
       const { db, close } = ownerDb();
       try {
         await db.delete(s.waitlist).where(eq(s.waitlist.email, testEmail));
+        if (laAbrio) await db.delete(s.openCareers).where(eq(s.openCareers.career, CARRERA));
       } finally {
         await close();
       }
@@ -54,7 +78,7 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
 
     await submitBtn.click();
 
-    // Confirmación en simple sobre la apertura y sin prometer lugar (el cupo es limitado)
+    // Carrera abierta: confirmación en simple sobre la apertura y sin prometer lugar (el cupo es limitado)
     const statusMsg = page.getByRole("status").filter({
       hasText: "La beta abre a principios de diciembre y el cupo es limitado",
     });

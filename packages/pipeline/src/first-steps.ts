@@ -74,8 +74,8 @@ export function firstSteps(facts: FirstStepsFacts): FirstStepsResult {
       optional: false,
       text: facts.hasApplication
         ? "Registraste tu primera postulación"
-        : "Cuando te postules, marcala como Aplicada",
-      help: facts.hasApplication ? null : "En el detalle de la oferta, botón «Aplicada».",
+        : "Cuando te postules, marcala como «Ya me postulé»",
+      help: facts.hasApplication ? null : "En el detalle de la oferta, botón «Marcar aplicada».",
       link: null,
     },
     emailItem(facts),

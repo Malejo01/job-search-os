@@ -169,8 +169,10 @@ export async function ensureOffUser(): Promise<string> {
         inboundAddress: "u_voz_off_225@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona del flujo 225. No corresponde a nadie real y solo existe en la base local.",
+        // R32-01: sin puestos; ya «pedida» para que el recuadro de la carrera no aparezca en los flujos de voz
+        careerAskedAt: new Date(),
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({ target: s.profiles.userId, set: { careerAskedAt: new Date() } });
     const [crit] = await db
       .select({ id: s.evaluationCriteria.id })
       .from(s.evaluationCriteria)

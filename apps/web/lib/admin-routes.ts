@@ -23,6 +23,8 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   "(app)/admin/marca/componentes/page.tsx",
   "(app)/admin/textos/page.tsx",
   "(app)/admin/metricas/page.tsx",
+  "(app)/admin/cobertura/page.tsx",
+  "(app)/admin/carreras/page.tsx",
   "(app)/admin/salud/page.tsx",
   "(app)/admin/costos/page.tsx",
   "(app)/admin/apertura/page.tsx",
@@ -34,12 +36,14 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   "(app)/admin/invitations/export/route.ts",
   "(app)/admin/feedback/export/route.ts",
   "(app)/admin/informes/[id]/export/route.ts",
+  "(app)/admin/calibracion/export/route.ts",
   "(app)/admin/metricas/filtros-pool/route.ts",
   "(app)/admin/marca/email-bienvenida/route.ts",
   // Server Actions
   "(app)/admin/personas/[id]/actions.ts",
   "(app)/admin/invitations/actions.ts",
   "(app)/admin/planes/actions.ts",
+  "(app)/admin/carreras/actions.ts",
   "(app)/admin/feedback/actions.ts",
   "(app)/admin/informes/actions.ts",
 ];
@@ -67,6 +71,8 @@ export const MEMBER_FILES: readonly string[] = [
   // Vive en /recorrido (no bajo settings ni admin), por eso el test del árbol no lo exige; se anota acá
   // para que quede junto a la otra pantalla de revisión.
   "(app)/recorrido/page.tsx",
+  // Calibrar la evaluación nueva (R31-10): admins y testers con `JOB_CARD` encendida (`calibrationAllowedFor`), 404 para el resto
+  "(app)/calibracion/page.tsx",
   "(app)/settings/perfil/page.tsx",
   "(app)/settings/perfil/actions.ts",
   "(app)/settings/senders/page.tsx",

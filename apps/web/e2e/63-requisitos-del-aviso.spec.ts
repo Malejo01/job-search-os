@@ -2,6 +2,7 @@ import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import { createEvaluation, createJob, deleteJob, E2E_USER_ID, login, ownerDb } from "./helpers";
+import { blankProfileFacts } from "./perfil-sin-datos-helper";
 
 /**
  * Flujo 63 (ronda 104): «Requisitos del aviso» sale de `decision.checklist`. Con el checklist se ve
@@ -85,8 +86,13 @@ async function evaluateWithDecision(jobId: string, decision: unknown): Promise<v
 
 test.describe("Flujo 63: requisitos del aviso", () => {
   let dockerBackup: (typeof s.skillLevels.$inferSelect)[] = [];
+  let restoreProfile: () => Promise<void> = async () => {};
 
   test.beforeAll(async () => {
+    // El CTA «Completá este dato en Tu perfil: 5 años» exige «5 años» sin confirmar: el perfil del CI trae
+    // 5 años y el detalle lo superpone a la evaluación (la fila pasa a «Coincide» y no hay CTA). Ver
+    // `perfil-sin-datos-helper.ts`.
+    restoreProfile = await blankProfileFacts();
     const { db, close } = ownerDb();
     try {
       const [docker] = await db
@@ -105,6 +111,7 @@ test.describe("Flujo 63: requisitos del aviso", () => {
   });
 
   test.afterAll(async () => {
+    await restoreProfile();
     const { db, close } = ownerDb();
     try {
       if (dockerBackup.length) {
@@ -123,23 +130,21 @@ test.describe("Flujo 63: requisitos del aviso", () => {
       await page.goto(`/jobs/${jobId}`);
       const section = page.getByRole("region", { name: "Requisitos del aviso" });
       await expect(section.getByTestId("requisitos-titular")).toContainText(
-        "Cumplís 1 de 2 requisitos excluyentes y 1 que no podemos verificar con tu perfil",
+        "Coinciden 1 de 3 requisitos excluyentes y 1 sin confirmar",
       );
       await expect(section).toContainText("Sin la descripción completa");
-      // Un ítem de cada estado, con texto y no solo color
-      await expect(section.getByText("Cumple", { exact: true }).first()).toBeVisible();
-      await expect(section.getByText("No cumple", { exact: true })).toBeVisible();
-      await expect(section.getByText("No se sabe", { exact: true })).toBeVisible();
+      // Un ítem de cada estado, con texto y no solo color (glosario: Coincide · Sin confirmar · No coincide)
+      await expect(section.getByText("Coincide", { exact: true }).first()).toBeVisible();
+      await expect(section.getByText("No coincide", { exact: true })).toBeVisible();
+      await expect(section.getByText("Sin confirmar", { exact: true }).first()).toBeVisible();
       // Lo desconocido pide cargar el nivel con un botón que abre el modal (C-20), no con un link
       await expect(
         section.getByRole("button", { name: "Cargar mi nivel de Docker" }),
       ).toBeVisible();
-      // Skills que solo nombra el aviso, aparte del titular
-      await expect(
-        section.getByRole("heading", { name: "Skills que nombra el aviso" }),
-      ).toBeVisible();
+      // Las habilidades que solo nombra el aviso van en su sección «Habilidades» (R30-09)
+      await expect(page.getByTestId("seccion-habilidades")).toContainText("Mencionada en el aviso");
       await expect(section.getByTestId("requisitos-descarte")).toContainText(
-        "Lo primero por lo que te descartarían: Inglés avanzado (tenés B2)",
+        "Hoy no coincide: Inglés avanzado (en tu perfil: B2)",
       );
     } finally {
       await deleteJob(jobId);
@@ -173,7 +178,9 @@ test.describe("Flujo 63: requisitos del aviso", () => {
       });
       await login(page);
       await page.goto(`/jobs/${jobId}`);
-      const section = page.getByRole("region", { name: "Requisitos del aviso" });
+      // R30-09: la habilidad que solo nombra el aviso va en «Habilidades»
+      const section = page.getByTestId("seccion-habilidades");
+      await section.locator("summary").click();
       await expect(
         section.getByRole("link", { name: "Cargá tu nivel de Cosa Rara" }),
       ).toHaveAttribute("href", "/settings/skills");
@@ -232,7 +239,7 @@ test.describe("Flujo 63: requisitos del aviso", () => {
       await login(page);
       for (const id of [sin, roto]) {
         await page.goto(`/jobs/${id}`);
-        await expect(page.getByRole("heading", { name: "Te falta o te frena" })).toBeVisible();
+        await expect(page.getByTestId("como-encaja-veredicto")).toBeVisible();
         await expect(page.getByRole("region", { name: "Requisitos del aviso" })).toHaveCount(0);
       }
     } finally {
@@ -262,7 +269,7 @@ test.describe("Flujo 63: requisitos del aviso", () => {
         "No hay requisitos verificables; mirá la lista",
       );
       await expect(section.getByTestId("requisitos-descarte")).toContainText(
-        "Nada evidente: tu perfil pasa la primera mirada",
+        "No encontramos condiciones excluyentes que no coincidan con tu perfil.",
       );
     } finally {
       await deleteJob(jobId);

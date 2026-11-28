@@ -62,46 +62,56 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     await page.mouse.up();
   });
 
-  test("sello (C9-5, C10-2): «Muy afín» es el único inclinado, la palabra siempre está y todos son círculos", async ({
+  test("sello (R30-02): «Afinidad alta» es el único inclinado, la palabra y el número siempre están y todos son círculos", async ({
     page,
   }) => {
     await login(page);
     await page.goto("/admin/marca/componentes");
     const seals = page.getByTestId("sellos-light");
     const top = seals.getByRole("img", { name: "puntaje 9.2" });
-    await expect(top).toContainText("Muy afín");
+    await expect(top).toContainText("Afinidad alta");
+    // El número lleva un decimal y coma
+    await expect(top).toContainText("9,2");
     // Tailwind 4 inclina con la propiedad `rotate`, no con `transform`
-    expect(await top.evaluate((el) => getComputedStyle(el).rotate)).toBe("-8deg");
+    const girar = (seal: typeof top) =>
+      seal.locator("[data-seal-circle]").evaluate((el) => getComputedStyle(el).rotate);
+    expect(await girar(top)).toBe("-8deg");
     const far = seals.getByRole("img", { name: "puntaje 1.5" });
-    await expect(far).toContainText("Lejos de tu perfil");
-    expect(await far.evaluate((el) => getComputedStyle(el).rotate)).toBe("none");
+    await expect(far).toContainText("Afinidad baja");
+    expect(await girar(far)).toBe("none");
     for (const name of [
       "puntaje 7.5",
       "puntaje 5.5",
       "puntaje 3.5",
-      "estimación previa 6",
+      "puntaje 6.9",
       "sin evaluar",
       "en cola",
     ]) {
       const seal = seals.getByRole("img", { name });
       await expect(seal).toBeVisible();
-      expect(await seal.evaluate((el) => getComputedStyle(el).rotate)).toBe("none");
+      expect(await girar(seal)).toBe(name === "puntaje 7.5" ? "-8deg" : "none");
     }
-    await expect(seals.getByRole("img", { name: "puntaje 7.5" })).toContainText("Bastante afín");
-    await expect(seals.getByRole("img", { name: "puntaje 5.5" })).toContainText("Afín a medias");
-    await expect(seals.getByRole("img", { name: "puntaje 3.5" })).toContainText("Poco afín");
-    await expect(seals.getByRole("img", { name: "estimación previa 6" })).toContainText("Estimado");
+    await expect(seals.getByRole("img", { name: "puntaje 7.5" })).toContainText("Afinidad alta");
+    await expect(seals.getByRole("img", { name: "puntaje 5.5" })).toContainText("Afinidad media");
+    // Un 6,9 es media: el número nunca contradice al sello
+    await expect(seals.getByRole("img", { name: "puntaje 6.9" })).toContainText("Afinidad media");
+    await expect(seals.getByRole("img", { name: "puntaje 3.5" })).toContainText("Afinidad baja");
     await expect(seals.getByRole("img", { name: "sin evaluar" })).toContainText("Sin evaluar");
-    // «Lejos de tu perfil» va en dos líneas dentro de un círculo (tablero aprobado el 4/11), sin
-    // bajar de 8 px ni desbordar
-    const word = far.getByText("Lejos de tu perfil");
+    // La palabra va debajo del círculo (que sigue siendo un círculo), a 12 px o más y sin desbordar el sello
+    const word = far.getByText("Afinidad");
     const size = await word.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-    expect(size).toBeGreaterThanOrEqual(8);
-    const [wordBox, sealBox] = [await word.boundingBox(), await far.boundingBox()];
-    if (!wordBox || !sealBox) throw new Error("sin caja");
-    expect(Math.round(sealBox.width)).toBe(Math.round(sealBox.height));
-    expect(wordBox.x).toBeGreaterThanOrEqual(sealBox.x);
-    expect(wordBox.x + wordBox.width).toBeLessThanOrEqual(sealBox.x + sealBox.width);
-    expect(wordBox.y + wordBox.height).toBeLessThanOrEqual(sealBox.y + sealBox.height);
+    expect(size).toBeGreaterThanOrEqual(12);
+    const circle = far.locator("[data-seal-circle]");
+    const [wordBox, sealBox, circleBox] = [
+      await word.boundingBox(),
+      await far.boundingBox(),
+      await circle.boundingBox(),
+    ];
+    if (!wordBox || !sealBox || !circleBox) throw new Error("sin caja");
+    expect(Math.round(circleBox.width)).toBe(Math.round(circleBox.height));
+    expect(wordBox.y).toBeGreaterThanOrEqual(circleBox.y + circleBox.height - 1);
+    expect(wordBox.x).toBeGreaterThanOrEqual(sealBox.x - 1);
+    expect(wordBox.x + wordBox.width).toBeLessThanOrEqual(sealBox.x + sealBox.width + 1);
+    expect(wordBox.y + wordBox.height).toBeLessThanOrEqual(sealBox.y + sealBox.height + 1);
   });
 });

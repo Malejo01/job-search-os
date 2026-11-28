@@ -157,6 +157,7 @@ apps/web/app/terminos-actualizados/page.tsx
 packages/prompts/**
 evals/**
 packages/pipeline/src/decide.ts
+packages/pipeline/src/decide-rules.ts
 packages/pipeline/src/evaluation.ts
 packages/pipeline/src/evaluator/**
 packages/pipeline/src/prefilter/**
@@ -210,3 +211,11 @@ apps/web/lib/feedback-report.ts
 apps/web/lib/feedback-files.ts
 apps/web/lib/admin-feedback-reports.ts
 apps/web/lib/feedback-report-email.ts
+# R31: ficha del aviso (lectura con el rol de servicio y encendido por variable)
+apps/web/lib/job-card.ts
+packages/pipeline/src/job-card/flag.ts
+packages/adapters/src/reevaluate/reevaluate-cli.ts
+# R32: aviso de pocas ofertas (server action inline)
+apps/web/app/(app)/jobs/few-offers-notice.tsx
+# R33: baja del email de novedades con el rol de servicio (después de verificar el token)
+apps/web/lib/news-email.ts

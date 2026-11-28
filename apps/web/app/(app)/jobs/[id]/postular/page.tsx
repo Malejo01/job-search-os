@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { AfiDice } from "@/components/afi-dice";
 import { EstadoMarca } from "@/components/estado-marca";
 import { buttonClasses } from "@/components/ui";
-import { AFI_DICE, ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
+import { AFI_DICE, ESTADOS_TEXTOS, POSTULACION_TEXTOS as T } from "@/lib/textos-rediseno";
 import { isUuid } from "@/lib/ids";
 import { requireUserId } from "@/lib/session";
-import { cvForOffer } from "@job-search-os/pipeline";
+import { reviewCvForOffer } from "@job-search-os/pipeline";
 import { cvCoachAllowedFor } from "@/lib/cv-coach/access";
 import { cvTailorAllowedFor } from "@/lib/cv-tailor/server";
+import { hasOfferVersion } from "@/lib/cv-tailor/versions";
+import { DescargasVersion } from "./descargas-version";
 import { PostularTailor } from "./postular-tailor";
 import { loadCvSource } from "@/lib/cv-source";
 import { getPostularData } from "./data";
@@ -33,16 +35,19 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
   ]);
   if (!data) notFound();
   const forOffer = cvSource
-    ? cvForOffer({
+    ? reviewCvForOffer({
         offerSkills: data.offerSkills,
         cvSkills: cvSource.skills.map((k) => k.name),
         history: cvSource.history,
+        requirements: data.requirements,
       })
     : null;
   const [coachOn, tailorOn] = await Promise.all([
     cvCoachAllowedFor(userId),
     cvTailorAllowedFor(userId),
   ]);
+  // Solo si la adaptación está disponible puede haber una versión guardada que ofrecer
+  const hasAdapted = tailorOn ? await hasOfferVersion(userId, id) : null;
 
   const url = httpsUrl(data.url);
   const checklist = postularChecklist({
@@ -140,8 +145,9 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
         className="rounded-card border border-line p-3 text-sm"
       >
         <h2 id="postular-cv-oferta" className="font-semibold">
-          Tu CV frente a esta oferta
+          {T.revisar.titulo}
         </h2>
+        <p className="mt-1 text-fg-muted">{T.revisar.intro}</p>
         {forOffer === null || !forOffer.ok ? (
           <EstadoMarca
             tipo="sin-datos"
@@ -160,32 +166,74 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
               )
             }
           >
-            {forOffer && forOffer.error === "sin_requisitos"
-              ? "No pudimos leer qué skills pide este aviso, así que no hay nada para cruzar con tu CV."
-              : "Todavía no tenés un CV confirmado para cruzar con esta oferta. Armalo en la sección CV y volvé."}
+            {forOffer && forOffer.error === "sin_requisitos" ? T.revisar.sinDatos : T.revisar.sinCv}
           </EstadoMarca>
         ) : (
           <div className="mt-2 flex flex-col gap-3">
             <div>
               <h3 className="font-medium text-fg">Lo que pide el aviso</h3>
               <ul className="mt-1 flex flex-wrap gap-1.5" data-testid="cv-oferta-pedidas">
-                {forOffer.value.asked.map((k) => (
+                {forOffer.value.covered.map((k) => (
                   <li key={k.name} className="rounded-card border border-line px-2 py-0.5 text-fg">
                     {k.name}
-                    {k.isMust ? "" : " (deseable)"} ·{" "}
+                    {k.isMust ? "" : ` (${T.revisar.deseable})`} ·{" "}
                     <span className="text-fg-muted">
-                      {k.inCv ? "ya está en tu CV" : "no figura"}
+                      ya está en tu CV:{" "}
+                      {k.evidence
+                        ? T.revisar.cubiertoEn.replace(
+                            "{donde}",
+                            k.evidence.organization || k.evidence.title,
+                          )
+                        : T.revisar.cubiertoSoloLista}
                     </span>
+                  </li>
+                ))}
+                {forOffer.value.unbacked.map((k) => (
+                  <li key={k.name} className="rounded-card border border-line px-2 py-0.5 text-fg">
+                    {k.name}
+                    {k.isMust ? "" : ` (${T.revisar.deseable})`} ·{" "}
+                    <span className="text-fg-muted">no figura</span>
                   </li>
                 ))}
               </ul>
             </div>
-            {forOffer.value.missing.length ? (
-              <p data-testid="cv-oferta-faltan" className="text-fg-muted">
-                No figuran en tu CV: {forOffer.value.missing.map((m) => m.name).join(", ")}. Sumalas
-                solo si de verdad las usaste.
-              </p>
+            {forOffer.value.unbacked.length ? (
+              <div data-testid="cv-oferta-faltan" className="text-fg-muted">
+                <h3 className="font-medium text-fg">{T.revisar.sinRespaldoTitulo}</h3>
+                <p className="mt-1">
+                  {forOffer.value.unbacked.map((m) => m.name).join(", ")}.{" "}
+                  {T.revisar.sinRespaldoAyuda}
+                </p>
+              </div>
             ) : null}
+            <div data-testid="cv-oferta-aclarar">
+              <h3 className="font-medium text-fg">{T.revisar.aclararTitulo}</h3>
+              {forOffer.value.toClarify.length ? (
+                <ul className="mt-1 list-disc pl-5 text-fg-muted">
+                  {forOffer.value.toClarify.map((c, i) => (
+                    <li key={i} className="py-0.5">
+                      {c.kind === "skill_sin_experiencia"
+                        ? T.revisar.aclararSkill.replace("{nombre}", c.name)
+                        : c.code === "ingles"
+                          ? T.revisar.aclararIngles.replace("{pide}", c.pide)
+                          : T.revisar.aclararOtro.replace("{pide}", c.pide)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-fg-muted">{T.revisar.aclararVacio}</p>
+              )}
+              {forOffer.value.toClarify.some(
+                (c) => c.kind === "requisito" && c.code === "ingles",
+              ) ? (
+                <Link
+                  href="/settings/perfil"
+                  className={`${buttonClasses({ size: "sm", variant: "secondary" })} mt-2 w-fit`}
+                >
+                  {T.revisar.abrirPerfil}
+                </Link>
+              ) : null}
+            </div>
             {forOffer.value.bullets.some((b) => b.matched.length > 0) ? (
               <div>
                 <h3 className="font-medium text-fg">Viñetas para poner primero</h3>
@@ -214,15 +262,6 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
           </div>
         )}
         <div className="mt-3 flex flex-wrap gap-2">
-          {cvSource ? (
-            <a
-              href={`/jobs/${data.id}/postular/descargar`}
-              data-testid="descargar-cv-oferta"
-              className={`${buttonClasses({ size: "sm" })} w-fit`}
-            >
-              Descargar mi CV para esta oferta (.docx)
-            </a>
-          ) : null}
           {coachOn ? (
             <Link
               href={`/cv/coach?oferta=${data.id}`}
@@ -233,14 +272,23 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
             </Link>
           ) : null}
         </div>
-        {cvSource ? (
-          <p className="mt-1 text-xs text-fg-subtle">
-            Es tu CV confirmado con las viñetas reordenadas según la oferta. No reescribimos nada.
-          </p>
-        ) : null}
+        <p className="mt-2 text-xs text-fg-subtle">{T.revisar.nota}</p>
       </section>
 
       {tailorOn ? <PostularTailor jobId={data.id} /> : null}
+
+      {cvSource ? (
+        <section
+          aria-labelledby="postular-descargar"
+          data-testid="postular-descargar"
+          className="rounded-card border border-line p-3 text-sm"
+        >
+          <h2 id="postular-descargar" className="font-semibold">
+            {T.descargar.titulo}
+          </h2>
+          <DescargasVersion jobId={data.id} hasAdapted={hasAdapted} />
+        </section>
+      ) : null}
 
       <section
         aria-labelledby="postular-checklist"

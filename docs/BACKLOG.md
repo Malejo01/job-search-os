@@ -2252,3 +2252,127 @@ Informe de la tanda: [`docs/beta/informe-r29.md`](beta/informe-r29.md). Pasos ma
 
 ### R29 · Cierre de la tanda
 `estado:` en rama (25/11) · `ronda/r29-cierre`
+
+## Bloque 48 · Tanda R30 «Confianza» (26/11)
+
+Informe de la tanda: [`docs/beta/informe-r30.md`](beta/informe-r30.md). Pasos manuales: [`docs/beta/pasos-manuales-r30.md`](beta/pasos-manuales-r30.md). Verificación por ID del informe de revisión: [`docs/beta/verificacion-informe-ani.md`](beta/verificacion-informe-ani.md). Cadena sobre `ronda/r30-base` (`main` #567 + documentos de la cadena R30–R34); ningún PR mergeado por agentes. Migración 0086 sin aplicar en Neon. USD 0, ningún modelo ni prompt.
+
+### Pedido
+- **R30-01** · Glosario único con test de frases prohibidas, «Muchos candidatos» solo con el número del aviso y lista de verificación por ID · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-02** · Cuatro sellos de afinidad con el número con coma («Afinidad alta · 7,4/10»), «Cómo calculamos la afinidad» y aclaración fija · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-03** · «Guardada» como marca con fecha (`saved_at`, migración 0086), acciones con sesión y pestaña · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-04** · Tarjeta con condición excluyente arriba, «Sin confirmar: …» desde la tabla y orden en `packages/pipeline` · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-05** · Pestañas, chips con número, contador, «Limpiar filtros» y filtros en la URL · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-06** · Descartadas con fondo neutro, «Volver a revisar» y «Deshacer» · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-07** · «Este aviso ya no figura en {fuente}» para las ofertas del pool · `estado:` en rama (26/11) · `ronda/r30-03-listado`
+- **R30-08** · Detalle en el orden nuevo con las 7 filas de «Lo importante para decidir» y «Cómo encaja» · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-09** · Una sola tabla de requisitos y resumen derivado de ella, sin paneles que la contradigan · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-10** · «Preparar mi postulación» en una sección y un solo botón de salida · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-11** · «¿Te sirve esta evaluación?» y «Proponer otro puntaje» solo para testers y admins (validado en el servidor) · `estado:` en rama (26/11) · `ronda/r30-08-detalle`
+- **R30-12** · Tokens de legibilidad, test que falla en las pantallas de ofertas y auditoría con capturas (e2e 340) · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-13** · Parser de sueldo desde texto, que falla cerrado · `estado:` en rama (26/11) · `ronda/r30-01-base`
+- **R30-14** · e2e de la tanda, 390 y 360 px, axe y capturas antes y después · `estado:` en rama (26/11) · `ronda/r30-cierre`
+
+### Pendientes que salen de la tanda
+- Textos marcados `PENDIENTE-INFORME` en `apps/web/lib/textos-rediseno.ts`: sin cotejar con el informe original (el PDF no se pudo leer en la máquina de la tanda).
+- Habilidades ligadas al puesto vs. a la empresa (R31, con la ficha del aviso); `closenessPhrase` sin uso (limpieza en la R34).
+- «Marcar como aplicada» en `settings/conexiones` y en la descripción del MCP (barrido de la R34).
+
+### R30 · Cierre de la tanda
+`estado:` en rama (26/11) · `ronda/r30-cierre`
+
+## Bloque 49 · Tanda R31 «Ficha del aviso» (26/11)
+
+Informe de la tanda: [`docs/beta/informe-r31.md`](beta/informe-r31.md). Pasos manuales: [`docs/beta/pasos-manuales-r31.md`](beta/pasos-manuales-r31.md). Cadena sobre `ronda/r30-cierre`; ningún PR mergeado por agentes. Migraciones 0087 y 0088 y RLS 0071 a 0073 sin aplicar en Neon. USD 0 (modelo simulado); prompts nuevos sin promover; todo detrás de `JOB_CARD`, apagada por defecto.
+
+### Pedido
+- **R31-01** · Tabla `job_cards` compartida por hash del texto, RLS con `FORCE`, ADR-048 · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-02** · Prompt `extract_job_card` v1 y validador que verifica cada cita contra el aviso · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-03** · Generación una vez por hash, en el ingreso, a pedido y antes de evaluar, con tope diario · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-04** · El detalle en español desde la ficha, con citas y estados · `estado:` en rama (26/11) · `ronda/r31-04-pantalla`
+- **R31-05** · Filas `req:<n>` en la tabla, estado decidido por el código y pregunta de un toque (`requirement_answers`, 0088) · `estado:` en rama (26/11) · `ronda/r31-05-evaluacion`
+- **R31-06** · `evaluate_job` v1.5.0 en archivo nuevo y golden propuesto en ops · `estado:` en rama (26/11) · `ronda/r31-05-evaluacion`
+- **R31-07** · Tarjeta, «lo que más pesa» y habilidades del puesto desde la ficha · `estado:` en rama (26/11) · `ronda/r31-04-pantalla`
+- **R31-08** · «Esto mismo te pasa en N de tus M ofertas» y modal de un campo · `estado:` en rama (26/11) · `ronda/r31-04-pantalla`
+- **R31-09** · Comando de reevaluación única (dry-run, tope, retoma, vuelta atrás); no se ejecutó · `estado:` en rama (26/11) · `ronda/r31-01-ficha`
+- **R31-10** · Kit de calibración (`/calibracion`, exportación para admins, `docs/beta/calibracion-r31.md`) · `estado:` en rama (26/11) · `ronda/r31-05-evaluacion`
+- **R31-11** · e2e con el modelo simulado, 390 y 360 px, axe y costo estimado · `estado:` en rama (26/11) · `ronda/r31-cierre`
+
+### Pendientes que salen de la tanda
+- Correr las evals de la ficha y de `evaluate_job` v1.5.0, calibrar con 20 a 30 ofertas y promover (pasos manuales).
+- Programar `purgeOrphanJobCards` en la retención; ritmo por persona antes de `JOB_CARD=all`.
+
+### R31 · Cierre de la tanda
+`estado:` en rama (26/11) · `ronda/r31-cierre`
+
+## Bloque 50 · Tanda R32 «Inventario y alta» (27/11)
+
+Informe de la tanda: [`docs/beta/informe-r32.md`](beta/informe-r32.md). Pasos manuales: [`docs/beta/pasos-manuales-r32.md`](beta/pasos-manuales-r32.md). Cadena sobre `ronda/r31-cierre`; ningún PR mergeado por agentes. Migraciones 0089 y 0090 y RLS 0074 sin aplicar en Neon. Ningún modelo ni pedido a portales; nada abre solo.
+
+### Pedido
+- **R32-01** · Carrera obligatoria en el alta y pedida una sola vez a las cuentas sin carrera · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-02** · Reglas de vigente, tomable y para quien empieza, y `/admin/cobertura` con semáforo por carrera · `estado:` en rama (27/11) · `ronda/r32-02-cobertura`
+- **R32-03** · Apertura por carrera desde el admin, con historial y lista de espera por carrera · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-04** · Pocas ofertas y guía de alertas por carrera · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-05** · Jooble, ReliefWeb y Computrabajo listas para prender, con `docs/sources/` · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-06** · Empresas regionales propuestas (en ops, sin verificar) · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-07** · Lector de Get on Board con motivos claros en la cola manual · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-08** · Sueldo en la moneda original (0090) · `estado:` en rama (27/11) · `ronda/r32-05-fuentes`
+- **R32-09** · Email de novedades semanal con baja en un clic · `estado:` en rama (27/11) · `ronda/r32-01-alta`
+- **R32-10** · e2e de la tanda · `estado:` en rama (27/11) · `ronda/r32-cierre`
+
+### Pendientes que salen de la tanda
+- Decidir `news_email` por defecto antes de prender el email; sumar el paso semanal al `cron.yml`.
+- Los ATS del pool solo guardan avisos remotos: ampliar a lugar de trabajo en Argentina necesita un ADR.
+
+### R32 · Cierre de la tanda
+`estado:` en rama (27/11) · `ronda/r32-cierre`
+
+## Bloque 51 · Tanda R33 «CV» (27/11)
+
+Informe de la tanda: [`docs/beta/informe-r33.md`](beta/informe-r33.md). Pasos manuales: [`docs/beta/pasos-manuales-r33.md`](beta/pasos-manuales-r33.md). Cadena sobre `ronda/r32-cierre`; ningún PR mergeado por agentes. Migración 0091 y RLS 0075 sin aplicar en Neon; la RLS 0074 se vuelve a aplicar (REVOKE de seguridad). USD 0; sin prompts nuevos; sin dependencias nuevas (PDF con serializador propio, ADR-049). Orden de la cadena: `r33-02-asistente` → `r33-08-documento` → `r33-01-calidad` → `r33-12-ci` → `r33-cierre`; la cadena se revisa entera (las puertas pasan sobre el último commit).
+
+### Pedido
+- **R33-01** · «Tu CV» con tres estados, cada faltante con su botón al campo exacto y el aviso de borrador · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-02** · Borrador automático en los dos asistentes (`cv_drafts`, 0091, RLS 0075; limpieza a 30 días) · `estado:` en rama (27/11) · `ronda/r33-02-asistente`
+- **R33-03** · Botones y flujo del asistente (un solo «Responder y seguir», saltear, temas, volver, privacidad una vez) · `estado:` en rama (27/11) · `ronda/r33-02-asistente`
+- **R33-04** · Resumen profesional y habilidades blandas por situaciones, sin inventar · `estado:` en rama (27/11) · `ronda/r33-02-asistente`
+- **R33-05** · «Esto es lo que entendí» con ejemplos, quitar y deshacer, idiomas y links · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-06** · Diagnóstico con palabra y número entero y una acción por falta · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-07** · Contacto y links (teléfono opcional sin marcar, «Otro» link, https) · `estado:` en rama (27/11) · `ronda/r33-08-documento`
+- **R33-08** · PDF real en el servidor, A4, texto seleccionable y links, sin dependencia nueva · `estado:` en rama (27/11) · `ronda/r33-08-documento`
+- **R33-09** · Calidad del CV («Actualidad», categorías en español, avisos suaves, nada no confirmado) · `estado:` en rama (27/11) · `ronda/r33-08-documento`
+- **R33-10** · Legibilidad estricta en todas las pantallas del CV y auditoría · `estado:` en rama (27/11) · `ronda/r33-01-calidad`
+- **R33-11** · e2e de los dos caminos · `estado:` en rama (27/11) · `ronda/r33-cierre`
+- **R33-12** · Arreglos del CI de integración de R30 a R32 (PR #570): casos de la RLS 0074 y REVOKE de seguridad, listado visible sin JavaScript, confirmación de Gmail primera, specs que asumían datos o pantallas viejas · `estado:` en rama (27/11) · `ronda/r33-12-ci`
+
+### Pendientes que salen de la tanda
+- C-62 en el coach (necesita versión nueva de prompt), C-68 sin pantalla que reescriba una viñeta; ritmo de descarga del PDF solo en memoria.
+- Programar la limpieza de borradores (30 días): sumarla a la purga diaria de `/api/cron/evaluate`, en un PR rojo aparte.
+- `decide()` revienta con reglas incompletas (`evaluation_criteria.rules = {}`): decidir si la evaluación falla cerrada con un mensaje claro. En producción no pasa (el alta arma las reglas). **Resuelto en R34-07** (falla cerrado, decisión del 27/11).
+
+### R33 · Cierre de la tanda
+`estado:` en rama (27/11) · `ronda/r33-cierre`
+
+## Bloque 52 · Tanda R34 «Barrido y cierre» (27/11)
+
+Informe de la tanda: [`docs/beta/informe-r34.md`](beta/informe-r34.md). Pasos manuales: [`docs/beta/pasos-manuales-r34.md`](beta/pasos-manuales-r34.md). Informe de la cadena entera: [`docs/beta/informe-cadena-r30-r34.md`](beta/informe-cadena-r30-r34.md). Cadena sobre `ronda/r33-cierre`; ningún PR mergeado por agentes. Migraciones 0092 y 0093 y RLS 0076 y 0077 sin aplicar en Neon. USD 0; sin prompts nuevos; sin dependencias nuevas. Orden de la cadena: `r34-06-textos` → `r34-01-legibilidad` → `r34-03-mercado` → `r34-02-postulacion` → `r34-07-decide` → `r34-08-ci` → `r34-cierre`; la cadena se revisa entera (las puertas pasan sobre el último commit).
+
+### Pedido
+- **R34-01** · Barrido de legibilidad en todas las pantallas de usuario, lista de excepciones vacía y auditoría 440 · `estado:` en rama (27/11) · `ronda/r34-01-legibilidad`
+- **R34-02** · El CV desde la oferta: revisar, adaptar (otra versión, hasta 3 por oferta: `cv_offer_versions`, 0092, 0093, RLS 0076 y 0077) y descargar · `estado:` en rama (27/11) · `ronda/r34-02-postulacion`
+- **R34-03** · `/market` mínimo para la carrera de la persona, con avisos vigentes · `estado:` en rama (27/11) · `ronda/r34-03-mercado`
+- **R34-04** · Seguimiento mínimo en «Ya me postulé» (fecha, estado a mano, versión del CV), sin migración · `estado:` en rama (27/11) · `ronda/r34-03-mercado`
+- **R34-05** · Ensayo de punta a punta (e2e 445) y guion `docs/beta/ensayo-beta.md` · `estado:` en rama (27/11) · `ronda/r34-02-postulacion`
+- **R34-06** · Cierre de la cadena: textos provisorios cotejados con el informe, verificación de los 159 IDs, informe de la cadena · `estado:` en rama (27/11) · `ronda/r34-06-textos` y `ronda/r34-cierre`
+- **R34-07** · `decide()` con reglas vacías o incompletas falla cerrado (`decideChecked`, Result con error; el worker deja la oferta «Sin evaluar», sin llamar al modelo) · `estado:` en rama (27/11) · `ronda/r34-07-decide`
+- **R34-08** · Arreglos del CI de integración R30 a R33 (PR #571): 138, 142, 86 y 110, por supuestos de datos de la persona seed del CI · `estado:` en rama (27/11) · `ronda/r34-08-ci`
+
+### Pendientes que salen de la tanda
+- Programar las purgas de borradores del CV y de fichas huérfanas: PR rojo aparte (decisión del 27/11: no se tocó el cron).
+- `news_email` arranca en `false` para todas las cuentas: lo hace el responsable con un `UPDATE` en Neon; la 0089 no cambia.
+- Borrar los cinco componentes de `/market` que ya no se usan (el guard no deja borrar; comando en los pasos manuales).
+- El ensayo con 5 personas (compuerta B) es posterior: el guion está listo.
+
+### R34 · Cierre de la tanda
+`estado:` en rama (27/11) · `ronda/r34-cierre`

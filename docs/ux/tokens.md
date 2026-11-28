@@ -12,7 +12,7 @@ La fuente de los valores es el manual de marca: `docs/ux/rediseno-afiniajobs/` (
 - Los valores van en hexadecimal: axe-core no sabe leer algunos `oklch` de Tailwind (tono `none`) y deja el contraste sin medir.
 - `dark:` está definido por clase (`@custom-variant dark`) y queda para excepciones (una imagen, una sombra). Los colores no llevan `dark:`: el token ya cambia solo.
 
-## Marca (paleta «índigo y lima», elegida por Mauro el 3/11)
+## Marca (paleta «índigo y lima», elegida por quien define la marca el 3/11)
 
 Reemplaza a la «tinta y naranja» del manual (se parecía demasiado a otra marca). Las alternativas que se compararon están en el lienzo del manual, tablero «Alternativas de color».
 
@@ -91,6 +91,8 @@ Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y
 |---|---|---|---|
 | `font-sans` (por defecto) | Figtree | 500, 600, 700, 800 | El texto (500 y 600) y los botones (700 y 800). `body` va en 500 |
 | `font-display` | Bricolage Grotesque | 500, 700, 800 | Títulos (700), el sello (800) y el logotipo («AfinIA» 800, «Jobs» 500). `h1`, `h2` y `h3` van en Bricolage por la capa base de `globals.css` |
+
+**Legibilidad (R30-12):** tres tamaños de texto corrido (`text-body` 16 px, `text-secondary` 14 px, `text-meta` 12 px), nada debajo de 12 px, tres colores de texto (`fg`, `fg-muted`, `fg-subtle`) y ninguna transparencia en un texto. Detalle, lista de colores permitidos y la regla que falla: `docs/ux/legibilidad.md`.
 
 Los espacios siguen la escala de Tailwind (`--spacing`, 0.25rem = el espacio base 4 del manual). Áreas táctiles: 44 px como mínimo (`min-h-11`); campos, selects y `summary` lo tienen por la capa base de `globals.css` (C7-15).
 

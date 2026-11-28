@@ -401,6 +401,8 @@ test.describe("Flujo 79: navegación solo con teclado", () => {
     try {
       await login(page);
       await page.goto(`/jobs/${skillJobId}`);
+      // R30-09: las habilidades van en su sección plegable (se abre con el teclado, Enter sobre el resumen)
+      await page.getByTestId("seccion-habilidades").locator("summary").click();
       const open = page.getByRole("button", { name: `Cargar mi nivel de ${skillName}` });
       await reach(page, open, "Cargar mi nivel de la skill");
       await page.keyboard.press("Enter");
@@ -434,7 +436,10 @@ test.describe("Flujo 79: navegación solo con teclado", () => {
       await reach(page, dialog.getByRole("button", { name: "Guardar" }), "Guardar");
       await page.keyboard.press("Enter");
       await expect(dialog).toBeHidden();
-      await expect(page.getByText("Sin nivel cargado (0)")).toBeVisible();
+      // R30-09: ya no hay «Sin nivel cargado (N)»; la habilidad cargada deja de ofrecer el botón
+      await expect(
+        page.getByRole("button", { name: `Cargar mi nivel de ${skillName}` }),
+      ).toHaveCount(0);
     } finally {
       const cleanup = ownerDb();
       try {

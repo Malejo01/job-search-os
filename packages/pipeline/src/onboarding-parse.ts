@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseCareerOther } from "./career-choice";
 import { isIsoCountry } from "./countries";
 import { detectEvaluatorInjection } from "./evaluator/injection";
 import {
@@ -83,6 +84,8 @@ export const SUMMARY_IGNORED_SIGNALS: readonly string[] = [
 export type OnboardingInput = {
   /** Puestos que busca (1 a `limit`); el primero es el principal (`target_role`). */
   targetRoles: RoleKey[];
+  /** Carrera escrita en «Otra» (R32-01). Solo viene cuando no se eligió ningún puesto. */
+  careerOther?: string;
   locationCountry: string;
   locationCity: string | null;
   /** Modalidades aceptadas, en el orden de `MODALITIES`, sin repetir (al menos una). */
@@ -127,10 +130,19 @@ export function parseOnboarding(
     return typeof v === "string" ? [v] : [...(v ?? [])];
   };
   const rolesRaw = raw.targetRoles;
-  const roles = parseTargetRoles(
-    typeof rolesRaw === "string" ? [rolesRaw] : [...(rolesRaw ?? [])],
-    limit,
-  );
+  const rolesList = typeof rolesRaw === "string" ? [rolesRaw] : [...(rolesRaw ?? [])];
+  // «Otra» (R32-01): la carrera escrita a mano reemplaza a los puestos; con puestos elegidos se descarta
+  let careerOther: string | null = null;
+  let roles = parseTargetRoles(rolesList, limit);
+  if (rolesList.length === 0) {
+    const other = parseCareerOther(s("careerOther"));
+    if (other.ok) {
+      careerOther = other.value;
+      roles = { ok: true, roles: [] };
+    } else if (s("careerOther").trim() !== "") {
+      return { ok: false, field: "careerOther" };
+    }
+  }
   if (!roles.ok) return { ok: false, field: roles.field };
   const parsed = onboardingSchema.safeParse({
     targetRoles: roles.roles,
@@ -178,6 +190,7 @@ export function parseOnboarding(
     ok: true,
     value: {
       targetRoles: v.targetRoles,
+      ...(careerOther ? { careerOther } : {}),
       locationCountry: v.country,
       locationCity: v.city,
       acceptedModalities,

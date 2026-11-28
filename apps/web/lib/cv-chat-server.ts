@@ -3,6 +3,8 @@ import {
   applyChatMerge,
   buildCvDocument,
   chatTarget,
+  cvProjectLink,
+  pickCvChatLinks,
   mergeChatHistory,
   toRoleKey,
   type CvChatSeed,
@@ -79,7 +81,9 @@ export async function loadChatSeed(userId: string): Promise<CvChatSeed> {
       })),
     skills: (data?.skills ?? []).map((k) => k.name),
     languages: (data?.languages ?? []).map((l) => ({ name: l.name, level: l.level ?? null })),
-    links: data?.links ?? {},
+    // Solo los tres links que el chat maneja: el origen del CV trae también `other` (R33-07) y el esquema del
+    // estado es estricto, así que un campo de más haría que el servidor rechace cada turno (`bad_request`)
+    links: pickCvChatLinks(data?.links),
   };
 }
 
@@ -141,6 +145,40 @@ function stripNull(l: CvChatExtras["links"]): CvLinksInput {
   if (l.github) out.github = l.github;
   if (l.portfolio) out.portfolio = l.portfolio;
   return out;
+}
+
+/**
+ * Guarda los links que la persona dijo en el chat y confirmó (R33, C-45) en `application_settings.links`, la misma
+ * fila que usa la carga de links de «Tu CV»: LinkedIn, GitHub y portfolio, solo `https` (`cvProjectLink`). Un link
+ * inválido se ignora; uno vacío NO borra el que ya había (acá solo se suma). Devuelve cuántos guardó. Con RLS.
+ */
+export async function saveChatLinks(
+  userId: string,
+  links: { linkedin?: string | null; github?: string | null; portfolio?: string | null },
+): Promise<number> {
+  const valid: Record<string, string> = {};
+  for (const key of ["linkedin", "github", "portfolio"] as const) {
+    const raw = links[key];
+    const ok = typeof raw === "string" && raw.trim() !== "" ? cvProjectLink(raw.trim()) : null;
+    if (ok) valid[key] = ok;
+  }
+  if (Object.keys(valid).length === 0) return 0;
+  await withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ links: s.applicationSettings.links })
+      .from(s.applicationSettings)
+      .where(eq(s.applicationSettings.userId, userId))
+      .limit(1);
+    const merged: Record<string, string> = { ...(row?.links ?? {}), ...valid };
+    await tx
+      .insert(s.applicationSettings)
+      .values({ userId, links: merged })
+      .onConflictDoUpdate({
+        target: s.applicationSettings.userId,
+        set: { links: merged, updatedAt: new Date() },
+      });
+  });
+  return Object.keys(valid).length;
 }
 
 export type SaveChatResult = { inserted: number; updated: number; overflow: number };

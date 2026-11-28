@@ -17,8 +17,8 @@ describe("affinityRows", () => {
     expect(row?.scoreText).toBe("10");
   });
 
-  it("sin datos dice «Sin datos» y no trae puntaje", () => {
+  it("sin datos dice «Sin confirmar» y no trae puntaje", () => {
     const [row] = affinityRows([{ key: "seniority", score: null, level: null }]);
-    expect(row).toMatchObject({ scoreText: null, word: "Sin datos", percent: 0 });
+    expect(row).toMatchObject({ scoreText: null, word: "Sin confirmar", percent: 0 });
   });
 });

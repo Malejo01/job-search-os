@@ -5,6 +5,9 @@ import {
   BETA_OPENS_AT,
   buildAperturaChecklist,
   contarTextosAprobados,
+  COVERAGE_ENTRY_THRESHOLD,
+  COVERAGE_TOMABLE_THRESHOLD,
+  isRoleKey,
   formatNoticeDate,
   pricingEnabled,
   TESTER_50_LINK_ENV,
@@ -17,9 +20,12 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import routingSeed from "../../../packages/db/seeds/model_routing.json";
 import { loadAcademyFichas, publishedFichas } from "./academy";
+import { careerLabel } from "./career-market";
+import { getCobertura } from "./cobertura";
 import { canReadAdminData } from "./invitations";
 import { MASCOTA_IMAGENES, mascotaArchivos } from "./mascota";
 import { textosRediseno } from "./textos-aprobacion";
+import { COBERTURA_TEXTOS as T } from "./textos-rediseno";
 import { TERMS_VERSION } from "./terms";
 
 /**
@@ -193,7 +199,64 @@ export type AperturaExtrasInput = {
   routingActual: readonly RutaDeModelo[] | null;
   /** ¿Existen las tablas de los informes de revisión (R29, migración 0084)? Ausente o null = no se pudo leer. */
   informesTabla?: boolean | null;
+  /**
+   * Cobertura del pool carrera por carrera (R32-02). Ausente o null = no se pudo leer. Solo agregados:
+   * etiqueta de la carrera, tomables, para quien empieza y el semáforo ya calculado por el pipeline.
+   */
+  cobertura?: readonly CoberturaCarrera[] | null;
 };
+
+export type CoberturaCarrera = {
+  label: string;
+  tomables: number;
+  paraEmpezar: number;
+  semaforo: "verde" | "amarillo" | "rojo";
+};
+
+/** Ítem «Cobertura de las carreras de la beta»: listo solo si todas están en verde. Puro. */
+export function coberturaItem(
+  cobertura: readonly CoberturaCarrera[] | null | undefined,
+): AperturaItemWeb {
+  const label = T.apertura.label;
+  if (!cobertura || cobertura.length === 0) {
+    return {
+      id: "cobertura",
+      label,
+      ok: false,
+      detail: T.apertura.noLeyo,
+      todo: "Mirá que la base responda y recargá la pantalla.",
+      doc: "/admin/cobertura",
+    };
+  }
+  const sinVerde = cobertura.filter((c) => c.semaforo !== "verde");
+  if (sinVerde.length === 0) {
+    return {
+      id: "cobertura",
+      label,
+      ok: true,
+      detail: T.apertura.todas.replace("{total}", String(cobertura.length)),
+      todo: null,
+      doc: null,
+    };
+  }
+  const faltan = sinVerde
+    .map(
+      (c) =>
+        `${c.label} (${c.tomables} de ${COVERAGE_TOMABLE_THRESHOLD} tomables, ${c.paraEmpezar} de ${COVERAGE_ENTRY_THRESHOLD} para quien empieza)`,
+    )
+    .join("; ");
+  return {
+    id: "cobertura",
+    label,
+    ok: false,
+    detail: T.apertura.algunas
+      .replace("{verdes}", String(cobertura.length - sinVerde.length))
+      .replace("{total}", String(cobertura.length))
+      .replace("{faltan}", faltan),
+    todo: T.apertura.todo,
+    doc: "/admin/cobertura",
+  };
+}
 
 /**
  * Ítems de apertura que se suman a los de `buildAperturaChecklist` (R28-03). Puro: sin I/O ni reloj.
@@ -314,6 +377,9 @@ export function buildAperturaExtras(input: AperturaExtrasInput): AperturaItemWeb
         },
   );
 
+  // Cobertura del pool por carrera (R32-02): informa; abrir una carrera lo decide el responsable
+  items.push(coberturaItem(input.cobertura));
+
   // Fecha definitiva
   if (Number.isNaN(input.opensAt.getTime())) {
     items.push({
@@ -416,7 +482,17 @@ export async function getAperturaChecklist(userId: string): Promise<AperturaResu
     mp: { lista: present("MP_LINK_LISTA"), tester50: present(TESTER_50_LINK_ENV) },
     invitations: counts.invitations === null ? null : { unused: counts.invitations },
   });
+  // R32-02: la cobertura sale de las mismas reglas que /admin/cobertura; sin lectura queda pendiente
+  const cobertura = await getCobertura(userId);
   const extras = buildAperturaExtras({
+    cobertura: cobertura.ok
+      ? cobertura.rows.map((r) => ({
+          label: isRoleKey(r.role) ? careerLabel(r.role) : r.role,
+          tomables: r.tomables,
+          paraEmpezar: r.paraEmpezar,
+          semaforo: r.semaforo,
+        }))
+      : null,
     now,
     opensAt: BETA_OPENS_AT,
     fechaDefinitiva: BETA_FECHA_DEFINITIVA,

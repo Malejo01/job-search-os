@@ -1,10 +1,14 @@
 import {
   affinityBreakdown,
-  buildFitPoints,
+  applyRequirementAnswers,
+  fieldKeyOf,
+  summarizeRequirements,
+  withCurrentProfileFacts,
   englishIsNotAGap,
   fitCrossSentence,
+  formatSalaryEquivalence,
+  formatSalaryOriginal,
   isEnglishGap,
-  gapText,
   isEnglishSkillSlug,
   visibleRisks,
   withCurrentSkillLevels,
@@ -13,6 +17,7 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import { SkillLevelButton } from "@/components/skill-level-modal";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
@@ -22,20 +27,13 @@ import { isUuid } from "@/lib/ids";
 import { getJobDetail } from "@/lib/job-detail";
 import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
 import {
-  ACTION_ADVICE,
-  ACTION_LABELS,
   COMPANY_TYPE_LABEL,
   DEMO_BADGE_CLASSES,
   DEMO_MODEL,
-  BLOCKER_LABEL,
   DISCIPLINE_LABEL,
-  ENGLISH_LABEL,
   flagLabel,
   formatDate,
   formatScore,
-  LOCATION_CLASSES,
-  LOCATION_LABELS,
-  formatDecimal,
   formatScoreNumber,
   MODALITY_LABELS,
   OUTCOME_LABELS,
@@ -44,19 +42,34 @@ import {
   SOURCE_LABELS,
   STATUS_LABELS,
 } from "@/lib/labels";
+import { loadPerfilActual } from "@/lib/ficha-context";
+import { getJobCardFor } from "@/lib/job-card";
+import { loadOpenOfferTables } from "@/lib/ofertas-abiertas";
+import { canViewRecorrido } from "@/lib/recorrido-access";
+import { loadRequirementAnswers, requirementAnswersAllowedFor } from "@/lib/requirement-answers";
 import { requireUserId } from "@/lib/session";
+import { DETALLE_TEXTOS, llenarTexto } from "@/lib/textos-rediseno";
 import { AfiFestejo } from "@/components/afi-festejo";
-import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
+import { changeStatusAction, dismissDuplicateAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
 import { AffinityDetail } from "./affinity-detail";
 import { ApplyButton } from "./apply-button";
+import { ComoEncaja } from "./como-encaja";
 import { ConditionsBlock } from "./conditions-block";
 import { TransparencyBlock } from "./transparency-block";
 import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
 import { EvaluateNow } from "./evaluate-now";
-import { FitPointsPanel } from "./fit-points-panel";
+import { ProponerPuntaje } from "./proponer-puntaje";
+import { FichaEstadoView, PocasPalabras, QueBuscan, QueVasAHacer } from "./ficha-bloques";
+import { retryJobCardAction } from "./ficha-actions";
+import { fichaView, habilidadesDelPuesto } from "./ficha-view";
+import { RepetidoCampo } from "./repetido-campo";
+import { editableField, repetidoView } from "./repetido-view";
+import { postularChecklist } from "./postular/postular-view";
+import { ListingState } from "../listing-state";
+import { SaveButton, SavedMark } from "../save-button";
 import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
@@ -69,12 +82,14 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Oferta" };
 
+const T = DETALLE_TEXTOS;
+
 const EVENT_LABELS: Record<JobEvent, string> = {
   prefilter_pass: "Pasó los filtros",
   prefilter_discard: "Descartar automáticamente",
   needs_jd: "Falta la descripción",
   evaluated: "Evaluada",
-  apply: "Marcar aplicada",
+  apply: T.estado.marcarPostulada,
   discard: "Descartar",
   auto_reject: "Rechazo automático",
   reject: "Rechazada",
@@ -94,9 +109,36 @@ const ERRORS: Record<string, string> = {
   veredicto: "No se pudo guardar tu respuesta: la evaluación ya no existe. Recargá la página.",
   motivo:
     "No se pudo guardar el motivo: admite hasta 140 caracteres y la evaluación tiene que existir.",
+  permiso: "Esta acción es solo para quienes prueban la app.",
 };
 
-/** Detalle de una oferta (JS-016): evaluación completa, fuentes, acciones de estado y score humano. */
+/** Sección plegable de la evaluación completa: igual en la computadora y en el celular. */
+function Seccion({
+  id,
+  titulo,
+  abierta = false,
+  children,
+}: {
+  id: string;
+  titulo: string;
+  abierta?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details
+      open={abierta}
+      data-testid={`seccion-${id}`}
+      className="rounded-card border border-line p-3 text-sm"
+    >
+      <summary className="flex min-h-11 cursor-pointer items-center font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+        {titulo}
+      </summary>
+      <div className="mt-2 flex flex-col gap-3">{children}</div>
+    </details>
+  );
+}
+
+/** Detalle de una oferta (JS-016, rehecho en R30-08/09/10/11): qué dice el aviso, cómo encaja y cómo postularte. */
 export default async function JobDetailPage({
   params,
   searchParams,
@@ -118,15 +160,19 @@ export default async function JobDetailPage({
   // respetan, y el orden sale de la misma consulta que la lista.
   const filters = parseJobFilters(sp);
   const query = listQuery(filters);
-  const [job, around, savedForm] = await Promise.all([
+  const [job, around, savedForm, fichaView0] = await Promise.all([
     getJobDetail(userId, id),
     jobNeighbors(userId, id, filters),
     getSavedFormAnswers(userId, id),
+    // R31: la ficha del aviso. Con `JOB_CARD` apagada responde `apagada` sin consultar nada
+    getJobCardFor(userId, id),
   ]);
   if (!job) notFound();
   const flagTexts = job.flags.flatMap((f) => flagLabel(f) ?? []);
   const jobUrl = safeHttpUrl(job.url);
   const ev = job.evaluation;
+  // «Proponer otro puntaje»: solo testers y admins (también se valida en la action)
+  const canPropose = ev ? await canViewRecorrido(userId) : false;
   // Solo con JD, sin evaluación y sin cola (el componente decide si se muestra)
   const evaluateNow = (
     <EvaluateNow
@@ -148,20 +194,88 @@ export default async function JobDetailPage({
   );
   // R11-11: los niveles de hoy y los excluyentes que nombra la evaluación («X (must)») entran en
   // la cuenta de «Requisitos»; los riesgos que hablan de un tema con excluyente no van en «no frenan»
-  const checklistNow = ev?.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null;
+  const skillsAll = ev?.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null;
+  // Sin JOB_CARD para esta persona no se ofrece la pregunta de un toque: la tabla es la de la R30
+  const fichaAllowed = skillsAll ? await requirementAnswersAllowedFor(userId) : false;
+  const skillsNow =
+    skillsAll && !fichaAllowed
+      ? { ...skillsAll, items: skillsAll.items.map(({ pregunta: _p, ...rest }) => rest) }
+      : skillsAll;
+  // R31-05 y R31-08 (solo con JOB_CARD): las respuestas de un toque y el inglés y los años de hoy se
+  // superponen a la tabla guardada, sin volver a evaluar. Apagada, la tabla queda como en la R30.
+  const fichaOn = fichaAllowed;
+  const answers = fichaOn ? await loadRequirementAnswers(userId) : null;
+  const perfilActual = fichaOn ? await loadPerfilActual(userId) : null;
+  const checklistNow =
+    skillsNow && answers && perfilActual
+      ? applyRequirementAnswers(withCurrentProfileFacts(skillsNow, perfilActual), answers)
+      : skillsNow;
   const requisitos = checklistNow && ev ? withMustGaps(checklistNow, ev.gaps) : null;
+  // R31-08: «Esto mismo te pasa en N de tus M ofertas» junto a lo que más pesa
+  const repetido =
+    requisitos && answers && perfilActual
+      ? await (async () => {
+          const pesa = summarizeRequirements(requisitos).weighing.find(
+            (r) => r.state !== "coincide" && editableField(fieldKeyOf(r.id)) !== null,
+          );
+          if (!pesa) return null;
+          const tables = await loadOpenOfferTables(userId, perfilActual, answers);
+          return repetidoView(tables, fieldKeyOf(pesa.id));
+        })()
+      : null;
   const risks = ev ? visibleRisks(ev.riesgos.map(riskLabel), requisitos?.items) : [];
   const noEnglishGap = englishIsNotAGap(job.jdText, null);
-  const salary =
-    job.salaryMinUsd || job.salaryMaxUsd
+  // R32-08: el sueldo tal como lo publica el aviso, en su moneda; sin él, lo de siempre (lo guardado antes)
+  const salary = job.salaryOriginal
+    ? formatSalaryOriginal(job.salaryOriginal)
+    : job.salaryMinUsd || job.salaryMaxUsd
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
       : null;
+  // Una equivalencia en dólares, solo si existe, aparte y marcada como aproximada
+  const salaryEquivalence = job.salaryOriginal
+    ? formatSalaryEquivalence(job.salaryOriginal, {
+        min: job.salaryMinUsd,
+        max: job.salaryMaxUsd,
+        period:
+          job.salaryPeriod === "mensual" ||
+          job.salaryPeriod === "anual" ||
+          job.salaryPeriod === "hora"
+            ? job.salaryPeriod
+            : null,
+      })
+    : null;
+  // R30-09: las habilidades salen de la tabla de requisitos (las que el aviso menciona). Separar las
+  // del puesto de las que hablan de la empresa queda para la R31.
+  // R31-07: con ficha lista, solo las habilidades ligadas al puesto; sin ficha (o apagada), como la R30
+  const card = fichaView0.status === "lista" ? fichaView0.card : null;
+  const fichaVista = card ? fichaView(card) : null;
+  const skillRows = habilidadesDelPuesto(
+    (requisitos?.items ?? []).filter((i) => i.kind === "skill"),
+    card ? card.habilidades : null,
+  );
+  // R30-10: pasos finales (hasta 5) de la sección «Preparar mi postulación»
+  const pasos = postularChecklist({ hasAnswers: savedForm.length > 0, hasCover: false });
 
   return (
     <article
       data-ancho="completo"
       className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-28 sm:pt-8 sm:pb-10"
     >
+      {/* En el celular, el botón de salida queda arriba y fijo, sin tapar la barra de abajo */}
+      {jobUrl ? (
+        <div
+          data-testid="salida-cel"
+          className="sticky top-0 z-30 -mx-4 flex flex-col gap-1 bg-surface px-4 py-2 sm:hidden"
+        >
+          <ApplyButton
+            jobId={job.id}
+            url={jobUrl}
+            canApply={job.events.includes("apply")}
+            className="w-full"
+          />
+          <p className="text-xs text-fg-muted">{T.postular.aviso}</p>
+        </div>
+      ) : null}
       {/* D3 (C10-8): copia de detalle-cel.png y del panel de ofertas-pc.png */}
       <OfferD3
         job={job}
@@ -169,38 +283,29 @@ export default async function JobDetailPage({
         backHref={`/jobs${query}`}
         actions={
           jobUrl ? (
-            <div className="hidden sm:block">
+            <div className="hidden flex-col gap-1 sm:flex">
               <ApplyButton jobId={job.id} url={jobUrl} canApply={job.events.includes("apply")} />
+              <p className="max-w-xs text-xs text-fg-muted">{T.postular.aviso}</p>
             </div>
           ) : null
         }
       />
-      {/* R11-11: en el celular el veredicto va arriba, a la vista, antes de lo positivo */}
-      {ev ? (
-        <p
-          data-testid="veredicto-cel"
-          className="rounded-control bg-surface-muted px-3 py-2 text-sm font-semibold text-fg sm:hidden"
-        >
-          {ACTION_ADVICE[ev.accion] ?? ACTION_LABELS[ev.accion] ?? ev.accion}
-        </p>
-      ) : null}
-      {/* En el celular, «Postularme» queda fijo abajo (detalle-cel.png). R11-11: si el veredicto es
-          descartarla, el botón fijo no compite con él */}
-      {jobUrl && ev?.accion !== "descartar" ? (
-        <div className="fixed inset-x-4 bottom-[calc(22px+env(safe-area-inset-bottom,0px))] z-30 sm:hidden">
-          <ApplyButton
-            jobId={job.id}
-            url={jobUrl}
-            canApply={job.events.includes("apply")}
-            className="w-full"
-          />
-        </div>
-      ) : null}
       <ReviewNav
         backHref={`/jobs${query}`}
         prevHref={around.prev ? `/jobs/${around.prev}${query}` : null}
         nextHref={around.next ? `/jobs/${around.next}${query}` : null}
       />
+      {/* R30-03 y R30-07: marca «Guardada», Guardar/Quitar y vigencia del aviso (del pool) */}
+      {/* Sin consulta extra: «Guardada» sale de la fila que ya se leyó. Solo las ofertas del pool
+          consultan la vigencia (las demás no afirman nada). */}
+      {job.fromPool ? (
+        <ListingState userId={userId} jobId={job.id} title={job.title} />
+      ) : (
+        <div className="flex flex-wrap items-center gap-2" data-testid="detalle-listado">
+          {job.savedAt ? <SavedMark /> : null}
+          <SaveButton jobId={job.id} title={job.title} saved={job.savedAt !== null} />
+        </div>
+      )}
       {error ? (
         <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
           {ERRORS[error] ?? "No pudimos hacerlo. Recargá la página y probá otra vez."}
@@ -234,7 +339,12 @@ export default async function JobDetailPage({
             .filter(Boolean)
             .join(" · ")}
         </p>
-        <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
+        {salaryEquivalence ? (
+          <p className="text-xs text-fg-subtle" data-testid="salario-equivalencia">
+            {salaryEquivalence}
+          </p>
+        ) : null}
+        <div className="mt-1 flex flex-wrap gap-1 text-xs">
           {ev?.model === DEMO_MODEL ? (
             <span className={DEMO_BADGE_CLASSES} title="Evaluación falsa del modo demo, sin LLM">
               DEMO · evaluación falsa
@@ -243,18 +353,8 @@ export default async function JobDetailPage({
           <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
             {STATUS_LABELS[job.status] ?? job.status}
           </span>
-          {ev ? (
-            <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
-              {ACTION_ADVICE[ev.accion] ?? ACTION_LABELS[ev.accion] ?? ev.accion}
-            </span>
-          ) : null}
-          {ev ? (
-            <span
-              className={`rounded-badge px-1.5 py-0.5 ${LOCATION_CLASSES[ev.locationOk] ?? ""}`}
-            >
-              {LOCATION_LABELS[ev.locationOk] ?? ev.locationOk}
-            </span>
-          ) : null}
+          {/* R30-09 / regla 2: sin «Te conviene…» ni «Ubicación: no». Lo que el aviso exige se
+              explica en la tabla de requisitos, aparte de la afinidad */}
           {job.badges.map((b) => (
             <span key={b} className="rounded-badge bg-surface-subtle px-1.5 py-0.5 text-fg-subtle">
               {b}
@@ -262,8 +362,155 @@ export default async function JobDetailPage({
           ))}
         </div>
       </div>
-      {/* C8-6: qué es el número del puntaje */}
-      {ev ? <HelpTip topic="puntaje" /> : null}
+
+      {/* R31-04: «La oferta en pocas palabras», o el estado de la ficha. Apagada: nada (R30 igual). */}
+      {fichaVista ? (
+        <PocasPalabras view={fichaVista} />
+      ) : fichaView0.status !== "apagada" && fichaView0.status !== "lista" ? (
+        <FichaEstadoView
+          status={fichaView0.status}
+          jobId={job.id}
+          retryAction={retryJobCardAction}
+        />
+      ) : null}
+
+      {/* 3 · Lo importante para decidir: las 7 filas, solo con lo que dice el aviso */}
+      <ConditionsBlock
+        input={{
+          salaryMinUsd: job.salaryMinUsd,
+          salaryMaxUsd: job.salaryMaxUsd,
+          salaryPeriod: job.salaryPeriod,
+          salaryOriginal: job.salaryOriginal,
+          modality: job.modality,
+          englishRequired: ev?.englishRequired ?? null,
+          yearsRequired: ev?.yearsRequired ?? null,
+          contractType: job.contractType,
+          countriesAllowed: job.countriesAllowed,
+          weeklyHours: job.weeklyHours,
+          ficha: card?.condiciones ?? null,
+          fichaRequisitos: card?.requisitos,
+        }}
+      />
+
+      {ev ? (
+        <>
+          {/* 4 · Cómo encaja: veredicto y lo que más pesa, desde la tabla de requisitos */}
+          <ComoEncaja checklist={requisitos} />
+          {repetido ? (
+            <RepetidoCampo field={repetido.field} jobId={job.id} textos={repetido.textos} />
+          ) : null}
+          {crossLine ? (
+            <p data-testid="encaje-cruce" className="text-sm text-fg-muted">
+              {crossLine}{" "}
+              <Link
+                href="/encaje"
+                className="inline-flex min-h-11 items-center font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+              >
+                Ver Tu encaje
+              </Link>
+            </p>
+          ) : null}
+          {/* C8-6: qué es el número del puntaje */}
+          <HelpTip topic="puntaje" />
+          {/* R17-03 / R30-02: aclaración fija (siempre visible) y «Cómo calculamos la afinidad» */}
+          <AffinityDetail
+            items={affinityBreakdown({
+              matchFuerte: ev.matchFuerte,
+              gaps: noEnglishGap ? ev.gaps.filter((g) => !isEnglishGap(g)) : ev.gaps,
+              riesgos: risks,
+              bloqueadores: ev.bloqueadores,
+              adjustments: ev.adjustments,
+              yearsRequired: ev.yearsRequired,
+              locationOk: ev.locationOk,
+              modality: ev.modality,
+              englishRequired: ev.englishRequired,
+              englishGap: !noEnglishGap && ev.gaps.some(isEnglishGap),
+              salaryMinUsd: job.salaryMinUsd,
+              salaryMaxUsd: job.salaryMaxUsd,
+            })}
+          />
+        </>
+      ) : (
+        /* Antes de evaluar (plan §4): «Sin evaluar», botón y estimación provisoria plegada */
+        <section
+          data-testid="antes-de-evaluar"
+          className="flex flex-col gap-2 rounded-card border-2 border-dashed border-line-control p-3 text-sm"
+        >
+          <p>
+            {T.antes.texto}
+            {job.prefilterReason ? ` Descartada automáticamente: ${job.prefilterReason}.` : ""}
+            {job.status === "pendiente_jd" ? (
+              <>
+                {" "}
+                <Link href="/jobs/pending-jd" className="underline">
+                  Pegar la descripción
+                </Link>
+              </>
+            ) : null}
+          </p>
+          <div>{evaluateNow}</div>
+          {job.preScore ? (
+            <details data-testid="estimacion-provisoria" className="text-xs text-fg-muted">
+              <summary className="flex min-h-11 cursor-pointer items-center font-medium">
+                {T.antes.provisoria}
+              </summary>
+              <p>{llenarTexto(T.antes.provisoriaNumero, { n: formatScore(job.preScore.score) })}</p>
+              <p className="mt-1">{T.antes.provisoriaTexto}</p>
+              {job.preScore.adjustments.length ? (
+                <p className="mt-1">{job.preScore.adjustments.map(adjustmentLine).join(", ")}</p>
+              ) : null}
+              {job.preScore.riesgos.length ? (
+                <>
+                  <p className="mt-1 font-medium">{T.antes.riesgos}</p>
+                  <ul className="list-disc pl-5">
+                    {job.preScore.riesgos.map((r) => (
+                      <li key={r}>{riskLabel(r)}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </details>
+          ) : null}
+        </section>
+      )}
+
+      {/* Antes de evaluar también se puede cargar el nivel de las habilidades que menciona el aviso */}
+      {!ev &&
+      job.preScore &&
+      job.preScore.unknownSkills.some((u) => !isEnglishSkillSlug(u.slug)) ? (
+        <Seccion id="habilidades" titulo={T.secciones.habilidades}>
+          <p className="text-xs text-fg-muted">{T.habilidades.intro}</p>
+          <ul className="flex flex-col gap-2">
+            {job.preScore.unknownSkills
+              .filter((u) => !isEnglishSkillSlug(u.slug))
+              .map((u) => (
+                <li
+                  key={u.slug}
+                  data-testid={`habilidad-${u.slug}`}
+                  className="flex flex-col gap-0.5"
+                >
+                  <span className="font-medium">{u.name}</span>
+                  <span className="text-xs text-fg-muted">{T.habilidades.mencionada}</span>
+                  <span className="text-xs text-fg-muted">{T.habilidades.sinCargar}</span>
+                  <SkillLevelButton
+                    slug={u.slug}
+                    name={u.name}
+                    description={job.skillInfo[u.slug]?.description ?? null}
+                    jobId={job.id}
+                  />
+                </li>
+              ))}
+          </ul>
+        </Seccion>
+      ) : null}
+
+      {/* R31-04: «Qué vas a hacer» y «Qué buscan», solo con la ficha lista */}
+      {fichaVista ? (
+        <>
+          <QueVasAHacer view={fichaVista} />
+          <QueBuscan view={fichaVista} />
+        </>
+      ) : null}
 
       {/* R17-05: transparencia del aviso, calculada al mostrar */}
       <TransparencyBlock
@@ -280,33 +527,171 @@ export default async function JobDetailPage({
         }}
       />
 
-      {/* R17-04: condiciones laborales, solo con campos ya extraídos */}
-      <ConditionsBlock
-        input={{
-          salaryMinUsd: job.salaryMinUsd,
-          salaryMaxUsd: job.salaryMaxUsd,
-          salaryPeriod: job.salaryPeriod,
-          modality: job.modality,
-          englishRequired: ev?.englishRequired ?? null,
-          yearsRequired: ev?.yearsRequired ?? null,
-          contractType: job.contractType,
-        }}
-      />
+      {/* 7 · La evaluación completa, en secciones plegables */}
+      {requisitos ? (
+        <Seccion id="requisitos" titulo={T.secciones.requisitos} abierta>
+          <RequisitosDelAviso
+            checklist={requisitos}
+            modal={{ jobId: job.id, skillInfo: job.skillInfo }}
+            rebuilt={ev?.checklistRebuilt}
+            hideNamedSkills
+          />
+        </Seccion>
+      ) : null}
+
+      {ev ? (
+        <Seccion id="habilidades" titulo={T.secciones.habilidades}>
+          <p className="text-xs text-fg-muted">{T.habilidades.intro}</p>
+          {skillRows.length ? (
+            <ul className="flex flex-col gap-2">
+              {skillRows.map((s) => {
+                const slug = s.id.slice("skill:".length);
+                return (
+                  <li
+                    key={s.id}
+                    data-testid={`habilidad-${slug}`}
+                    className="flex flex-col gap-0.5"
+                  >
+                    <span className="font-medium">{s.pide.replace(/^Menciona\s+/i, "")}</span>
+                    <span className="text-xs text-fg-muted">{T.habilidades.mencionada}</span>
+                    {s.tenes !== null ? (
+                      <span className="text-xs text-fg-muted">
+                        {s.tenes.replace(/^Nivel (\d) de 3$/, (_m, n: string) =>
+                          llenarTexto(T.habilidades.nivel, { n }),
+                        )}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-xs text-fg-muted">{T.habilidades.sinCargar}</span>
+                        {job.skillInfo[slug] ? (
+                          <SkillLevelButton
+                            slug={slug}
+                            name={s.pide.replace(/^Menciona\s+/i, "")}
+                            description={job.skillInfo[slug]?.description ?? null}
+                            jobId={job.id}
+                          />
+                        ) : (
+                          // Fuera de la taxonomía no hay modal: se carga en Ajustes
+                          <Link
+                            href="/settings/skills"
+                            className="inline-flex min-h-11 w-fit items-center font-semibold text-link underline underline-offset-2"
+                          >
+                            {llenarTexto(T.habilidades.cargar, {
+                              nombre: s.pide.replace(/^Menciona\s+/i, ""),
+                            })}
+                          </Link>
+                        )}
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-xs text-fg-muted">{T.habilidades.vacio}</p>
+          )}
+        </Seccion>
+      ) : null}
+
+      {ev ? (
+        <Seccion id="como-se-calculo" titulo={T.secciones.comoSeCalculo}>
+          {ev.veredicto ? <p className="text-fg">{ev.veredicto}</p> : null}
+          <p className="text-xs text-fg-subtle">
+            La IA lee el aviso y tu perfil y propone un puntaje. Después la app aplica reglas fijas
+            que lo suben o lo bajan.
+          </p>
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-subtle">
+            <dt>Área del aviso</dt>
+            <dd>{DISCIPLINE_LABEL[ev.discipline] ?? ev.discipline}</dd>
+            <dt>Tipo de empresa</dt>
+            <dd>
+              {ev.companyType
+                ? (COMPANY_TYPE_LABEL[ev.companyType] ?? ev.companyType)
+                : COMPANY_TYPE_LABEL.desconocido}
+            </dd>
+            <dt>Puntaje de la IA</dt>
+            <dd>{formatScoreNumber(ev.scoreModel ?? ev.score)}</dd>
+            <dt>Ajustes</dt>
+            <dd>
+              {ev.adjustments.length ? (
+                <ul>
+                  {ev.adjustments.map((a, i) => (
+                    <li key={`${i}|${a.rule}`}>{adjustmentLine(a)}</li>
+                  ))}
+                </ul>
+              ) : (
+                "ninguno"
+              )}
+            </dd>
+            <dt>Puntaje final</dt>
+            <dd>{formatScoreNumber(ev.score)}</dd>
+            <dt>Fecha de la evaluación</dt>
+            <dd>
+              {formatDate(ev.createdAt)}
+              {ev.hadFullJd ? "" : " · sin la descripción completa"}
+            </dd>
+          </dl>
+          {risks.length ? (
+            <div data-testid="riesgos">
+              <h3 className="text-xs font-semibold">
+                {llenarTexto(T.riesgos.titulo, { n: risks.length })}
+              </h3>
+              <ul className="list-disc pl-5 text-xs text-fg-muted">
+                {risks.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </Seccion>
+      ) : null}
+
+      <Seccion id="preparar" titulo={T.secciones.preparar}>
+        <p className="text-xs text-fg-muted">{T.preparar.intro}</p>
+        {savedForm.length ? (
+          <details className="rounded-control bg-surface-subtle p-2">
+            <summary className="cursor-pointer text-xs font-semibold">
+              {llenarTexto(T.preparar.guardadas, { n: savedForm.length })}
+            </summary>
+            <dl className="mt-1 flex flex-col gap-1 text-xs">
+              {savedForm.map((qa, i) => (
+                <div key={i}>
+                  <dt className="font-medium text-fg">{qa.question}</dt>
+                  <dd className="whitespace-pre-wrap text-fg-subtle">{qa.answer}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        ) : null}
+        <FormReview jobId={job.id} />
+        <div>
+          <h3 className="text-xs font-semibold">{T.preparar.pasos}</h3>
+          <ol className="mt-1 list-decimal pl-5 text-fg">
+            {pasos.map((p) => (
+              <li key={p.key} className="py-0.5">
+                {p.text}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <Link
+          href={`/jobs/${job.id}/postular`}
+          className={`${buttonClasses({ size: "sm", variant: "secondary" })} w-fit`}
+        >
+          {T.preparar.cv}
+        </Link>
+        {/* «Ver el aviso original» no va acá: lleva al mismo lugar que el botón de salida */}
+      </Seccion>
 
       {/* Acciones de estado: Server Actions + transition(); solo los eventos válidos desde el estado actual */}
       <section aria-label="Estado" className="flex flex-wrap gap-2">
-        {/* «Postularme en el sitio del aviso» está arriba, en el resumen (C10-8) */}
-        {/* R17-06: junta respuestas, carta, CV y checklist; no postula ni guarda nada en el portal */}
-        <Link href={`/jobs/${job.id}/postular`} className={buttonClasses({ size: "sm" })}>
-          Preparar mi postulación
-        </Link>
         {job.events.map((event) => (
           <form key={event} action={changeStatusAction}>
             <input type="hidden" name="jobId" value={job.id} />
             <input type="hidden" name="event" value={event} />
             <button
               type="submit"
-              // C9-9: con las primitivas; «Marcar aplicada» se destaca sin usar la lima (es un estado)
+              // C9-9: con las primitivas; «Ya me postulé» se destaca sin usar la lima (es un estado)
               className={buttonClasses({
                 size: "sm",
                 variant: event === "apply" ? "dark" : "secondary",
@@ -318,7 +703,7 @@ export default async function JobDetailPage({
         ))}
         {job.application?.appliedAt ? (
           <p className="self-center text-xs text-fg-subtle">
-            aplicada el {formatDate(job.application.appliedAt)}
+            {llenarTexto(T.estado.postuladaEl, { fecha: formatDate(job.application.appliedAt) })}
             {job.application.outcome
               ? ` · ${OUTCOME_LABELS[job.application.outcome] ?? job.application.outcome}`
               : ""}
@@ -332,7 +717,12 @@ export default async function JobDetailPage({
         cumplido={Boolean(job.application?.appliedAt)}
       />
       {/* Atribución exigida por las fuentes públicas: mención + enlace al aviso original */}
-      <SourceAttribution sources={job.sources} company={job.company} jdText={job.jdText} />
+      <SourceAttribution
+        sources={job.sources}
+        company={job.company}
+        jdText={job.jdText}
+        exitUrl={jobUrl}
+      />
       {job.corrections.length ? (
         <StatusCorrection jobId={job.id} current={job.status} targets={job.corrections} />
       ) : null}
@@ -400,328 +790,27 @@ export default async function JobDetailPage({
 
       {ev ? (
         <>
-          {/* R17-03: detalle del sello, una barra por criterio; solo con datos que la página ya trae */}
-          <AffinityDetail
-            items={affinityBreakdown({
-              matchFuerte: ev.matchFuerte,
-              gaps: noEnglishGap ? ev.gaps.filter((g) => !isEnglishGap(g)) : ev.gaps,
-              riesgos: risks,
-              bloqueadores: ev.bloqueadores,
-              adjustments: ev.adjustments,
-              yearsRequired: ev.yearsRequired,
-              locationOk: ev.locationOk,
-              modality: ev.modality,
-              englishRequired: ev.englishRequired,
-              englishGap: !noEnglishGap && ev.gaps.some(isEnglishGap),
-              salaryMinUsd: job.salaryMinUsd,
-              salaryMaxUsd: job.salaryMaxUsd,
-            })}
-          />
-          {/* Lo simple primero: lo técnico (bloqueadores, riesgos, requisitos) viene debajo */}
-          <FitPointsPanel
-            points={buildFitPoints({
-              matchFuerte: ev.matchFuerte,
-              senales: ev.senales,
-              gaps: (noEnglishGap ? ev.gaps.filter((g) => !isEnglishGap(g)) : ev.gaps).map(gapText),
-              riesgos: risks,
-              bloqueadores: ev.bloqueadores,
-              checklist: checklistNow,
-            })}
-            limited={!ev.checklist || ev.checklist.parcial}
-          />
-          {/* C8-6: qué es «A tu favor» y «Te falta o te frena», en llano */}
-          <HelpTip topic="aFavorTeFalta" />
-          {/* Bloqueadores y riesgos SEPARADOS: un riesgo se ve, no frena; un bloqueador frena */}
-          {ev.bloqueadores.length ? (
-            <section className="rounded-card border border-danger-line bg-danger-soft p-3">
-              <h2 className="text-sm font-semibold text-danger">
-                {BLOCKER_LABEL} ({ev.bloqueadores.length})
-              </h2>
-              <ul className="mt-1 list-disc pl-5 text-sm text-danger">
-                {ev.bloqueadores.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          {risks.length ? (
-            <section className="rounded-card border border-warning-line bg-warning-soft p-3">
-              <h2 className="text-sm font-semibold text-warning">
-                Riesgos ({risks.length}) · se ven, no frenan
-              </h2>
-              <ul className="mt-1 list-disc pl-5 text-sm text-warning">
-                {risks.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {/* Requisitos del aviso (ronda 104): solo si la evaluación guardó el checklist */}
-          {/* C-20: el checklist guardado es una foto; se superponen los niveles de hoy (sin LLM) */}
-          {requisitos ? (
-            <RequisitosDelAviso
-              checklist={requisitos}
-              modal={{ jobId: job.id, skillInfo: job.skillInfo }}
-              rebuilt={ev.checklistRebuilt}
-            />
-          ) : null}
-          {crossLine ? (
-            <p data-testid="encaje-cruce" className="text-sm text-fg-muted">
-              {crossLine}{" "}
-              <Link
-                href="/encaje"
-                className="inline-flex min-h-11 items-center font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-              >
-                Ver Tu encaje
-              </Link>
-            </p>
-          ) : null}
-
-          <section className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-card border border-line p-3 text-sm">
-              <h2 className="font-semibold">Veredicto</h2>
-              <p className="mt-1 text-fg">{ev.veredicto}</p>
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-subtle">
-                <dt>Inglés</dt>
-                <dd>{ENGLISH_LABEL[ev.englishRequired] ?? ev.englishRequired}</dd>
-                <dt>Años pedidos</dt>
-                <dd>{ev.yearsRequired ?? "no dice"}</dd>
-              </dl>
-              {/* A-10 (C-5 P2-3): el detalle técnico del puntaje queda plegado, para no
-                  recibir con jerga a quien no es de tecnología */}
-              <details className="mt-2 text-xs text-fg-subtle">
-                <summary className="cursor-pointer py-1 font-medium text-fg-muted">
-                  Cómo se calculó
-                </summary>
-                <p className="mt-1">
-                  La IA lee el aviso y tu perfil y propone un puntaje. Después la app aplica reglas
-                  fijas que lo suben o lo bajan.
-                </p>
-                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                  <dt>Área del aviso</dt>
-                  <dd>{DISCIPLINE_LABEL[ev.discipline] ?? ev.discipline}</dd>
-                  <dt>Tipo de empresa</dt>
-                  <dd>
-                    {ev.companyType
-                      ? (COMPANY_TYPE_LABEL[ev.companyType] ?? ev.companyType)
-                      : COMPANY_TYPE_LABEL.desconocido}
-                  </dd>
-                  <dt>Puntaje de la IA</dt>
-                  <dd>{formatScoreNumber(ev.scoreModel ?? ev.score)}</dd>
-                  <dt>Ajustes</dt>
-                  <dd>
-                    {ev.adjustments.length ? (
-                      <ul>
-                        {ev.adjustments.map((a, i) => (
-                          <li key={`${i}|${a.rule}`}>{adjustmentLine(a)}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      "ninguno"
-                    )}
-                  </dd>
-                  <dt>Puntaje final</dt>
-                  <dd>{formatScoreNumber(ev.score)}</dd>
-                  <dt>Fecha de la evaluación</dt>
-                  <dd>
-                    {formatDate(ev.createdAt)}
-                    {ev.hadFullJd ? "" : " · sin la descripción completa"}
-                  </dd>
-                </dl>
-              </details>
-            </div>
-          </section>
-
-          {/* Score humano: referencia para el golden y para calibrar (PRD §6) */}
+          {/* R30-11: «¿Te sirve esta evaluación?» y, solo para testers y admins, «Proponer otro puntaje» */}
           <Verdict
             jobId={job.id}
             evaluationId={ev.id}
             verdict={ev.humanVerdict}
             note={ev.humanNote}
           />
-          <details
-            open={ev.humanScore !== null}
-            className="rounded-card border border-line p-3 text-sm"
-          >
-            <summary className="cursor-pointer font-semibold">Corregir el puntaje</summary>
-            {/* key: al guardar un motivo o un score el formulario se remonta con lo guardado */}
-            <form
-              key={`${ev.humanScore ?? ""}|${ev.humanNote ?? ""}`}
-              action={humanScoreAction}
-              className="mt-2 flex flex-col gap-2"
-            >
-              <h2 className="font-semibold">Tu puntaje</h2>
-              <input type="hidden" name="jobId" value={job.id} />
-              <input type="hidden" name="evaluationId" value={ev.id} />
-              <div className="flex flex-wrap items-end gap-2">
-                <label className="flex flex-col gap-1 text-xs text-fg-subtle">
-                  Tu puntaje (0–10)
-                  <input
-                    name="humanScore"
-                    type="number"
-                    min={0}
-                    max={10}
-                    step={0.5}
-                    inputMode="decimal"
-                    defaultValue={ev.humanScore ?? ""}
-                    className="w-28 rounded-control border-2 border-line-strong px-2 py-2 text-base"
-                  />
-                </label>
-                <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-fg-subtle">
-                  Nota
-                  <input
-                    name="humanNote"
-                    type="text"
-                    defaultValue={ev.humanNote ?? ""}
-                    placeholder="por qué no coincide con la evaluación"
-                    className="rounded-control border-2 border-line-strong px-2 py-2 text-base"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className={buttonClasses({ size: "sm", variant: "secondary" })}
-                >
-                  Guardar
-                </button>
-              </div>
-              {ev.humanScore !== null ? (
-                <p className="text-xs text-fg-subtle">
-                  guardado: {formatScoreNumber(ev.humanScore)} · diferencia con la evaluación{" "}
-                  {formatDecimal(ev.humanScore - ev.score, 1)}
-                </p>
-              ) : null}
-            </form>
-          </details>
+          {canPropose ? (
+            <ProponerPuntaje
+              jobId={job.id}
+              evaluationId={ev.id}
+              score={ev.score}
+              humanScore={ev.humanScore}
+              humanNote={ev.humanNote}
+            />
+          ) : null}
         </>
-      ) : job.preScore ? (
-        <section className="flex flex-col gap-2 rounded-card border-2 border-dashed border-line-control p-3 text-sm">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="font-semibold">Sin evaluar</h2>
-            <span className="text-lg font-semibold">
-              Estimación previa {formatScore(job.preScore.score)}
-            </span>
-          </div>
-          <p className="text-xs text-fg-subtle">
-            La IA todavía no evaluó esta oferta. La estimación previa sale de reglas, sin
-            inteligencia artificial: requisitos del aviso contra tu experiencia, riesgos y salario
-            contra tu piso. No es la evaluación completa.
-          </p>
-          <div>{evaluateNow}</div>
-          {job.preScore.riesgos.length ? (
-            <div className="rounded-card border border-warning-line bg-warning-soft p-2">
-              <p className="text-xs font-semibold text-warning">Riesgos detectados</p>
-              <ul className="list-disc pl-5 text-xs text-warning">
-                {job.preScore.riesgos.map((r) => (
-                  <li key={r}>{riskLabel(r)}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          <div className="grid gap-2 sm:grid-cols-3">
-            <SkillBox
-              title={`Tenés (${job.preScore.have.length})`}
-              items={job.preScore.have}
-              tone="text-success"
-            />
-            <SkillBox
-              title={`Te faltan (${job.preScore.missing.length})`}
-              items={job.preScore.missing}
-              tone="text-danger"
-            />
-            <div className="min-w-0 rounded-card border border-line p-2">
-              <p className="text-xs font-semibold">
-                Sin nivel cargado ({job.preScore.unknownSkills.length})
-              </p>
-              {job.preScore.unknownSkills.length ? (
-                <ul className="mt-1 flex flex-col items-start gap-1">
-                  {job.preScore.unknownSkills.map((u) => (
-                    <li key={u.slug} className="min-w-0 max-w-full">
-                      {isEnglishSkillSlug(u.slug) ? (
-                        <span className="text-xs text-fg-subtle">{u.name}</span>
-                      ) : (
-                        <SkillLevelButton
-                          slug={u.slug}
-                          name={u.name}
-                          description={job.skillInfo[u.slug]?.description ?? null}
-                          jobId={job.id}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-fg-subtle">—</p>
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-fg-subtle">
-            {job.preScore.skillsMentioned} aptitudes reconocidas en la descripción
-            {job.preScore.coverage !== null
-              ? ` · cobertura ${(job.preScore.coverage * 100).toFixed(0)} %`
-              : ""}
-            {job.preScore.cap !== null ? ` · tope por el título ${job.preScore.cap}` : ""}
-            {job.preScore.adjustments.length
-              ? ` · ${job.preScore.adjustments.map(adjustmentLine).join(", ")}`
-              : ""}
-          </p>
-          {job.status === "pendiente_jd" ? (
-            <p className="text-xs text-fg-subtle">
-              Sin descripción: la estimación previa usa solo las señales del aviso y el salario.{" "}
-              <Link href="/jobs/pending-jd" className="underline">
-                pegar la descripción
-              </Link>
-            </p>
-          ) : null}
-        </section>
-      ) : (
-        <div className="flex flex-col gap-2 rounded-card border border-dashed border-line-strong p-3 text-sm text-fg-subtle">
-          <p>
-            Sin evaluación todavía
-            {job.prefilterReason ? ` · descartada automáticamente: ${job.prefilterReason}` : ""}
-            {job.status === "pendiente_jd" ? (
-              <>
-                {" "}
-                ·{" "}
-                <Link href="/jobs/pending-jd" className="underline">
-                  pegar la descripción
-                </Link>
-              </>
-            ) : null}
-          </p>
-          <div>{evaluateNow}</div>
-        </div>
-      )}
-
-      {/* Formulario de postulación (JS-053, fase 2): se pega, se revisa y se copia; la app no envía nada */}
-      <section
-        aria-label="Formulario de postulación"
-        className="rounded-card border border-line p-3 text-sm"
-      >
-        <h2 className="font-semibold">Formulario de postulación</h2>
-        <p className="mb-2 text-xs text-fg-subtle">
-          Pegá las preguntas, revisá los borradores y copiá lo aprobado. Nada se envía desde acá.
-        </p>
-        {savedForm.length ? (
-          <details className="mb-2 rounded-control bg-surface-subtle p-2">
-            <summary className="cursor-pointer text-xs font-semibold">
-              Respuestas guardadas ({savedForm.length})
-            </summary>
-            <dl className="mt-1 flex flex-col gap-1 text-xs">
-              {savedForm.map((qa, i) => (
-                <div key={i}>
-                  <dt className="font-medium text-fg">{qa.question}</dt>
-                  <dd className="whitespace-pre-wrap text-fg-subtle">{qa.answer}</dd>
-                </div>
-              ))}
-            </dl>
-          </details>
-        ) : null}
-        <FormReview jobId={job.id} />
-      </section>
+      ) : null}
 
       <section className="text-sm">
-        <h2 className="font-semibold">Fuentes</h2>
+        <h2 className="font-semibold">{T.secciones.fuentes}</h2>
         <ul className="mt-1 flex flex-col gap-1">
           {job.sources.map((src, i) => (
             <li key={i} className="flex flex-wrap items-center gap-2 text-xs">
@@ -750,23 +839,12 @@ export default async function JobDetailPage({
 
       {job.jdText ? (
         <details className="rounded-card border border-line p-3 text-sm">
-          <summary className="cursor-pointer font-semibold">Descripción del puesto</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
+            {T.secciones.descripcion}
+          </summary>
           <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-fg">{job.jdText}</pre>
         </details>
       ) : null}
     </article>
-  );
-}
-
-function SkillBox({ title, items, tone }: { title: string; items: string[]; tone: string }) {
-  return (
-    <div className="rounded-card border border-line p-2">
-      <p className="text-xs font-semibold">{title}</p>
-      {items.length ? (
-        <p className={`text-xs ${tone}`}>{items.join(" · ")}</p>
-      ) : (
-        <p className="text-xs text-fg-subtle">—</p>
-      )}
-    </div>
   );
 }

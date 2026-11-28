@@ -11,11 +11,11 @@ export const GLOSARIO: ReadonlyArray<{ term: string; def: ReactNode }> = [
   },
   {
     term: "Afín",
-    def: "Qué tan parecido es un aviso a lo que sabés y buscás. El sello lo dice con palabras: «Muy afín», «Bastante afín», «Afín a medias», «Poco afín» o «Lejos de tu perfil».",
+    def: "Qué tan parecido es un aviso a lo que sabés y buscás. El sello lo dice con palabras: «Afinidad alta» (7 o más), «Afinidad media» (de 5 a 6,9) o «Afinidad baja» (menos de 5). Si la oferta todavía no se evaluó, dice «Sin evaluar».",
   },
   {
     term: "Estimación previa",
-    def: "Un puntaje provisorio que calculamos con reglas, sin inteligencia artificial, mientras la oferta espera su evaluación. Todavía no es la evaluación.",
+    def: "Un puntaje provisorio que calculamos con reglas, sin inteligencia artificial, mientras la oferta espera su evaluación. Todavía no es la evaluación: el sello sigue diciendo «Sin evaluar».",
   },
   {
     term: "Evaluación",

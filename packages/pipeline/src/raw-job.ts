@@ -2,6 +2,8 @@
  * RawJob: oferta normalizada por un adapter de fuente (Get on Board, email, manual), sin LLM.
  * Es la entrada del pipeline de ingesta (dedup → prefiltro → cola). Sin I/O: solo datos.
  */
+import type { SalaryOriginal } from "./salary-original";
+
 export type SourceKind =
   | "getonboard_api"
   | "email_linkedin"
@@ -28,7 +30,9 @@ export type SourceKind =
   | "recruitee"
   | "smartrecruiters"
   // R19-01: alertas por email de Computrabajo a las casillas del pool (migración 0046)
-  | "computrabajo_alerts";
+  | "computrabajo_alerts"
+  // R32-05 (ADR-028): ReliefWeb, con valor propio para no compartir historial con Jooble (`other`)
+  | "reliefweb";
 
 export type Modality = "remoto" | "hibrido" | "presencial" | "desconocida";
 
@@ -60,6 +64,11 @@ export type RawJob = {
   salaryMaxUsd: number | null;
   salaryPeriod: "mensual" | "anual" | "hora" | null;
   salaryNote: string | null;
+  /**
+   * R32-08: el sueldo tal como lo publica el aviso, en su moneda (pesos, euros, reales…). Opcional: lo viejo y
+   * los lectores que no lo extraen lo dejan sin informar (nunca se inventa una moneda).
+   */
+  salaryOriginal?: SalaryOriginal | null;
   weeklyHours: number | null;
   candidatesCount: number | null;
   badges: string[];

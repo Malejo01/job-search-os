@@ -145,6 +145,9 @@ test.describe("Flujo 64: onboarding con una carrera nueva", () => {
     await expect(page.getByTestId("skill-etl")).toBeVisible();
 
     await page.goto("/market");
-    await expect(page.getByRole("region", { name: /^Mercado de Data Engineering/ })).toBeVisible();
+    // R34-03: el título de la página dice la carrera (ya no hay una región «Mercado de …»)
+    await expect(
+      page.getByRole("heading", { level: 1, name: /^Mercado de Data Engineering/ }),
+    ).toBeVisible();
   });
 });

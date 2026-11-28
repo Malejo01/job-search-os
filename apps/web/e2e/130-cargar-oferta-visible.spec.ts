@@ -25,7 +25,7 @@ test.describe("Flujo 130: «+ Cargar oferta» siempre visible", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(`/jobs?estado=todas&oferta=${jobId}`);
     await expect(page.getByTestId("tarjeta-oferta").first()).toBeVisible();
-    const button = page.getByRole("link", { name: "+ Cargar oferta" });
+    const button = page.getByRole("link", { name: "+ Agregar una oferta" });
     await expect(button).toBeVisible();
     const box = await button.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -37,7 +37,7 @@ test.describe("Flujo 130: «+ Cargar oferta» siempre visible", () => {
     await login(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/jobs?estado=todas");
-    const button = page.getByRole("link", { name: "+ Cargar oferta" });
+    const button = page.getByRole("link", { name: "+ Agregar una oferta" });
     await expect(button).toBeVisible();
     const box = await button.boundingBox();
     expect(box).not.toBeNull();

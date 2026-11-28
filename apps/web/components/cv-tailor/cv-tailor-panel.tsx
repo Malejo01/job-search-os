@@ -4,6 +4,7 @@ import { useId, useState, useTransition } from "react";
 import type { CvTailorOutput } from "@job-search-os/pipeline";
 import { Alert, Button, Card } from "@/components/ui";
 import { tailorCvAction, type TailorCvActionResult } from "@/lib/cv-tailor/actions";
+import { POSTULACION_TEXTOS } from "@/lib/textos-rediseno";
 import {
   TAILOR_BUTTON,
   TAILOR_BUTTON_PENDING,
@@ -11,11 +12,10 @@ import {
   TAILOR_ERRORS,
   TAILOR_INTRO,
   TAILOR_LIMIT_NOTE,
-  TAILOR_PREVIEW_TITLE,
-  TAILOR_TITLE,
   TAILOR_UNCHANGED,
   TAILOR_VERIFIED_NOTE,
 } from "./copy";
+import { TailorSuggestions } from "./tailor-suggestions";
 
 /**
  * Panel de la versión del CV adaptada con IA (R20-04). Client Component porque llama a la acción del servidor y
@@ -56,7 +56,7 @@ export function CvTailorPanel({
     >
       <div className="flex flex-col gap-3">
         <h2 id={`${uid}-titulo`} className="text-lg font-extrabold">
-          {TAILOR_TITLE}
+          {POSTULACION_TEXTOS.adaptar.titulo}
         </h2>
         <p className="text-base">{TAILOR_INTRO}</p>
         <div className="flex flex-wrap items-center gap-3">
@@ -100,33 +100,14 @@ export function CvTailorPanel({
                 </section>
               ) : null}
 
-              {result.changed ? (
-                <section aria-labelledby={`${uid}-previa`} className="flex flex-col gap-3">
-                  <h3 id={`${uid}-previa`} className="text-base font-extrabold">
-                    {TAILOR_PREVIEW_TITLE}
-                  </h3>
-                  {result.preview.entries.map((e, i) => (
-                    <div key={`${e.heading}|${i}`} className="flex flex-col gap-1">
-                      <p className="font-bold">{e.heading}</p>
-                      {e.detail ? <p className="text-sm text-fg-muted">{e.detail}</p> : null}
-                      <ul className="flex list-disc flex-col gap-1 pl-5 text-base">
-                        {e.bullets.map((b, j) => (
-                          <li key={`${j}|${b}`}>{b}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                  {result.preview.skills.length > 0 ? (
-                    <div className="flex flex-col gap-1">
-                      <p className="font-bold">Skills</p>
-                      {result.preview.skills.map((line) => (
-                        <p key={line} className="text-base">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  ) : null}
-                </section>
+              {result.changed && result.suggestions.length > 0 ? (
+                <TailorSuggestions
+                  // Una propuesta nueva empieza sin decisiones
+                  key={JSON.stringify(result.proposal)}
+                  jobId={jobId}
+                  proposal={result.proposal}
+                  suggestions={result.suggestions}
+                />
               ) : null}
             </div>
           ) : null}

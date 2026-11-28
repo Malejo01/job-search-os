@@ -26,7 +26,7 @@ export function SubmitButton({
       type="submit"
       disabled={pending}
       aria-disabled={pending}
-      className={`${className ?? ""} disabled:cursor-not-allowed disabled:opacity-60`.trim()}
+      className={`${className ?? ""} disabled:cursor-not-allowed disabled:grayscale`.trim()}
     >
       {pending ? pendingLabel : children}
     </button>

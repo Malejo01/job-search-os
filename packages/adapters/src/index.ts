@@ -35,6 +35,8 @@ export * from "./applications/linkedin-application";
 export * from "./email/resend";
 export * from "./billing/plan-expiry-notices";
 export * from "./billing/welcome-email";
+export * from "./news/news-email";
+export * from "./news/unsubscribe-token";
 export * from "./applicant/context";
 export * from "./mcp/auth";
 export * from "./mcp/untrusted";
@@ -44,6 +46,7 @@ export * from "./auth/secret";
 export * from "./auth/reset-url";
 export * from "./auth/reset-tokens";
 export * from "./retention/purge";
+export { purgeStaleCvDrafts } from "./retention/cv-drafts";
 export {
   parsePoolSources,
   POOL_RECOMMENDED_SOURCES,
@@ -87,6 +90,7 @@ export * from "./profile-agent";
 export * from "./cv-coach";
 export * from "./cv-tailor";
 export * from "./voice";
+export * from "./job-card";
 // Demo guiada (ronda 74): línea en el medio a propósito, el #102 toca las puntas de este archivo.
 export * from "./demo";
 export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";
@@ -97,6 +101,8 @@ export {
 } from "./market/career-market";
 export { readCareerRevealCounts } from "./market/career-reveal";
 export { readBetaPoolCounts, type BetaPoolCounts } from "./market/beta-counts";
+export { readCareerCoverageJobs, CAREER_COVERAGE_MAX_ROWS } from "./market/career-coverage";
+export { readMarketMinimalInput, MARKET_MINIMAL_MAX_ROWS } from "./market/market-minimal";
 export {
   readPoolCoverage,
   readPoolMailboxActivity,

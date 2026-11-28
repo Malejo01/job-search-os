@@ -3,6 +3,8 @@ import { COUNTRY_ONLY_RULE, englishRankFromCefr, type Decision } from "../decide
 import type { Evaluation } from "../evaluation";
 import { foldText } from "../normalize/text";
 import { MAX_JD_CHARS } from "../pool/career/english";
+import type { JobCard } from "../job-card/schema";
+import { buildCardRows, type RequirementAnswer } from "../requirements/card-rows";
 import { englishIsNotAGap } from "../skills/english-gap";
 import { countriesText, disciplineName, roleAskText } from "../fit/display-labels";
 import { extractJdSkills, type Term } from "../skills/match";
@@ -37,6 +39,16 @@ export type ChecklistItem = {
   bloquea: boolean;
   /** Aclaración sobre la confiabilidad del dato (p. ej. salario leído del texto). Ausente = ninguna. */
   nota?: string;
+  /**
+   * Pregunta de un toque (R31-05, solo filas `req:<n>` que el perfil no puede comparar): `clave` es
+   * lo que pide el aviso, igual en todas las ofertas que pidan lo mismo; `respuesta` la que ya dio
+   * la persona (null = sin responder) y `nota` lo que escribió si dijo «En parte».
+   */
+  pregunta?: {
+    clave: string;
+    respuesta: "si" | "no" | "en_parte" | null;
+    nota: string | null;
+  };
 };
 
 export type ChecklistCounts = { cumple: number; no_cumple: number; no_se_sabe: number };
@@ -70,6 +82,13 @@ export type ChecklistContext = {
   terms: readonly Term[];
   /** Nombre legible por slug; sin él se usa el slug. */
   skillNames?: ReadonlyMap<string, string>;
+  /**
+   * Fase B (R31-05): la ficha del aviso, ya verificada contra el texto (`verifyJobCard`). Ausente
+   * (ficha apagada o sin ficha) = la tabla queda exactamente como antes.
+   */
+  jobCard?: Pick<JobCard, "requisitos" | "condiciones"> | null;
+  /** Respuestas de un toque de la persona por `requirementKey` (solo se leen con `jobCard`). */
+  requirementAnswers?: ReadonlyMap<string, RequirementAnswer>;
 };
 
 const NO_ENGLISH_ASK = new Set(["no_menciona", "no"]);
@@ -361,6 +380,33 @@ export function buildChecklist(
         fuente: { pide: "fuente", tenes: level === null ? null : "skills" },
       }),
     );
+  }
+
+  // ── Fase B: lo que pide el aviso según su ficha. El estado lo decide el código ───────────────
+  if (ctx.jobCard) {
+    // El área del puesto es un dato del aviso, nunca un requisito cumplido (plan §8): solo queda la fila
+    // cuando es un oficio distinto, que es una condición del aviso que hoy no coincide
+    const area = items.findIndex((it) => it.id === "disciplina" && it.status !== "no_cumple");
+    if (area >= 0) items.splice(area, 1);
+  }
+  if (ctx.jobCard?.requisitos.length) {
+    const rows = buildCardRows({
+      card: ctx.jobCard,
+      profile: {
+        yearsTotal: profile.yearsTotal,
+        englishCefr: profile.englishCefr,
+        locationCountry: profile.locationCountry,
+        workAuth: profile.workAuth,
+      },
+      existing: items,
+      answers: ctx.requirementAnswers ?? new Map(),
+      skillLevels: ctx.skillLevels,
+      userSkills: ctx.userSkills,
+      terms: ctx.terms,
+      skillNames: ctx.skillNames,
+    });
+    // `item()` acota los textos al mismo largo que el resto de las filas
+    items.push(...rows.map((r) => item(r)));
   }
 
   const must = emptyCounts();

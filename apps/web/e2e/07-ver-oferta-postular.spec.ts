@@ -64,7 +64,7 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
     // C10-7: la tarjeta es la K2 del tablero; «Postularme en el sitio del aviso» está en el detalle
     await card.getByRole("link", { name: /abrir el detalle/i }).click();
     await expect(page).toHaveURL(new RegExp(`/jobs/${conUrl}`));
-    const link = page.getByRole("link", { name: /Postularme en el sitio del aviso/ });
+    const link = page.getByRole("link", { name: /Ir a postularme/ });
     await expect(link).toHaveAttribute("href", OFERTA_URL);
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", /noopener/);
@@ -80,24 +80,25 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
     await expect(postular).toHaveAttribute("target", "_blank");
 
     await postularYVolver(page);
-    const dialogo = page.getByRole("dialog", { name: /te postulaste/i });
+    const dialogo = page.getByRole("dialog", { name: /pudiste postularte/i });
     await expect(dialogo).toBeVisible();
     await dialogo.getByRole("button", { name: "Sí" }).click();
 
-    await expect(page.getByText("Aplicada", { exact: true })).toBeVisible();
+    // El botón del estado también dice «Ya me postulé»: se espera a que la acción termine
+    await expect(page.getByRole("button", { name: "Ya me postulé" })).toHaveCount(0);
     await expect(dialogo).toHaveCount(0);
-    expect(await jobStatus(conUrl)).toBe("aplicada");
+    await expect.poll(() => jobStatus(conUrl)).toBe("aplicada");
 
     // Ya aplicada: volver a entrar no vuelve a preguntar
     await page.reload();
-    await expect(page.getByRole("dialog", { name: /te postulaste/i })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: /pudiste postularte/i })).toHaveCount(0);
   });
 
   test("si contesto que no, no pasa nada", async ({ page }) => {
     await login(page);
     await page.goto(`/jobs/${paraNo}`);
     await postularYVolver(page);
-    const dialogo = page.getByRole("dialog", { name: /te postulaste/i });
+    const dialogo = page.getByRole("dialog", { name: /pudiste postularte/i });
     await expect(dialogo).toBeVisible();
     await dialogo.getByRole("button", { name: "No" }).click();
     await expect(dialogo).toHaveCount(0);
@@ -111,10 +112,13 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
     await page.goto(`/jobs/${sinUrl}`);
     await expect(page.getByRole("link", { name: "Postular" })).toHaveCount(0);
     // El estado se sigue pudiendo marcar a mano
-    await expect(page.getByRole("button", { name: "Marcar aplicada" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ya me postulé" })).toBeVisible();
 
     await page.goto("/jobs?estado=todas");
     const card = page.getByRole("listitem").filter({ hasText: "E2E sin link" });
-    await expect(card.getByRole("link", { name: "Ver oferta" })).toHaveCount(0);
+    // R30-04: «Ver oferta» de la tarjeta abre el detalle de AfinIAJobs; lo que no existe es un link
+    // al aviso original
+    await expect(card.getByRole("link", { name: "Postular" })).toHaveCount(0);
+    await expect(card.locator('a[href^="http"]')).toHaveCount(0);
   });
 });

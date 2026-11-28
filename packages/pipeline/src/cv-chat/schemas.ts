@@ -20,6 +20,14 @@ export const CV_CHAT_TOPIC_KINDS = [
   "skills",
   "languages",
   "links",
+  // R33-04: resumen profesional y situaciones para las habilidades blandas. Los resuelve el código, sin modelo
+  "summary_experience",
+  "summary_goal",
+  "summary_strengths",
+  "soft_lead",
+  "soft_problem",
+  "soft_clients",
+  "soft_organize",
 ] as const;
 export type CvTopicKind = (typeof CV_CHAT_TOPIC_KINDS)[number];
 
@@ -81,6 +89,14 @@ export const CV_EXTRACTION_SCHEMAS = {
     github: url.nullable(),
     portfolio: url.nullable(),
   }),
+  // R33-04: las palabras de la persona, limpias y acotadas; `null` si dijo que no
+  summary_experience: z.strictObject({ answer: text(220, true).nullable() }),
+  summary_goal: z.strictObject({ answer: text(220, true).nullable() }),
+  summary_strengths: z.strictObject({ answer: text(220, true).nullable() }),
+  soft_lead: z.strictObject({ answer: text(220, true).nullable() }),
+  soft_problem: z.strictObject({ answer: text(220, true).nullable() }),
+  soft_clients: z.strictObject({ answer: text(220, true).nullable() }),
+  soft_organize: z.strictObject({ answer: text(220, true).nullable() }),
 } as const;
 
 export type CvExtractionMap = {

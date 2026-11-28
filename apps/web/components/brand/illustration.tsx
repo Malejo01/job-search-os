@@ -67,7 +67,7 @@ export function Illustration({
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center">
-          <Monogram size={56} tone="light" className="opacity-40" />
+          <Monogram size={56} tone="light" />
         </div>
       )}
     </div>

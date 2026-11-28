@@ -1,5 +1,5 @@
 import { buildCvDocx, cvFileName } from "@job-search-os/pipeline";
-import { buildUserCv, parseCvOptions } from "@/lib/cv-source";
+import { buildUserCv, cvOptionsFromSearchParams } from "@/lib/cv-source";
 import { sessionUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +16,7 @@ function json(status: number, error: string): Response {
 export async function GET(request: Request): Promise<Response> {
   const userId = await sessionUserId();
   if (!userId) return json(401, "Iniciá sesión para descargar tu CV.");
-  const params = new URL(request.url).searchParams;
-  const opts = parseCvOptions({
-    lang: params.get("lang") ?? undefined,
-    email: params.get("email") ?? undefined,
-    basicas: params.get("basicas") ?? undefined,
-  });
+  const opts = cvOptionsFromSearchParams(new URL(request.url).searchParams);
   let doc;
   try {
     doc = await buildUserCv(userId, opts);

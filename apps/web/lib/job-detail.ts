@@ -14,6 +14,8 @@ import {
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
   gapText,
+  riesgosVisibles,
+  salaryOriginalFromColumns,
   translateChecklist,
   type Adjustment,
   type Checklist,
@@ -21,6 +23,7 @@ import {
   type HumanVerdict,
   type JobEvent,
   type JobStatus,
+  type SalaryOriginal,
 } from "@job-search-os/pipeline";
 import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -62,6 +65,14 @@ const checklistItemSchema = z.object({
   bloquea: z.boolean(),
   // Aclaración del código (por ejemplo «salario leído del texto del aviso»); opcional
   nota: z.string().max(200).optional(),
+  // R31-05: pregunta de un toque de las filas «Sin confirmar» que vienen del aviso (ficha)
+  pregunta: z
+    .object({
+      clave: z.string().max(160),
+      respuesta: z.enum(["si", "no", "en_parte"]).nullable(),
+      nota: z.string().max(200).nullable(),
+    })
+    .optional(),
 });
 const checklistSchema = z.object({
   items: z.array(checklistItemSchema).max(40),
@@ -135,8 +146,14 @@ export type JobDetail = {
   salaryMinUsd: number | null;
   salaryMaxUsd: number | null;
   salaryPeriod: string | null;
+  /** R32-08: el sueldo tal como lo publica el aviso, en su moneda; null en lo anterior o si no la dice. */
+  salaryOriginal: SalaryOriginal | null;
   weeklyHours: number | null;
   candidatesCount: number | null;
+  /** Marca «Guardada» (R30-03), de la misma fila: ISO o null. */
+  savedAt: string | null;
+  /** ¿Viene del pool? Solo entonces el detalle consulta la vigencia (R30-07). */
+  fromPool: boolean;
   badges: string[];
   flags: string[];
   /** Motivo del descarte en castellano llano (prefilterReasonText), no el valor crudo guardado. */
@@ -448,8 +465,11 @@ export async function getJobDetail(
       salaryMinUsd: job.salaryMinUsd,
       salaryMaxUsd: job.salaryMaxUsd,
       salaryPeriod: job.salaryPeriod,
+      salaryOriginal: salaryOriginalFromColumns(job),
       weeklyHours: job.weeklyHours,
       candidatesCount: job.candidatesCount,
+      savedAt: job.savedAt?.toISOString() ?? null,
+      fromPool: job.publicJobId !== null,
       badges: job.badges ?? [],
       flags: job.flags ?? [],
       prefilterReason: prefilterReasonText(job.prefilterReason),
@@ -476,7 +496,8 @@ export async function getJobDetail(
             matchFuerte: ev.matchFuerte,
             gaps: ev.gaps.map(gapText),
             bloqueadores: ev.bloqueadoresDuros,
-            riesgos: ev.riesgos,
+            // R30-01: «muchos candidatos» solo se muestra si el aviso trae el número
+            riesgos: riesgosVisibles(ev.riesgos, job.candidatesCount),
             senales: ev.senalesPositivas,
             veredicto: ev.veredicto,
             adjustments: decision?.adjustments ?? [],

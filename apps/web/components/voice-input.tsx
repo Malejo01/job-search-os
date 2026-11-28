@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { AfiEspera } from "@/components/afi-espera";
 import { buttonClasses } from "@/components/ui";
 import { useVoiceInput } from "@/lib/voice/use-voice-input";
@@ -21,6 +21,11 @@ export type VoiceInputProps = {
   /** Texto del botón. Por defecto «Dictar». */
   label?: string;
   className?: string;
+  /**
+   * Dónde va el aviso de privacidad del dictado (R33-03, C-12). `inline` (por defecto): visible debajo del botón.
+   * `info`: detrás de un «ⓘ» junto a «Dictar». `hidden`: no se muestra (cuando la pantalla ya lo dice una vez).
+   */
+  privacy?: "inline" | "info" | "hidden";
 };
 
 const subscribeReduced = (cb: () => void) => {
@@ -44,8 +49,10 @@ export function VoiceInput({
   disabled,
   label = "Dictar",
   className,
+  privacy = "inline",
 }: VoiceInputProps) {
   const noteId = useId();
+  const [noteOpen, setNoteOpen] = useState(false);
   const voice = useVoiceInput({ serverTranscribe, onText });
   const { state } = voice;
   const reduced = useSyncExternalStore(subscribeReduced, reducedSnapshot, () => false);
@@ -135,6 +142,19 @@ export function VoiceInput({
         >
           {active ? "Dictando…" : label}
         </button>
+        {privacy === "info" ? (
+          <button
+            type="button"
+            onClick={() => setNoteOpen((v) => !v)}
+            aria-expanded={noteOpen}
+            aria-controls={noteId}
+            aria-label="Privacidad del dictado"
+            className={buttonClasses({ variant: "ghost", size: "sm" })}
+            data-testid="voice-privacidad-info"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        ) : null}
         {listening ? (
           <>
             <button
@@ -242,7 +262,12 @@ export function VoiceInput({
         {statusText}
       </p>
 
-      <p id={noteId} className="text-xs text-fg-subtle">
+      {/* `hidden` sigue siendo la descripción accesible del botón: aria-describedby lee texto oculto */}
+      <p
+        id={noteId}
+        hidden={privacy === "hidden" || (privacy === "info" && !noteOpen)}
+        className="text-xs text-fg-subtle"
+      >
         {note}
       </p>
 

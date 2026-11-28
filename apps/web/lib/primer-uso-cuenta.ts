@@ -1,4 +1,5 @@
 import { schema as s } from "@job-search-os/db";
+import type { CareerPromptFacts } from "@job-search-os/pipeline";
 import { eq } from "drizzle-orm";
 import { cache } from "react";
 import { withUser } from "@/lib/db";
@@ -17,6 +18,11 @@ export type HeaderProfile = {
   primerUsoVisto: string | null;
   /** Último día en que Hoy saludó con la mascota (R27-04); null = nunca, o la columna todavía no existe. */
   saludoVisto: string | null;
+  /**
+   * Lo que hace falta para decidir si se le pide la carrera (R32-01), de la misma consulta. null si no se pudo
+   * leer o las columnas todavía no existen: entonces no se pide (falla cerrado).
+   */
+  career: CareerPromptFacts | null;
 };
 
 /**
@@ -31,6 +37,9 @@ export const getHeaderProfile = cache(async (userId: string): Promise<HeaderProf
           name: s.profiles.displayName,
           primerUsoVisto: s.profiles.primerUsoVisto,
           saludoVisto: s.profiles.saludoVisto,
+          targetRoles: s.profiles.targetRoles,
+          careerOther: s.profiles.careerOther,
+          careerAskedAt: s.profiles.careerAskedAt,
         })
         .from(s.profiles)
         .where(eq(s.profiles.userId, userId))
@@ -40,19 +49,48 @@ export const getHeaderProfile = cache(async (userId: string): Promise<HeaderProf
       name: row?.name ?? null,
       primerUsoVisto: row?.primerUsoVisto ?? null,
       saludoVisto: row?.saludoVisto ?? null,
+      // Sin fila de perfil no hay a quién pedirle nada
+      career: row
+        ? {
+            targetRoles: row.targetRoles ?? [],
+            careerOther: row.careerOther,
+            askedAt: row.careerAskedAt,
+          }
+        : null,
     };
   } catch {
     try {
+      // Las columnas de R32-01 pueden no existir todavía: se lee lo de antes y no se pide la carrera
       const [row] = await withUser(userId, (tx) =>
         tx
-          .select({ name: s.profiles.displayName })
+          .select({
+            name: s.profiles.displayName,
+            primerUsoVisto: s.profiles.primerUsoVisto,
+            saludoVisto: s.profiles.saludoVisto,
+          })
           .from(s.profiles)
           .where(eq(s.profiles.userId, userId))
           .limit(1),
       );
-      return { name: row?.name ?? null, primerUsoVisto: null, saludoVisto: null };
+      return {
+        name: row?.name ?? null,
+        primerUsoVisto: row?.primerUsoVisto ?? null,
+        saludoVisto: row?.saludoVisto ?? null,
+        career: null,
+      };
     } catch {
-      return { name: null, primerUsoVisto: null, saludoVisto: null };
+      try {
+        const [row] = await withUser(userId, (tx) =>
+          tx
+            .select({ name: s.profiles.displayName })
+            .from(s.profiles)
+            .where(eq(s.profiles.userId, userId))
+            .limit(1),
+        );
+        return { name: row?.name ?? null, primerUsoVisto: null, saludoVisto: null, career: null };
+      } catch {
+        return { name: null, primerUsoVisto: null, saludoVisto: null, career: null };
+      }
     }
   }
 });

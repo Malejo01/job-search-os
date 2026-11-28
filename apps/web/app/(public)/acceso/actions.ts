@@ -11,7 +11,10 @@ import {
 } from "@job-search-os/pipeline";
 import { headers } from "next/headers";
 import { recordAccesoStep } from "@/lib/acceso-funnel";
+import { catalogLabel } from "@/lib/career-names";
+import { getOpenCareers } from "@/lib/careers-open";
 import { joinWaitlist } from "@/lib/waitlist";
+import { waitlistDoneMessage } from "@/lib/waitlist-message";
 
 export type WaitlistState =
   | { status: "idle" }
@@ -65,7 +68,12 @@ export async function submitWaitlist(
       };
     }
     await recordAccesoStep("enviado", origen, parsed.value.role);
-    return { status: "done", message: DONE_MESSAGE };
+    // R32-03: una carrera que todavía no abrió lo dice. Igual para ok y duplicate; sin dato de la lista, el de siempre
+    const open = await getOpenCareers();
+    return {
+      status: "done",
+      message: waitlistDoneMessage(parsed.value.role, open, DONE_MESSAGE, catalogLabel),
+    };
   } catch (e) {
     // Sin datos personales: ni el email, ni el nombre, ni la IP
     createLogger({ task: "waitlist_join" }).error(

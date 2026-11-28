@@ -43,6 +43,8 @@ const PUBLIC_PREFIXES: readonly string[] = [
   "/reset-password",
   "/setup",
   "/register",
+  // Baja del email de novedades (R32-09): se usa desde el email, sin sesión; la firma del enlace es lo que la habilita
+  "/novedades",
 ];
 
 /** Páginas generadas de metadatos de compartir: `/opengraph-image-es`, `/twitter-image`, etc. */
@@ -65,6 +67,8 @@ export const PRIVATE_PREFIXES: readonly string[] = [
   "/academy",
   // Recorrido para revisar (R26-03): privado; además, 404 para quien no es admin ni tester
   "/recorrido",
+  // Calibrar la evaluación nueva (R31-10): privado; además, 404 para quien no es admin ni tester o no tiene JOB_CARD
+  "/calibracion",
   "/settings",
   // Panel de administración (ADM-1): privado; además, 404 para quien no es admin
   "/admin",

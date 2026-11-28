@@ -26,7 +26,8 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
         <>
           <table className="hidden w-full text-left text-sm sm:table">
             <caption className="sr-only">
-              Ofertas de los últimos 30 días por portal, con puntaje alto, aplicadas y entrevistas
+              Ofertas de los últimos 30 días por portal, con puntaje alto, en las que ya te
+              postulaste y entrevistas
             </caption>
             <thead>
               <tr className="border-b border-line text-fg-subtle">
@@ -40,7 +41,7 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
                   Puntaje ≥ 7
                 </th>
                 <th scope="col" className="py-1 pr-2 font-medium">
-                  Aplicadas
+                  Ya me postulé
                 </th>
                 <th scope="col" className="py-1 font-medium">
                   Entrevistas
@@ -88,7 +89,7 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
                   <p className="text-fg-subtle">pocos datos</p>
                 ) : (
                   <p className="text-fg-muted">
-                    Puntaje ≥ 7: {r.highScore} ({pct(r.highScore, r.total)}) · Aplicadas:{" "}
+                    Puntaje ≥ 7: {r.highScore} ({pct(r.highScore, r.total)}) · Ya me postulé:{" "}
                     {r.applied} ({pct(r.applied, r.total)}) · Entrevistas: {r.interview} (
                     {pct(r.interview, r.total)})
                   </p>

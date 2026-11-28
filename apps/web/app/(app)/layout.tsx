@@ -1,8 +1,11 @@
-import { pricingEnabled } from "@job-search-os/pipeline";
+import { BETA_LAUNCH_ROLE_KEYS, needsCareerPrompt, pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ActionTracker } from "@/components/action-tracker";
 import { AssistantMascot } from "@/components/assistant-mascot";
+import { CareerPrompt } from "@/components/career-prompt";
+import { catalogLabel } from "@/lib/career-names";
+import { ALTA_TEXTOS, AYUDA_TEXTOS } from "@/lib/textos-rediseno";
 import { FeedbackButton } from "@/components/feedback-button";
 import { PrimerUso } from "@/components/primer-uso";
 import { MobileTabBar } from "./mobile-tabbar";
@@ -12,7 +15,6 @@ import { assistantLimits } from "@/lib/assistant-limits";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireActiveUserId, requireUserId } from "@/lib/session";
-import { AYUDA_TEXTOS } from "@/lib/textos-rediseno";
 import { getUserPlan } from "@/lib/user-plan";
 import { getHeaderProfile } from "@/lib/primer-uso-cuenta";
 import { Avatar } from "./avatar";
@@ -111,6 +113,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         className="group/main mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 sm:pb-10 has-[[data-ancho=completo]]:max-w-none! has-[[data-ancho=completo]]:p-0!"
       >
         {planAccess ? <PlanNotice access={planAccess} /> : null}
+        {/* R32-01: a las cuentas sin carrera se les pide una sola vez, arriba de lo que estaban mirando.
+            Sin redirigir: la persona sigue en su pantalla. Las de ancho completo traen su propio margen */}
+        {/* Una acción que la persona tiene que completar y que vive en la pantalla (la confirmación del
+            reenvío de Gmail en la bandeja, `data-prioridad="primero"`) va primero: mientras esté, el pedido de
+            carrera se oculta y vuelve cuando ya no está (R33-12) */}
+        {needsCareerPrompt(headerProfile.career) ? (
+          <div className="group-has-[[data-prioridad=primero]]/main:hidden group-has-[[data-ancho=completo]]/main:mx-auto group-has-[[data-ancho=completo]]/main:max-w-6xl group-has-[[data-ancho=completo]]/main:px-4 group-has-[[data-ancho=completo]]/main:pt-4 sm:group-has-[[data-ancho=completo]]/main:px-12">
+            <CareerPrompt
+              careers={BETA_LAUNCH_ROLE_KEYS.map((key) => ({ key, label: catalogLabel(key) }))}
+              texts={ALTA_TEXTOS.carreraPedida}
+            />
+          </div>
+        ) : null}
         {children}
       </main>
       {/* R19-06: con el asistente, el botón flotante (2,75 rem + 1 rem de margen) no tapa el final

@@ -2,6 +2,7 @@ import * as s from "@job-search-os/db/schema";
 import { hashPassword } from "@job-search-os/db/password";
 import { eq } from "drizzle-orm";
 import { TERMS_VERSION } from "../lib/terms";
+import { E2E_CRITERIA_RULES, repairEmptyCriteria } from "./criteria-rules";
 import { E2E_EMAIL, E2E_PASSWORD, E2E_USER_ID, ownerDb } from "./helpers";
 
 /**
@@ -34,6 +35,7 @@ export async function ensureSeedPerson(): Promise<void> {
         userId: E2E_USER_ID,
         displayName: "Persona de prueba",
         locationCountry: "AR",
+        careerAskedAt: new Date(), // R32-01: sin puestos, ya «pedida»
         inboundAddress: "u_qa_seed@ingest.test",
         profileSummary:
           "Perfil ficticio de la persona de prueba de los e2e. No corresponde a nadie real y solo existe en la base local.",
@@ -46,8 +48,10 @@ export async function ensureSeedPerson(): Promise<void> {
     if (!crit) {
       await db
         .insert(s.evaluationCriteria)
-        .values({ userId: E2E_USER_ID, version: 1, active: true, rules: {} as never });
+        .values({ userId: E2E_USER_ID, version: 1, active: true, rules: E2E_CRITERIA_RULES });
     }
+    // Una fila que dejó una versión anterior con `{}` hace reventar `decide()` al evaluar (spec 02)
+    await repairEmptyCriteria(db, E2E_USER_ID);
     await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
   } finally {
     await close();

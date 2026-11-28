@@ -35,7 +35,9 @@ test.describe("Preparar mi postulación", () => {
   }) => {
     await login(page);
     await page.goto(`/jobs/${conUrl}`);
-    await page.getByRole("link", { name: "Preparar mi postulación" }).click();
+    // R30-10: «Preparar mi postulación» es una sección plegable del detalle; el CV va por su enlace
+    await page.getByTestId("seccion-preparar").locator("summary").click();
+    await page.getByRole("link", { name: "Revisar mi CV para esta oferta" }).click();
     await expect(page).toHaveURL(new RegExp(`/jobs/${conUrl}/postular$`));
     await expect(
       page.getByRole("heading", { level: 1, name: "Preparar mi postulación" }),

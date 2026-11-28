@@ -412,18 +412,25 @@ export function definePersonaSpec(key: PersonaKey): void {
 
       await timed("/market", async () => {
         await page.goto("/market");
-        const market = page.getByTestId("role-market");
-        // La etiqueta sale del seed de roles: así no depende de cómo la nombre la 44
+        // R34-03: mercado mínimo. La etiqueta sale del seed de roles: así no depende de cómo la nombre la 44
         const label = (roleSkills as Record<string, { label: string }>)[persona.role]!.label;
-        await expect(market).toContainText(`El mercado de ${label}`);
-        await expect(market).not.toContainText(
-          `Todavía no hay ofertas públicas de ${label} para mostrar`,
-        );
-        const text = await market.innerText();
-        expect(
-          wanted.some((name) => text.includes(name)),
-          "alguna skill de sus ofertas aparece en el mercado del puesto",
-        ).toBe(true);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Mercado de ${label}`);
+        await expect(page.getByTestId("market-vacio")).toHaveCount(0);
+        await expect(page.getByTestId("market-ofertas")).toBeVisible();
+        // Las habilidades que piden sus ofertas solo se listan con 10 avisos vigentes o más; con las pocas
+        // ofertas sembradas acá la pantalla dice «todavía hay pocos datos». Se verifica una cosa o la otra
+        // (antes se exigía el nombre de una skill: ese dato ahora lo prueba `market-minimal.test.ts`).
+        const habilidades = page.getByTestId("market-habilidades");
+        await expect(habilidades).toBeVisible();
+        if ((await page.getByTestId("market-pocos").count()) > 0) {
+          await expect(page.getByTestId("market-pocos")).toContainText("Todavía hay pocos datos");
+        } else {
+          const text = await habilidades.innerText();
+          expect(
+            wanted.some((name) => text.includes(name)),
+            "alguna skill de sus ofertas aparece en el mercado del puesto",
+          ).toBe(true);
+        }
       });
 
       await timed("/plan", async () => {

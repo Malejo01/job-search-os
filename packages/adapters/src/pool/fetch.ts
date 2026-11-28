@@ -22,6 +22,7 @@ import { fetchGreenhouseBoard } from "../sources/greenhouse";
 import { fetchHimalayasJobs } from "../sources/himalayas";
 import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
+import { fetchReliefWebJobs } from "../sources/reliefweb";
 import { fetchRemoteOkJobs, REMOTEOK_API_DELAY_LOOKBACK_MS } from "../sources/remoteok";
 import { fetchRecruiteeBoard } from "../sources/recruitee";
 import { fetchSmartRecruitersBoard } from "../sources/smartrecruiters";
@@ -63,6 +64,8 @@ export const POOL_SOURCE_NAMES = [
   "workable",
   "recruitee",
   "smartrecruiters",
+  // R32-05 (ADR-028): con valor propio en el enum `source_kind` (migración 0090)
+  "reliefweb",
 ] as const;
 export type PoolSourceName = (typeof POOL_SOURCE_NAMES)[number];
 
@@ -112,6 +115,8 @@ export const POOL_SOURCE_KIND: Record<PoolSourceName, SourceKindValue> = {
   workable: "workable",
   recruitee: "recruitee",
   smartrecruiters: "smartrecruiters",
+  // Valor propio: no comparte historial ni intervalo con Jooble y Careerjet (`other`)
+  reliefweb: "reliefweb",
 };
 
 const HOUR_MS = 3_600_000;
@@ -131,6 +136,7 @@ export const POOL_MIN_INTERVAL_MS: Record<PoolSourceName, number> = {
   workable: 5 * HOUR_MS,
   recruitee: 5 * HOUR_MS,
   smartrecruiters: 5 * HOUR_MS,
+  reliefweb: 5 * HOUR_MS,
 };
 
 /** Los ATS pueden usar hasta 20 s de descarga: el tope real es lo que quede del presupuesto. */
@@ -151,6 +157,8 @@ const DEFAULT_TIMEOUT_MS: Record<PoolSourceName, number> = {
   workable: 20_000,
   recruitee: 20_000,
   smartrecruiters: 20_000,
+  // Hasta 4 pedidos en serie
+  reliefweb: 25_000,
 };
 /**
  * Tope total de una fuente ATS (descarga más upsert): así una fuente lenta no se come el
@@ -470,6 +478,25 @@ export function careerjetDownloader(
   };
 }
 
+/**
+ * ReliefWeb (ADR-028). Sin `RELIEFWEB_APPNAME` devuelve `[]` sin tocar la red. Hasta
+ * `RELIEFWEB_DEFAULT_MAX_PAGES` pedidos por corrida, filtrados por Argentina y la región. Una página con
+ * forma inesperada corta la corrida y deja `partialError: "parse"`; un HTTP de error lanza (el pool lo
+ * registra con su código cerrado, nunca con la URL).
+ */
+export function reliefwebDownloader(opts: { appname?: string } = {}): PoolDownloader {
+  return async ({ since, fetchImpl, userAgent }) => {
+    const appname = (opts.appname ?? process.env.RELIEFWEB_APPNAME ?? "").trim();
+    if (!appname) return [];
+    const r = await fetchReliefWebJobs({ appname, since, userAgent, fetchImpl });
+    return {
+      jobs: r.jobs,
+      seen: r.seen,
+      partialError: r.discardedPages > 0 ? ("parse" as const) : null,
+    };
+  };
+}
+
 export const POOL_DOWNLOADERS: PoolDownloaders = {
   getonboard: async ({ since, fetchImpl, userAgent }) => {
     const r = await fetchGetOnBoardJobs({
@@ -515,6 +542,7 @@ export const POOL_DOWNLOADERS: PoolDownloaders = {
   workable: atsDownloader("workable"),
   recruitee: atsDownloader("recruitee"),
   smartrecruiters: atsDownloader("smartrecruiters"),
+  reliefweb: reliefwebDownloader(),
 };
 
 export type PoolSourceResult = {

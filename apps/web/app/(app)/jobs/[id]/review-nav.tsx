@@ -54,14 +54,17 @@ export function ReviewNav({
     "inline-flex min-h-11 items-center rounded-control border border-line px-2.5 py-1 text-xs text-fg-subtle";
 
   return (
-    <nav aria-label="Revisión de ofertas" className="flex items-center justify-between gap-2">
+    <nav
+      aria-label="Revisión de ofertas"
+      className="flex flex-wrap items-center justify-between gap-2"
+    >
       <Link
         href={backHref}
         className="inline-flex min-h-11 items-center text-xs text-fg-subtle hover:underline"
       >
         ← Ofertas
       </Link>
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {prevHref ? (
           <Link href={prevHref} className={btn} title="Anterior (Alt+K)" rel="prev">
             ← Anterior

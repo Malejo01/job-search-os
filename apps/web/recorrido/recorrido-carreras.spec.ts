@@ -128,11 +128,14 @@ async function readCards(page: Page): Promise<Card[]> {
       const link = n.querySelector<HTMLAnchorElement>('a[href^="/jobs/"]');
       return {
         href: link?.getAttribute("href") ?? "",
-        title: n.querySelector("p")?.textContent?.trim() ?? "",
+        title: n.querySelector('[data-testid="tarjeta-titulo"]')?.textContent?.trim() ?? "",
         seal: n.querySelector("[data-seal]")?.getAttribute("data-seal") ?? null,
-        chipsMissing: [...n.querySelectorAll('[data-testid="tarjeta-chips"] > *')]
-          .filter((c) => /te falta/i.test(c.textContent ?? ""))
-          .map((c) => (c.getAttribute("title") ?? c.textContent ?? "").trim()),
+        // R30-04: lo que no coincide es la condición excluyente de arriba y lo sin confirmar de la línea
+        chipsMissing: [
+          ...n.querySelectorAll(
+            '[data-testid="tarjeta-no-coincide"], [data-testid="tarjeta-sin-confirmar"]',
+          ),
+        ].map((c) => (c.textContent ?? "").trim()),
       };
     }),
   );
@@ -234,7 +237,9 @@ test.describe("recorrido por carreras (solo lectura)", () => {
         await page.screenshot({ path: resolve(OUT, `${id}-1280.png`), fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
 
-        const evaluated = cards.filter((c) => c.href && c.seal !== "pendiente" && c.seal !== "sin");
+        const evaluated = cards.filter(
+          (c) => c.href && c.seal !== "pendiente" && c.seal !== "sin_evaluar",
+        );
         const tengo = new Set(p.skills.map((k) => k.slug));
         const ofertas: unknown[] = [];
         const pedidas = new Map<string, number>();

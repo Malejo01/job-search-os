@@ -36,7 +36,7 @@ test.describe("Flujo 257: festejo al enviar una postulación (R27-04)", () => {
     await page.goto(`/jobs/${jobId}`);
     await expect(page.getByTestId("festejo")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Marcar aplicada" }).click();
+    await page.getByRole("button", { name: "Ya me postulé" }).click();
     const festejo = page.getByTestId("festejo");
     await expect(festejo).toBeVisible();
     await expect(festejo).toHaveAttribute("data-festejo", "postulacion");
